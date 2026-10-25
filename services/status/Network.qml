@@ -1,8 +1,10 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Quickshell.Networking as QsNet
 
 // Клиент NetworkManager через Quickshell.Networking.
-// Только чтение: без connect, disconnect, wifiEnabled и сканера.
+// Статус подключения; управление соединениями открывается из панели.
 QtObject {
     id: root
 
@@ -14,6 +16,7 @@ QtObject {
     property bool degraded: false
     property string label: ""
     property bool watching: false
+    property bool scanning: false
 
     function publish(nextLabel, nextLinked, nextDegraded, nextAvailable) {
         label = nextLabel
@@ -90,10 +93,15 @@ QtObject {
             required property var modelData
 
             readonly property int kind: modelData.type
+            property Binding scanBinding: Binding {
+                target: kind === QsNet.DeviceType.Wifi ? modelData : null
+                property: "scannerEnabled"
+                value: root.scanning
+                when: kind === QsNet.DeviceType.Wifi
+                restoreMode: Binding.RestoreBindingOrValue
+            }
             readonly property bool up: {
                 if (modelData.connected)
-                    return true
-                if (modelData.type === QsNet.DeviceType.Wired && modelData.hasLink)
                     return true
                 return false
             }

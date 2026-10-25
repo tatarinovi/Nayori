@@ -16,7 +16,7 @@ Item {
     signal closeRequested()
     signal launched(string id)
 
-    readonly property int panelWidth: 560
+    property int panelWidth: 560
     readonly property int panelMaxHeight: 420
     readonly property int pad: tokens.spacing.medium
 
@@ -113,8 +113,8 @@ Item {
         if (!launchedId)
             return
         root.launched(launchedId)
-        root.closeRequested()
         root.close()
+        root.closeRequested()
     }
 
     function launchIndex(index) {
@@ -157,9 +157,9 @@ Item {
             return
         }
         if (event.key === Qt.Key_Escape) {
-            root.closeRequested()
             root.close()
             event.accepted = true
+            root.closeRequested()
         }
     }
 
@@ -364,7 +364,7 @@ Item {
                 id: favorites
                 width: column.width
                 tokens: root.tokenSet
-                entries: catalog.favorites
+                entries: root.searching ? [] : catalog.favorites
                 selectedIndex: root.searching ? -1 : root.selectedIndex
                 onActivated: function(entryId) { root.launchId(entryId) }
                 onHovered: function(index) {

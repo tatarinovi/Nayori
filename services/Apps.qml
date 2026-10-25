@@ -134,7 +134,9 @@ QtObject {
         const name = icon === undefined || icon === null ? "" : String(icon).trim()
         if (name.length === 0)
             return ""
-        if (name.charAt(0) === "/" || name.startsWith("file:"))
+        if (name.charAt(0) === "/")
+            return "file://" + name
+        if (name.startsWith("file:"))
             return name
         try {
             if (!Quickshell.hasThemeIcon(name))

@@ -25,6 +25,15 @@ QtObject {
         return pct + "%"
     }
 
+    property QsPw.PwObjectTracker tracker: QsPw.PwObjectTracker {
+        objects: root.sink ? [root.sink] : []
+    }
+
+    function setVolume(value) {
+        if (available && isFinite(value))
+            sink.audio.volume = Math.max(0, Math.min(1, value))
+    }
+
     function toggleMuted() {
         if (!available || sink === null || sink.audio === null)
             return

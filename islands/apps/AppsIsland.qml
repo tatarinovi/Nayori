@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Widgets
 import "../../services/niri"
+import "../shared"
 
 // Остров открытых окон. Без PanelWindow: размер из содержимого,
 // хром как у центрального острова в shell.qml.
@@ -14,9 +15,9 @@ Rectangle {
     property string outputName: ""
 
     readonly property int pad: tokens.spacing.small
-    readonly property int slot: tokens.spacing.large
-    readonly property int gap: tokens.spacing.small
-    // Одна строка внутри высоты острова (slot + pad * 2 = 40).
+    readonly property int slot: 40
+    readonly property int gap: 4
+    // Одна строка внутри высоты острова (slot + pad * 2 = 56).
     // Пять знаков — ширина нынешней заглушки без метки лаунчера.
     readonly property int maxVisible: 5
 
@@ -56,6 +57,9 @@ Rectangle {
             return 0
         return view.overflow
     }
+
+    readonly property bool hasWindows: visibleWindows.length > 0
+    visible: hasWindows
 
     implicitWidth: Math.max(implicitHeight, cluster.implicitWidth + pad * 2)
     implicitHeight: slot + pad * 2
@@ -211,7 +215,9 @@ Rectangle {
         const name = String(entry.icon)
         if (name.length === 0)
             return ""
-        if (name.charAt(0) === "/" || name.startsWith("file:"))
+        if (name.charAt(0) === "/")
+            return "file://" + name
+        if (name.startsWith("file:"))
             return name
         try {
             if (!Quickshell.hasThemeIcon(name))
@@ -273,6 +279,15 @@ Rectangle {
         width: root.slot
         height: root.slot
 
+        activeFocusOnTab: true
+        Keys.onReturnPressed: root.focusAt(windowId)
+        Keys.onSpacePressed: root.focusAt(windowId)
+        PanelTooltip {
+            tokens: root.tokens
+            target: mark
+            hovered: windowMouse.containsMouse && !windowMouse.pressed
+            text: mark.title.length > 0 ? mark.title : mark.appId
+        }
         Accessible.role: Accessible.Button
         Accessible.name: title.length > 0 ? title : appId
         Accessible.onPressAction: root.focusAt(windowId)
@@ -280,8 +295,8 @@ Rectangle {
         Rectangle {
             anchors.fill: parent
             radius: root.tokens.radius.small
-            color: mark.focused ? root.tokens.color.surface : "transparent"
-            border.width: mark.focused ? 1 : 0
+            color: mark.focused || windowMouse.containsMouse ? root.tokens.color.surface : "transparent"
+            border.width: mark.focused || mark.activeFocus ? 1 : 0
             border.color: root.tokens.color.accent
             antialiasing: true
         }
@@ -289,7 +304,7 @@ Rectangle {
         IconImage {
             id: iconImage
             anchors.centerIn: parent
-            implicitSize: root.tokens.spacing.medium
+            implicitSize: 26
             width: implicitSize
             height: implicitSize
             visible: mark.iconUrl !== "" && status !== Image.Error
@@ -325,6 +340,8 @@ Rectangle {
         }
 
         MouseArea {
+            id: windowMouse
+            hoverEnabled: true
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton
             cursorShape: Qt.PointingHandCursor

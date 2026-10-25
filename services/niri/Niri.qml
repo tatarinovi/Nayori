@@ -90,15 +90,38 @@ QtObject {
         }
     }
 
-    function windowObject(id, appId, title, workspaceId, output, focused) {
+    function windowObject(id, appId, title, workspaceId, output, focused, layout, floating) {
+        var geometry = mapGeometry(layout)
         return {
             id: id,
             appId: appId,
             title: title,
             workspaceId: workspaceId,
             output: output,
-            focused: focused
+            focused: focused,
+            floating: floating === true,
+            layout: layout || null,
+            geometryKnown: geometry !== null,
+            geometry: geometry
         }
+    }
+
+    // Niri 26.04 only exposes viewport positions for some window types.
+    // In particular, tiled positions are null: never invent a viewport offset.
+    // Rectangles include compositor decorations and use workspace-view logical pixels.
+    function mapGeometry(layout) {
+        if (!layout)
+            return null
+        var pos = layout.tile_pos_in_workspace_view
+        var size = layout.tile_size
+        if (!Array.isArray(pos) || !Array.isArray(size) || pos.length !== 2 || size.length !== 2)
+            return null
+        for (var i = 0; i < 2; ++i) {
+            if (typeof pos[i] !== "number" || !isFinite(pos[i])
+                || typeof size[i] !== "number" || !isFinite(size[i]) || size[i] <= 0)
+                return null
+        }
+        return { x: pos[0], y: pos[1], width: size[0], height: size[1] }
     }
 
     function mapWorkspace(raw) {
@@ -125,7 +148,9 @@ QtObject {
             asString(raw.title),
             workspaceId,
             outputForWorkspace(workspaceId),
-            raw.is_focused === true
+            raw.is_focused === true,
+            raw.layout,
+            raw.is_floating === true
         )
     }
 
@@ -156,7 +181,7 @@ QtObject {
             var window = current[i]
             var output = outputForWorkspace(window.workspaceId)
             if (output !== window.output) {
-                next.push(windowObject(window.id, window.appId, window.title, window.workspaceId, output, window.focused))
+                next.push(windowObject(window.id, window.appId, window.title, window.workspaceId, output, window.focused, window.layout, window.floating))
                 changed = true
             } else {
                 next.push(window)
@@ -309,6 +334,10 @@ QtObject {
             applyWindowClosed(msg.WindowClosed, epoch)
             return
         }
+        if (msg.WindowLayoutsChanged !== undefined) {
+            applyWindowLayoutsChanged(msg.WindowLayoutsChanged, epoch)
+            return
+        }
         if (msg.WindowFocusChanged !== undefined) {
             applyWindowFocusChanged(msg.WindowFocusChanged, epoch)
             return
@@ -422,7 +451,7 @@ QtObject {
             } else if (window.focused && existing.focused) {
                 next.push(windowObject(
                     existing.id, existing.appId, existing.title, existing.workspaceId,
-                    existing.output, false
+                    existing.output, false, existing.layout, existing.floating
                 ))
             } else {
                 next.push(existing)
@@ -453,6 +482,33 @@ QtObject {
             _windows = next
     }
 
+    function applyWindowLayoutsChanged(body, epoch) {
+        if (epoch !== _streamEpoch || !body || !Array.isArray(body.changes))
+            return
+        var layouts = {}
+        for (var i = 0; i < body.changes.length; ++i) {
+            var change = body.changes[i]
+            if (Array.isArray(change) && change.length === 2 && isId(change[0])
+                && change[1] && typeof change[1] === "object")
+                layouts[change[0]] = change[1]
+        }
+        var next = []
+        var changed = false
+        for (var j = 0; j < _windows.length; ++j) {
+            var window = _windows[j]
+            if (Object.prototype.hasOwnProperty.call(layouts, window.id)) {
+                next.push(windowObject(window.id, window.appId, window.title,
+                    window.workspaceId, window.output, window.focused,
+                    layouts[window.id], window.floating))
+                changed = true
+            } else {
+                next.push(window)
+            }
+        }
+        if (changed && epoch === _streamEpoch)
+            _windows = next
+    }
+
     function applyWindowFocusChanged(body, epoch) {
         if (epoch !== _streamEpoch)
             return
@@ -469,7 +525,7 @@ QtObject {
             if (focused !== window.focused) {
                 next.push(windowObject(
                     window.id, window.appId, window.title, window.workspaceId,
-                    window.output, focused
+                    window.output, focused, window.layout, window.floating
                 ))
             } else {
                 next.push(window)

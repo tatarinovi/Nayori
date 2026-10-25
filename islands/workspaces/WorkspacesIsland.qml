@@ -1,65 +1,76 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import "../../services/niri"
 
-// Тело острова рабочих столов. Окно панели сюда не входит.
-// Высота 40 и радиус 14 совпадают с DockIsland в shell.qml: шаг 8 вокруг ячейки 24, радиус 6+8.
+// Quiet workspace track: the current desk expands, occupied desks stay visible.
 Rectangle {
     id: root
 
     required property var tokens
     property string outputName: ""
 
-    readonly property int pad: tokens.spacing.small
     readonly property string chosenOutput: outputName ? outputName : Niri.focusedOutput
     readonly property var shown: {
-        var available = Niri.available
         var source = Niri.workspaces
-        var chosen = chosenOutput
-        if (!available || !source || source.length === undefined)
+        if (!Niri.available || !source || source.length === undefined)
             return []
-        var list = []
-        for (var i = 0; i < source.length; ++i) {
-            var workspace = source[i]
-            if (!workspace)
-                continue
-            if (String(workspace.output || "") !== chosen)
-                continue
-            list.push(workspace)
-        }
-        list.sort(function (a, b) {
-            return a.idx - b.idx
-        })
-        return list
+        return source.filter(function (workspace) {
+            return workspace && String(workspace.output || "") === root.chosenOutput
+        }).sort(function (a, b) { return a.idx - b.idx })
     }
 
-    implicitWidth: cluster.implicitWidth + pad * 2
-    implicitHeight: tokens.spacing.large + pad * 2
+    function windowCount(id) {
+        return Niri.windows.filter(function (window) {
+            return window.workspaceId === id
+        }).length
+    }
+
+    function step(direction) {
+        for (var i = 0; i < shown.length; ++i) {
+            if (shown[i].active === true) {
+                var next = i + direction
+                if (next >= 0 && next < shown.length)
+                    Niri.focusWorkspace(shown[next].id)
+                return
+            }
+        }
+    }
+
+    implicitWidth: cluster.implicitWidth + 16
+    implicitHeight: 48
     width: implicitWidth
     height: implicitHeight
-    radius: tokens.radius.small + pad
+    radius: tokens.radius.small + 8
     color: tokens.color.surfaceAlt
     border.width: 1
     border.color: tokens.color.border
     antialiasing: true
 
+    WheelHandler {
+        onWheel: function (event) {
+            var delta = event.angleDelta.y || event.angleDelta.x
+            if (delta !== 0)
+                root.step(delta < 0 ? 1 : -1)
+            event.accepted = true
+        }
+    }
+
     Row {
         id: cluster
         anchors.centerIn: parent
-        spacing: tokens.spacing.small
+        spacing: 2
 
-        // Нет сокета или на этом выходе нет столов. Не кнопки и не ряд цифр.
         Item {
             visible: root.shown.length === 0
-            width: root.tokens.spacing.large
-            height: root.tokens.spacing.large
-
+            width: 28
+            height: 32
             Rectangle {
                 anchors.centerIn: parent
-                width: root.tokens.spacing.medium
+                width: 12
                 height: 4
                 radius: 2
                 color: root.tokens.color.accentSoft
-                antialiasing: true
             }
         }
 
@@ -67,53 +78,81 @@ Rectangle {
             model: root.shown
 
             delegate: Item {
+                id: desk
                 required property var modelData
+                readonly property bool current: modelData.active === true
+                readonly property bool urgent: modelData.urgent === true
+                readonly property int windows: root.windowCount(modelData.id)
+                readonly property bool highlighted: pointer.containsMouse || activeFocus
+                readonly property string description: "Workspace " + modelData.idx
+                    + (modelData.name ? " · " + modelData.name : "")
+                    + (current ? " · current" : "")
+                    + (urgent ? " · needs attention" : "")
+                    + " · " + windows + (windows === 1 ? " window" : " windows")
 
-                width: root.tokens.spacing.large
-                height: root.tokens.spacing.large
+                width: current ? 36 : 28
+                height: 32
+                activeFocusOnTab: true
+                Accessible.role: Accessible.Button
+                Accessible.name: description
+                Accessible.onPressAction: Niri.focusWorkspace(modelData.id)
+                Keys.onReturnPressed: Niri.focusWorkspace(modelData.id)
+                Keys.onSpacePressed: Niri.focusWorkspace(modelData.id)
+                Keys.onLeftPressed: root.step(-1)
+                Keys.onRightPressed: root.step(1)
 
                 Rectangle {
                     anchors.fill: parent
-                    visible: modelData.active === true
-                    radius: root.tokens.radius.small
-                    color: root.tokens.color.surface
-                    antialiasing: true
-                }
-
-                Text {
-                    anchors.centerIn: parent
-                    text: String(modelData.idx)
-                    color: modelData.active === true ? root.tokens.color.text : root.tokens.color.textMuted
-                    font.family: root.tokens.type.body.family
-                    font.pixelSize: root.tokens.type.body.size
-                    font.weight: root.tokens.type.body.weight
-                    font.letterSpacing: root.tokens.type.body.letterSpacing
-                    font.features: ({ "tnum": 1, "lnum": 1 })
-                    lineHeight: root.tokens.type.body.lineHeight
-                    lineHeightMode: Text.ProportionalHeight
-                    renderType: Text.NativeRendering
-                    textFormat: Text.PlainText
+                    radius: 16
+                    color: desk.highlighted ? root.tokens.color.surface : "transparent"
+                    border.width: desk.activeFocus ? 1 : 0
+                    border.color: root.tokens.color.text
+                    scale: pointer.pressed && !root.tokens.motion.off ? 0.96 : 1
+                    Behavior on scale { NumberAnimation { duration: root.tokens.motion.off ? 0 : 100; easing.type: Easing.OutCubic } }
                 }
 
                 Rectangle {
-                    visible: modelData.urgent === true
-                    width: 5
-                    height: 5
+                    anchors.centerIn: parent
+                    visible: desk.current
+                    width: 24
+                    height: 8
+                    radius: 4
+                    color: root.tokens.color.accent
+                }
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    visible: !desk.current
+                    width: desk.windows > 0 || desk.urgent ? 7 : 5
+                    height: width
                     radius: width / 2
-                    anchors.top: parent.top
-                    anchors.right: parent.right
-                    color: root.tokens.color.secondary
+                    color: desk.urgent ? root.tokens.color.secondary
+                        : desk.windows > 0 ? root.tokens.color.accent : "transparent"
+                    border.width: desk.windows === 0 && !desk.urgent ? 1 : 0
+                    border.color: root.tokens.color.textMuted
                     antialiasing: true
+                }
+
+                Rectangle {
+                    visible: desk.urgent && (desk.current || desk.highlighted)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 3
+                    width: 4
+                    height: 4
+                    radius: 2
+                    color: root.tokens.color.secondary
                 }
 
                 MouseArea {
+                    id: pointer
                     anchors.fill: parent
+                    hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (modelData)
-                            Niri.focusWorkspace(modelData.id)
-                    }
+                    onClicked: Niri.focusWorkspace(desk.modelData.id)
                 }
+
+
             }
         }
     }

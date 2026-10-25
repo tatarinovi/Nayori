@@ -54,7 +54,16 @@ QtObject {
         }
     }
 
+    readonly property QtObject panel: QtObject {
+        readonly property int control: 32
+        readonly property int height: 48
+        readonly property int padding: 8
+        readonly property int gap: 4
+    }
+
     readonly property QtObject motion: QtObject {
+        // One switch for ornamental motion; state changes remain immediate.
+        property bool off: false
         readonly property int fast: 140
         readonly property int base: 220
     }
