@@ -5,6 +5,8 @@ const pet = moduleAt('services/companion/NaomiBehavior.js')
 const talk = moduleAt('services/companion/NaomiDialogue.js')
 const data = moduleAt('services/companion/NaomiLines.js')
 const lines = data.lines
+const sysData = moduleAt('services/companion/NaomiSystemData.js').data
+const ev = moduleAt('services/companion/NaomiSystemEvents.js')
 const seeded = seed => () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646 }
 const ENABLED = { enabled: true, reduced: false }
 
@@ -242,3 +244,282 @@ assert.equal(talk.react(talk.create(null), 'petStart', null, {}), null)
 const single = talk.create({ petStart: ['Только я.'] }, seeded(1))
 assert.equal(talk.react(single, 'petStart', seeded(2), {}), 'Только я.')
 console.log('NAOMI_DIALOGUE_PASS')
+
+// --- системные реплики ---
+// Тексты дословно, как в задании; подставляются только {percent} и {time}.
+const VERBATIM = {
+    cpu: 'Твой процессор работает за троих. Надеюсь, ему хотя бы платят за переработки',
+    idle: 'Ты уже десять минут смотришь в экран. Я тоже. У нас соревнование?',
+    terminal: 'Опять терминал? Надеюсь, сегодня без sudo rm -rf...',
+    game: 'Побеждать необязательно. Но если проиграешь, я сделаю вид, что не видела',
+    battery: 'У нас осталось 10% заряда. У тебя, судя по лицу, примерно столько же',
+    windows: 'Столько окон... Ты работаешь или пытаешься проветрить оперативную память?',
+    night: 'Уже три часа ночи. Я, конечно, ночное создание, но даже мне это кажется подозрительным',
+    update: 'Обновляемся? Интересно, сколько новых способов сломаться нам сегодня подарят',
+    offline: 'Интернет пропал. Теперь тебе придётся общаться со мной. Какое трагическое совпадение',
+    return: 'О, ты вернулся. Я не скучала. Просто проверяла, не завис ли ты'
+}
+assert.deepEqual(Object.keys(lines.system).sort(), Object.keys(VERBATIM).sort(), 'десять системных реплик')
+const probe = ev.create(sysData, lines)
+assert.deepEqual(ev.kinds(probe).sort(), Object.keys(VERBATIM).sort())
+for (const [kind, text] of Object.entries(VERBATIM)) {
+    assert.equal(ev.preview(probe, kind, kind === 'battery' ? 10 : kind === 'night' ? 3 : undefined, 14), text, 'дословно: ' + kind)
+    assert(text.length <= 100, kind + ': влезает в облако на пять строк')
+    const k = sysData.kinds[kind]
+    assert(k && [1, 2, 3].includes(k.priority) && k.cooldown >= 0 && k.expire > 0, 'данные вида ' + kind)
+}
+assert.equal(ev.preview(probe, 'nope'), '', 'неизвестный вид — пусто')
+
+// Подстановка процента и склонение часа.
+assert.equal(ev.preview(probe, 'battery', undefined), lines.system.battery.replace('{percent}', '15'), 'по умолчанию 15%')
+for (const p of [15, 10, 5, 20, 1]) assert(ev.preview(probe, 'battery', p).startsWith(`У нас осталось ${p}% заряда.`), 'процент ' + p)
+assert(ev.preview(probe, 'battery', 14.6).startsWith('У нас осталось 15% заряда'), 'процент округляется')
+const NIGHT = ['Уже полночь.', 'Уже час ночи.', 'Уже два часа ночи.', 'Уже три часа ночи.', 'Уже четыре часа ночи.', 'Уже пять утра.']
+for (let h = 0; h <= 5; h++) {
+    const text = ev.preview(probe, 'night', h)
+    assert(text.startsWith(NIGHT[h] + ' Я, конечно, ночное создание, но даже мне это кажется подозрительным'), `ночь ${h}: ${text}`)
+}
+assert(ev.preview(probe, 'night', undefined, 4).startsWith('Уже четыре часа ночи.'), 'ночью без значения — текущий час')
+assert(ev.preview(probe, 'night', undefined, 14).startsWith('Уже три часа ночи.'), 'днём без значения — три часа ночи')
+assert(!/\{|\}/.test(ev.preview(probe, 'night', 99)) && ev.preview(probe, 'night', 99).startsWith('Уже пять утра'), 'час вне диапазона не ломает текст')
+
+// Классификация app_id: терминалы, игры, прочее. Списки живут в данных.
+for (const id of ['kitty', 'foot', 'Alacritty', 'org.wezfurlong.wezterm', 'com.mitchellh.ghostty', 'org.kde.konsole', 'gnome-terminal-server', 'xterm'])
+    assert.equal(ev.classify(sysData, id), 'terminal', id)
+for (const id of ['steam_app_730', 'gamescope', 'lutris', 'net.lutris.Lutris', 'heroic', 'game.exe', 'steam_app_0'])
+    assert.equal(ev.classify(sysData, id), 'game', id)
+for (const id of ['', undefined, null, 'firefox', 'steam', 'code', 'org.telegram.desktop', '.exe', 'kittycat'])
+    assert.equal(ev.classify(sysData, id), '', 'не терминал и не игра: ' + id)
+
+// Разбор процессов обновления: только настоящее обновление, не поиск и не установка.
+assert.equal(ev.scanUpdate(''), false)
+assert.equal(ev.scanUpdate('1234 pacman -Syu'), true)
+assert.equal(ev.scanUpdate('1234 /usr/bin/pacman -Su --noconfirm'), true)
+assert.equal(ev.scanUpdate('1234 pacman -Syyu'), true)
+assert.equal(ev.scanUpdate('1234 pacman --sync --sysupgrade'), true)
+assert.equal(ev.scanUpdate('77 paru\n'), true, 'paru без аргументов обновляет')
+assert.equal(ev.scanUpdate('77 yay -Syu'), true)
+assert.equal(ev.scanUpdate('77 yay -Sua'), true)
+assert.equal(ev.scanUpdate('88 topgrade'), true)
+assert.equal(ev.scanUpdate('77 yay -Ss firefox'), false, 'поиск — не обновление')
+assert.equal(ev.scanUpdate('77 pacman -S firefox'), false, 'установка — не обновление')
+assert.equal(ev.scanUpdate('77 pacman -Qu'), false)
+assert.equal(ev.scanUpdate('LOCK\n77 pacman -S firefox'), false, 'блокировка с видимой установкой — не обновление')
+assert.equal(ev.scanUpdate('LOCK'), true, 'блокировка без видимых процессов')
+assert.equal(ev.scanUpdate('мусор без номера\n\n'), false)
+
+// Прогон: s — состояние детекторов; шаг 0,5 с. Возвращает показанные реплики [{kind,text}].
+const ENV = { enabled: true, active: true, quiet: false, hour: 14, dayKey: 'd1', userIdle: false, cpu: 0, cloud: 'free' }
+function fresh() { const s = ev.create(sysData, lines); go(s, 25); return s }   // после тишины при запуске
+function go(s, secs, env) {
+    const out = []
+    for (let t = 0; t < secs - 1e-9; t += 0.5) { const r = ev.tick(s, 0.5, Object.assign({}, ENV, env)); if (r) out.push(r) }
+    return out
+}
+const kindsOf = out => out.map(o => o.kind)
+const win = (id, appId) => ({ id, appId })
+function winList(n, extra) { const l = []; for (let i = 1; i <= n; i++) l.push(win(i, 'app' + i)); return l.concat(extra || []) }
+
+// Тишина после запуска: реплика не раньше startupQuiet.
+let s2 = ev.create(sysData, lines)
+ev.battery(s2, { present: true, percent: 8, charging: false })
+assert.deepEqual(go(s2, 10), [], 'первые секунды после запуска тихо')
+assert.deepEqual(kindsOf(go(s2, 12)), ['battery'], 'потом заряд всё же упомянут')
+
+// CPU: устойчиво выше 85% в среднем за 30 с, с гистерезисом и кулдауном.
+s2 = fresh()
+assert.deepEqual(go(s2, 12, { cpu: 0.99 }), [], 'короткий всплеск не повод')
+assert.deepEqual(go(s2, 60, { cpu: 0.1 }), [])
+s2 = fresh()
+let out = go(s2, 20, { cpu: 0.95 }); assert.equal(out.length, 0, 'среднее за 30 с ещё ниже порога — рано')
+out = go(s2, 15, { cpu: 0.95 }); assert.deepEqual(kindsOf(out), ['cpu'], 'устойчиво высокая нагрузка — реплика')
+assert.equal(out[0].text, VERBATIM.cpu)
+assert.deepEqual(go(s2, 300, { cpu: 0.99 }), [], 'пока висит — молчит')
+assert.deepEqual(go(s2, 120, { cpu: 0.7 }), [], 'между порогами снова не взводится'); assert.equal(s2.cpu.armed, false)
+go(s2, 40, { cpu: 0.3 }); assert.equal(s2.cpu.armed, true, 'ниже 60% — взведено')
+assert.deepEqual(go(s2, 60, { cpu: 0.99 }), [], 'кулдаун 20 минут держит повтор')
+go(s2, 1300, { cpu: 0.2 })
+assert.deepEqual(kindsOf(go(s2, 40, { cpu: 0.99 })), ['cpu'], 'после кулдауна — снова')
+s2 = fresh()
+assert.deepEqual(go(s2, 120, { cpu: 0.8 }), [], '80% — ниже порога')
+assert.deepEqual(go(s2, 5, { cpu: NaN }), [], 'мусорные отсчёты не ломают')
+
+// Бездействие и возвращение. idle10 и return не конфликтуют, у каждого свой кулдаун.
+s2 = fresh()
+ev.idle(s2, 'away', true)
+assert.deepEqual(go(s2, 5), [], 'ушёл на минуту — молчим')
+ev.idle(s2, 'away', false)
+out = go(s2, 1); assert.deepEqual(kindsOf(out), ['return']); assert.equal(out[0].text, VERBATIM.return)
+ev.idle(s2, 'away', true); ev.idle(s2, 'away', false)
+assert.deepEqual(go(s2, 100), [], 'возвращение не чаще раза в 10 минут')
+ev.idle(s2, 'away', false); assert.deepEqual(go(s2, 5), [], 'действие без ухода — не возвращение')
+s2 = fresh()
+ev.idle(s2, 'away', true); ev.idle(s2, 'long', true)
+out = go(s2, 1); assert.deepEqual(kindsOf(out), ['idle']); assert.equal(out[0].text, VERBATIM.idle)
+go(s2, 60)
+ev.idle(s2, 'long', false); ev.idle(s2, 'away', false)
+assert.deepEqual(kindsOf(go(s2, 1)), ['return'], 'после реплики про бездействие возвращение тоже говорит')
+ev.idle(s2, 'long', true); assert.deepEqual(go(s2, 60), [], 'кулдаун бездействия')
+// Вернулся сразу после реплики про бездействие: возвращение ждёт общий интервал, но устаревает за 20 с.
+s2 = fresh(); ev.idle(s2, 'away', true); ev.idle(s2, 'long', true); go(s2, 1)
+ev.idle(s2, 'long', false); ev.idle(s2, 'away', false)
+assert.deepEqual(go(s2, 60), [], 'возвращение сразу за репликой про бездействие не наслаивается')
+
+// Окна: терминал, игра, число окон. Исходные окна и висящее «много окон» поводом не считаются.
+s2 = ev.create(sysData, lines); go(s2, 25)
+ev.windows(s2, winList(8, [win(20, 'kitty'), win(21, 'steam_app_1')]), true)
+go(s2, 4); ev.windows(s2, winList(8, [win(20, 'kitty'), win(21, 'steam_app_1')]), true)
+assert.deepEqual(go(s2, 60), [], 'окна, открытые до запуска, не повод')
+ev.windows(s2, winList(8, [win(20, 'kitty'), win(21, 'steam_app_1'), win(22, 'foot')]), true)
+out = go(s2, 1); assert.deepEqual(kindsOf(out), ['terminal'], 'новый терминал'); assert.equal(out[0].text, VERBATIM.terminal)
+ev.windows(s2, winList(8, [win(20, 'kitty'), win(21, 'steam_app_1'), win(22, 'foot'), win(23, 'alacritty')]), true)
+assert.deepEqual(go(s2, 100), [], 'второй терминал сразу — кулдаун вида и общий интервал')
+ev.windows(s2, winList(8, [win(20, 'kitty'), win(21, 'steam_app_1'), win(22, 'foot'), win(23, 'alacritty'), win(24, 'steam_app_7')]), true)
+out = go(s2, 1); assert.deepEqual(kindsOf(out), ['game'], 'новая игра'); assert.equal(out[0].text, VERBATIM.game)
+ev.windows(s2, [], false); ev.windows(s2, winList(3), true)
+assert.deepEqual(go(s2, 30), [], 'переподключение к niri — снова исходные окна')
+
+s2 = fresh(); ev.windows(s2, [], true)
+go(s2, 4); ev.windows(s2, winList(2), true)
+out = go(s2, 1); assert.deepEqual(out, [], 'окна есть, но не терминал')
+ev.windows(s2, [win(1, ''), win(2, 'firefox')], true); ev.windows(s2, [win(1, 'kitty'), win(2, 'firefox')], true)
+assert.deepEqual(kindsOf(go(s2, 1)), ['terminal'], 'app_id пришёл сразу после открытия')
+s2 = fresh(); ev.windows(s2, [], true); go(s2, 4)
+ev.windows(s2, [win(1, '')], true); go(s2, 10); ev.windows(s2, [win(1, 'kitty')], true)
+assert.deepEqual(go(s2, 5), [], 'app_id сменился через долгое время — не новое окно')
+
+// Больше пяти окон: при пересечении вверх, не пока висит, повтор — после кулдауна.
+s2 = fresh(); ev.windows(s2, [], true); go(s2, 4)
+for (let n = 1; n <= 5; n++) ev.windows(s2, winList(n), true)
+assert.deepEqual(go(s2, 5), [], 'пять окон — ещё не больше пяти')
+ev.windows(s2, winList(6), true)
+out = go(s2, 1); assert.deepEqual(kindsOf(out), ['windows']); assert.equal(out[0].text, VERBATIM.windows)
+ev.windows(s2, winList(7), true); ev.windows(s2, winList(9), true)
+assert.deepEqual(go(s2, 100), [], 'пока висит — молчит')
+ev.windows(s2, winList(5), true); ev.windows(s2, winList(6), true)
+assert.deepEqual(go(s2, 100), [], 'снова вверх, но кулдаун 30 минут')
+ev.windows(s2, winList(4), true); go(s2, 1800); ev.windows(s2, winList(6), true)
+assert.deepEqual(kindsOf(go(s2, 1)), ['windows'], 'после кулдауна — снова')
+
+// Батарея: пороги 20/10/5 по одному разу, зарядка взводит заново, без батареи ничего.
+s2 = fresh()
+ev.battery(s2, { present: false, percent: 3, charging: false }); assert.deepEqual(go(s2, 30), [], 'нет батареи (десктоп)')
+ev.battery(s2, { present: true, percent: 50, charging: false }); assert.deepEqual(go(s2, 30), [])
+ev.battery(s2, { present: true, percent: 20, charging: true }); assert.deepEqual(go(s2, 30), [], 'на зарядке молчит')
+ev.battery(s2, { present: true, percent: 21, charging: false }); assert.deepEqual(go(s2, 30), [], '21% — ещё не порог')
+ev.battery(s2, { present: true, percent: 20, charging: false })
+out = go(s2, 1); assert.equal(out.length, 1); assert.equal(out[0].text.slice(0, 24), 'У нас осталось 20% заряд')
+ev.battery(s2, { present: true, percent: 19, charging: false }); assert.deepEqual(go(s2, 60), [], 'порог 20 один раз')
+ev.battery(s2, { present: true, percent: 10, charging: false })
+out = go(s2, 1); assert.equal(out.length, 1); assert(out[0].text.includes('10%'), out[0].text)
+ev.battery(s2, { present: true, percent: 5, charging: false }); out = go(s2, 11)
+assert.equal(out.length, 1); assert(out[0].text.includes('5%'), 'порог 5%: ' + out[0].text)
+assert.deepEqual(go(s2, 600), [], 'ниже 5% — больше ничего')
+ev.battery(s2, { present: true, percent: 40, charging: true }); go(s2, 30)
+ev.battery(s2, { present: true, percent: 17, charging: false })
+assert.equal(go(s2, 12).length, 1, 'после зарядки пороги работают снова')
+s2 = fresh(); ev.battery(s2, { present: true, percent: 4, charging: false })
+out = go(s2, 60); assert.equal(out.length, 1, 'резкое падение сразу ниже всех порогов — одна реплика'); assert(out[0].text.includes('4%'))
+s2 = fresh(); ev.battery(s2, { present: true, percent: 30, charging: false }); ev.battery(s2, { present: true, percent: 24, charging: false })
+assert.deepEqual(go(s2, 30), [], '24% — выше порога'); ev.battery(s2, { present: true, percent: 18, charging: false }); assert.equal(go(s2, 2).length, 1)
+ev.battery(s2, { present: true, percent: 22, charging: false }); ev.battery(s2, { present: true, percent: 19, charging: false })
+assert.deepEqual(go(s2, 60), [], 'колебание около порога без выхода выше 25% не повторяет')
+ev.battery(s2, { present: true, percent: NaN, charging: false }); assert.deepEqual(go(s2, 5), [], 'мусор не ломает')
+s2 = fresh(); ev.battery(s2, { present: true, percent: 15, charging: false }); ev.battery(s2, { present: true, percent: 15, charging: true })
+assert.deepEqual(go(s2, 5), [], 'поставили на зарядку, пока реплика ждала, — устарела')
+
+// Интернет: после устойчивой потери 8 с и только если до этого был.
+s2 = fresh()
+ev.network(s2, 'offline'); assert.deepEqual(go(s2, 60), [], 'запуск без сети не повод')
+ev.network(s2, 'online'); go(s2, 10)
+ev.network(s2, 'offline'); assert.deepEqual(go(s2, 5), [], 'короткий обрыв не повод')
+ev.network(s2, 'online'); assert.deepEqual(go(s2, 20), [])
+ev.network(s2, 'offline'); assert.deepEqual(go(s2, 7), [], '7 с ещё рано')
+out = go(s2, 2); assert.deepEqual(kindsOf(out), ['offline']); assert.equal(out[0].text, VERBATIM.offline)
+assert.deepEqual(go(s2, 100), [], 'пока нет сети — один раз')
+ev.network(s2, 'online'); go(s2, 5); ev.network(s2, 'offline')
+assert.deepEqual(go(s2, 60), [], 'новый обрыв в пределах 10 минут — кулдаун')
+go(s2, 100); ev.network(s2, 'online'); go(s2, 700); ev.network(s2, 'offline')
+assert.deepEqual(kindsOf(go(s2, 10)), ['offline'], 'через 10 минут — снова')
+s2 = fresh(); ev.network(s2, 'online'); go(s2, 5); ev.network(s2, 'unknown'); assert.deepEqual(go(s2, 60), [], 'неизвестное состояние — не потеря')
+s2 = fresh(); ev.network(s2, 'online'); go(s2, 5); ev.network(s2, 'offline'); go(s2, 9, { cloud: 'busy' }); ev.network(s2, 'online')
+assert.deepEqual(go(s2, 5), [], 'пока ждала очереди, сеть вернулась — реплика устарела')
+
+// Обновление системы: начало, а не наличие; первый опрос — исходное состояние.
+s2 = fresh(); ev.update(s2, true); assert.deepEqual(go(s2, 30), [], 'обновление уже шло до запуска оболочки')
+for (let i = 0; i < 3; i++) ev.update(s2, false)
+ev.update(s2, true); out = go(s2, 1); assert.deepEqual(kindsOf(out), ['update']); assert.equal(out[0].text, VERBATIM.update)
+ev.update(s2, true); ev.update(s2, false); ev.update(s2, true)
+assert.deepEqual(go(s2, 100), [], 'пауза между шагами paru — не новое обновление')
+s2 = fresh(); ev.update(s2, false); ev.update(s2, true); assert.deepEqual(kindsOf(go(s2, 1)), ['update'], 'нет → есть: начало')
+
+// Ночь: один раз за ночь, по часу, не днём, не когда ушёл.
+s2 = fresh()
+assert.deepEqual(go(s2, 60, { hour: 14 }), [], 'днём не говорит')
+out = go(s2, 1, { hour: 3, dayKey: 'n1' }); assert.equal(out.length, 1); assert.equal(out[0].text, VERBATIM.night)
+assert.deepEqual(go(s2, 7200, { hour: 4, dayKey: 'n1' }), [], 'в ту же ночь — один раз')
+go(s2, 25000, { hour: 14, dayKey: 'n1' })
+out = go(s2, 1, { hour: 2, dayKey: 'n2' }); assert.equal(out.length, 1); assert(out[0].text.startsWith('Уже два часа ночи.'), 'следующая ночь — снова, по её часу')
+s2 = fresh(); assert.deepEqual(go(s2, 60, { hour: 3, dayKey: 'x', userIdle: true }), [], 'ушёл от компьютера — не ночная работа')
+for (const [h, word] of [[0, 'Уже полночь.'], [1, 'Уже час ночи.'], [5, 'Уже пять утра.']]) {
+    s2 = fresh(); out = go(s2, 1, { hour: h, dayKey: 'k' + h }); assert(out[0].text.startsWith(word), out[0].text)
+}
+s2 = fresh(); assert.deepEqual(go(s2, 5, { hour: 6, dayKey: 'k' }), [], '06:00 — уже не ночь'); assert.deepEqual(go(s2, 5, { hour: 23, dayKey: 'k' }), [], '23:00 — ещё не ночь')
+
+// Приоритеты, общий интервал, очередь, устаревание.
+s2 = fresh()
+ev.windows(s2, [], true); go(s2, 4)
+ev.windows(s2, [win(1, 'kitty')], true); ev.battery(s2, { present: true, percent: 9, charging: false }); ev.network(s2, 'online')
+out = go(s2, 1, { cloud: 'busy' }); assert.deepEqual(out, [], 'облако занято — ждём')
+out = go(s2, 1); assert.deepEqual(kindsOf(out), ['battery'], 'срочное идёт вперёд болтовни')
+assert.deepEqual(go(s2, 30), [], 'общий интервал 45 с между системными репликами')
+assert.deepEqual(go(s2, 20), [], 'терминал ждал интервал дольше 30 с — повод устарел')
+ev.windows(s2, [win(1, 'kitty'), win(2, 'foot')], true)
+assert.deepEqual(kindsOf(go(s2, 60)), ['terminal'], 'следующая — по истечении общего интервала')
+s2 = fresh(); ev.windows(s2, [], true); go(s2, 4)
+ev.windows(s2, [win(1, 'kitty')], true); ev.battery(s2, { present: true, percent: 9, charging: false })
+out = go(s2, 1, { cloud: 'replaceable' }); assert.deepEqual(kindsOf(out), ['battery'], 'срочная заменяет приветствие')
+s2 = fresh(); ev.windows(s2, [], true); go(s2, 4); ev.windows(s2, [win(1, 'kitty')], true)
+assert.deepEqual(go(s2, 10, { cloud: 'replaceable' }), [], 'обычная реплика приветствие не заменяет')
+assert.deepEqual(kindsOf(go(s2, 1)), ['terminal'], 'зато выходит, когда облако свободно')
+s2 = fresh(); ev.windows(s2, [], true); go(s2, 4); ev.windows(s2, [win(1, 'kitty')], true)
+assert.deepEqual(go(s2, 29, { cloud: 'busy' }), [], 'ждёт облако'); assert.deepEqual(go(s2, 3, { cloud: 'busy' }), []); assert.deepEqual(go(s2, 5), [], 'повод устарел (30 с)')
+s2 = fresh(); ev.windows(s2, [], true); go(s2, 4); ev.windows(s2, [win(1, 'kitty')], true)
+assert.deepEqual(go(s2, 20, { quiet: true }), [], 'гладят — молчим'); assert.deepEqual(kindsOf(go(s2, 1)), ['terminal'], 'перестали гладить — сказала')
+// Два срочных подряд идут через urgentGap, а не общий.
+s2 = fresh(); ev.network(s2, 'online'); go(s2, 5); ev.network(s2, 'offline'); ev.battery(s2, { present: true, percent: 9, charging: false })
+out = go(s2, 30); assert.deepEqual(kindsOf(out), ['battery', 'offline'], 'батарея и интернет — по срочному интервалу 10 с')
+
+// Выключено и скрыто: ничего не копится и не показывается.
+for (const off of [{ enabled: false }, { active: false }]) {
+    s2 = fresh()
+    ev.windows(s2, [], true); go(s2, 4, off)
+    ev.windows(s2, [win(1, 'kitty')], true); ev.battery(s2, { present: true, percent: 5, charging: false }); ev.idle(s2, 'away', true); ev.idle(s2, 'away', false)
+    assert.deepEqual(go(s2, 600, Object.assign({ cpu: 0.99, hour: 3, dayKey: 'z' }, off)), [], 'молчит при ' + JSON.stringify(off))
+    assert.equal(s2.queue.length, 0, 'очередь пуста')
+    // Накопленных событий нет; низкий заряд — состояние, а не событие: после включения о нём напомнят один раз.
+    out = go(s2, 15, { cpu: 0.2 }); assert.deepEqual(kindsOf(out), ['battery'], 'старые поводы после включения не всплывают')
+}
+// Окна, открытые при выключенной настройке, не считаются новыми после включения.
+s2 = fresh(); ev.windows(s2, [], true); go(s2, 4, { enabled: false }); ev.windows(s2, winList(7, [win(30, 'kitty')]), true)
+go(s2, 10, { enabled: false }); assert.deepEqual(go(s2, 30), [], 'включили настройку — прежние окна не повод')
+ev.windows(s2, winList(7, [win(30, 'kitty'), win(31, 'foot')]), true); assert.deepEqual(kindsOf(go(s2, 1)), ['terminal'], 'зато новые — повод')
+
+// Сводка по виду: у каждого есть свой кулдаун из данных, ночь — раз за ночь.
+for (const k of Object.keys(VERBATIM)) assert(k in sysData.kinds, 'данные: ' + k)
+assert(sysData.kinds.battery.priority === 3 && sysData.kinds.offline.priority === 3 && sysData.kinds.terminal.priority < 3, 'батарея и интернет важнее болтовни')
+assert(sysData.globalGap >= 30 && sysData.urgentGap < sysData.globalGap, 'общий интервал задан')
+
+// Связка с облаком: слот, показ системной реплики, поглаживание её не перебивает.
+d = make()
+assert.equal(talk.slot(d.s), 'free')
+talk.react(d.s, 'greeting', d.rnd, { hour: 12 }); assert.equal(talk.slot(d.s), 'replaceable', 'приветствие можно заменить срочной')
+advance(d, 12); assert.equal(talk.slot(d.s), 'free', 'после паузы свободно')
+assert.equal(talk.system(d.s, VERBATIM.cpu, d.rnd), VERBATIM.cpu); assert(talk.visible(d.s) && d.s.kind === 'system')
+assert.equal(talk.slot(d.s), 'busy', 'системная реплика занимает облако')
+assert.equal(talk.react(d.s, 'petStart', d.rnd, {}), null, 'поглаживание не перебивает системную реплику')
+assert.equal(talk.system(d.s, '  ', d.rnd), '', 'пустое не показывается')
+advance(d, 8); assert.equal(talk.slot(d.s), 'busy', 'пауза после облака'); advance(d, 3); assert.equal(talk.slot(d.s), 'free')
+const longest = Math.max(...Object.values(VERBATIM).map(t => t.length))
+assert(talk.holdFor(VERBATIM.night) >= 6 && talk.holdFor(VERBATIM.night) <= 9, 'долгая реплика держится 6–9 с: ' + talk.holdFor(VERBATIM.night) + ' ' + longest)
+console.log('NAOMI_SYSTEM_PASS')

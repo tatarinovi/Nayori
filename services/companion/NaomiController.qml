@@ -2,10 +2,14 @@ import QtQuick
 import "NaomiBehavior.js" as Behavior
 import "NaomiDialogue.js" as Dialogue
 import "NaomiLines.js" as Lines
+import "NaomiSystemData.js" as SystemData
+import "NaomiSystemEvents.js" as SystemEvents
 
 // «Мозг» Naomi: склеивает чистую логику поглаживания и реплик с QML.
 // Вход: pointerMoved(x, y) из иллюстрации и pointerInside. Выход: pet, petLean, bubbleVisible, bubbleText.
 // Из кода: say("текст") — показать облако; react("вид") — повод для реплики из набора NaomiLines.js.
+// Системные события (CPU, окна, батарея, сеть, ввод, обновление) приходят в systemWindows/systemBattery/
+// systemNetwork/systemUpdate/systemIdle и cpuLoad; решает и показывает NaomiSystemEvents.js.
 QtObject {
     id: root
     // Окно показано. Пока нет, Naomi не говорит сама.
@@ -13,6 +17,11 @@ QtObject {
     // false — курсор не учитывается: ни позы, ни реплик на поглаживание.
     property bool reactToPointer: true
     property bool reducedMotion: false
+    // Комментировать системные события. false — ни реплик, ни очереди. Приветствие и поглаживание не зависят.
+    property bool systemLines: true
+    // Нагрузка CPU 0..1 (раз в секунду, из surfaces/island/Cpu.qml) и «пользователь не двигал мышь минуту».
+    property real cpuLoad: 0
+    property bool userIdle: false
     property bool pointerInside: false
     // Тики идут таймером. В тестах выключают и вызывают advance(dt) сами.
     property bool automatic: true
@@ -31,10 +40,15 @@ QtObject {
 
     property var petState: Behavior.create()
     property var talkState: Dialogue.create(Lines.lines, Math.random)
+    property var systemState: SystemEvents.create(SystemData.data, Lines.lines)
     property double lastTick: Date.now()
     property bool greeted: false
 
     function hour() { return new Date().getHours() }
+    function dayKey() {
+        const d = new Date()
+        return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate()
+    }
     function publish() {
         root.pet = petState.pet
         root.petLean = petState.lean
@@ -58,6 +72,29 @@ QtObject {
         root.announce(text)
         return text !== null
     }
+    // Системные события от источников. Состояние запоминается всегда: так включение настройки
+    // не принимает уже открытые окна за новые.
+    function systemWindows(list, available) { SystemEvents.windows(systemState, list, available) }
+    function systemBattery(present, percent, charging) {
+        SystemEvents.battery(systemState, { present: present, percent: percent, charging: charging })
+    }
+    function systemNetwork(state) { SystemEvents.network(systemState, state) }
+    function systemUpdate(running) { SystemEvents.update(systemState, running) }
+    function systemIdle(level, isIdle) { SystemEvents.idle(systemState, level, isIdle) }
+    // Разобрать вывод проверки процессов pacman/paru/yay/topgrade и db.lck; true — идёт обновление.
+    function scanUpdate(text) { return SystemEvents.scanUpdate(text) }
+    // Вручную показать системную реплику (qs ipc call naomi trigger cpu): всегда, поверх облака,
+    // без кулдаунов и очереди. value — заряд для battery или час 0–5 для night. Неизвестный вид — false.
+    function trigger(kind, value) {
+        const text = SystemEvents.preview(systemState, kind, value, hour())
+        if (text === "") return false
+        const shown = Dialogue.system(talkState, text, Math.random)
+        root.announce(shown)
+        return shown !== ""
+    }
+    // Поводы копятся только пока Naomi показана и настройка включена.
+    function syncSystem() { SystemEvents.setOn(systemState, root.active && root.systemLines) }
+    function triggerKinds() { return SystemEvents.kinds(systemState) }
     function hideBubble() { Dialogue.hide(talkState); publish() }
     // Событие мыши в координатах сцены Naomi.
     function pointerMoved(x, y) { if (root.reactToPointer) Behavior.move(petState, x, y) }
@@ -72,13 +109,20 @@ QtObject {
         if (out.ended) spoken = Dialogue.react(talkState, "petEnd", Math.random, { hour: hour(), duration: out.duration }) || spoken
         // Покойные реплики — только пока курсор не на голове.
         const idle = Dialogue.tick(talkState, dt, Math.random, { active: root.active, quiet: quiet, hour: hour() })
-        root.announce(spoken || idle)
+        // Системные реплики — после остальных: облако уже занято, если Naomi только что заговорила.
+        const due = SystemEvents.tick(systemState, dt, { enabled: root.systemLines, active: root.active, quiet: quiet,
+            hour: hour(), dayKey: dayKey(), userIdle: root.userIdle, cpu: root.cpuLoad,
+            cloud: Dialogue.slot(talkState) })
+        const system = due ? Dialogue.system(talkState, due.text, Math.random) : null
+        root.announce(spoken || idle || system)
     }
 
     onPointerInsideChanged: if (!pointerInside) pointerLeft()
     onReactToPointerChanged: { if (!reactToPointer) pointerLeft(); advance(0) }
     onReducedMotionChanged: advance(0)
+    onSystemLinesChanged: syncSystem()
     onActiveChanged: {
+        syncSystem()
         lastTick = Date.now()
         if (!active) { Behavior.leave(petState) }
         else if (greet && !greeted) greetTimer.restart()
@@ -103,5 +147,8 @@ QtObject {
             root.lastTick = now
         }
     }
-    Component.onCompleted: if (active && greet && !greeted) greetTimer.start()
+    Component.onCompleted: {
+        syncSystem()
+        if (active && greet && !greeted) greetTimer.start()
+    }
 }

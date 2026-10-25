@@ -223,6 +223,14 @@ ShellRoot {
                     test.check(!settings.companionReactToPointer && !reactControl.checked, "pointer reaction turns off from settings")
                     input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
                     test.check(settings.companionReactToPointer && reactControl.checked, "pointer reaction turns back on")
+                    const systemControl = test.findItem(view, "settingsCompanionSystemLinesToggle")
+                    settings.update({companionSystemLines: true})
+                    test.check(settings.companionSystemLines && systemControl.checked && systemControl.enabled, "system lines switch follows the service")
+                    systemControl.forceActiveFocus()
+                    input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                    test.check(!settings.companionSystemLines && !systemControl.checked, "system lines turn off from settings")
+                    input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                    test.check(settings.companionSystemLines && systemControl.checked, "system lines turn back on")
                     const sayButton = test.findItem(view, "settingsNaomiSayButton")
                     const preview = test.findItem(view, "naomiPreview")
                     test.check(sayButton !== null && preview !== null, "Naomi preview and speech button exist")
@@ -282,6 +290,8 @@ ShellRoot {
                 onCompanionDesktopOnlyChangedRequested: enabled => settings.update({companionDesktopOnly: enabled})
                 companionReactToPointer: settings.companionReactToPointer
                 onCompanionReactToPointerChangedRequested: enabled => settings.update({companionReactToPointer: enabled})
+                companionSystemLines: settings.companionSystemLines
+                onCompanionSystemLinesChangedRequested: enabled => settings.update({companionSystemLines: enabled})
                 startIconStyle: settings.startIconStyle
                 onStartIconStyleChangedRequested: style => { test.iconRequests++; settings.update({startIconStyle: style}); }
                 surfaceStyle: settings.surfaceStyle
@@ -370,6 +380,12 @@ ShellRoot {
                     settings.update({companionReactToPointer: false});
                     test.check(!settings.companionReactToPointer, "pointer reaction turns off immediately");
                     settings.update({companionReactToPointer: true});
+                    test.check(settings.companionSystemLines, "system lines default on");
+                    settings.update({companionSystemLines: "no"});
+                    test.check(settings.companionSystemLines, "invalid system lines value defaults on");
+                    settings.update({companionSystemLines: false});
+                    test.check(!settings.companionSystemLines, "system lines turn off immediately");
+                    settings.update({companionSystemLines: true});
                     settings.update({companionEnabled: "yes"});
                     test.check(!settings.companionEnabled, "invalid companion value defaults off");
                     settings.update({companionEnabled: true});
@@ -454,6 +470,7 @@ ShellRoot {
                     test.check(settings.companionEnabled, "companion restored after restart");
                     test.check(settings.companionDesktopOnly, "desktop-only restored after restart");
                     test.check(!settings.companionReactToPointer, "pointer reaction restored after restart");
+                    test.check(!settings.companionSystemLines, "system lines restored after restart");
                     test.check(!settings.dirty && test.changes === 1, "no write loop on load");
                     test.finish();
                 } else if (test.scenario === "revert") {
@@ -569,6 +586,7 @@ ShellRoot {
                         "companionEnabled": true,
                         "companionDesktopOnly": true,
                         "companionReactToPointer": false,
+                        "companionSystemLines": false,
                         "topReserved": 999,
                         "animationsEnabled": false,
                         "autoHideTop": true

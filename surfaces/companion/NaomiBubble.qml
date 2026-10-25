@@ -34,6 +34,8 @@ Item {
     height: Math.ceil(label.implicitHeight + 2 * padY)
     // Фактическая ширина выложенного текста: нужна проверке, что облачко не шире текста.
     readonly property real contentWidth: label.contentWidth
+    // Текст не влез в maxLines и обрезан многоточием: длинные реплики этого допускать не должны.
+    readonly property bool truncated: label.truncated
     // Кончик хвоста в координатах облачка: для расчёта положения родителем.
     readonly property point tip: Qt.point(tailAt + 1, height + tailLength)
 

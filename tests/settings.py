@@ -30,6 +30,7 @@ with tempfile.TemporaryDirectory(prefix="ns-") as directory:
     assert saved["companionEnabled"] is True
     assert saved["companionDesktopOnly"] is True
     assert saved["companionReactToPointer"] is False
+    assert saved["companionSystemLines"] is False
     assert saved["surfaceStyle"] == "frosted"
     assert saved["startIconStyle"] == "fox"
     before = path.read_bytes()

@@ -87,6 +87,22 @@ function say(s, text, hold, rnd) {
     return t
 }
 
+// Можно ли сейчас показать системную реплику: "free", "replaceable" (идёт приветствие или «покойная»
+// реплика — срочная может её заменить) или "busy" (облако показано либо идёт пауза после него).
+function slot(s) {
+    if (visible(s)) return s.kind === "greeting" || s.kind === "idle" ? "replaceable" : "busy"
+    return s.time < s.until + GAP ? "busy" : "free"
+}
+
+// Системная реплика (NaomiSystemEvents.js): решение «можно ли» принято там, здесь только показ.
+// Реплики поглаживания её не перебивают, как и say. Возвращает показанный текст или "".
+function system(s, text, rnd) {
+    const t = String(text === undefined || text === null ? "" : text).trim()
+    if (t === "") return ""
+    show(s, t, "system", 0, rnd)
+    return t
+}
+
 // Спрятать облако сразу.
 function hide(s) { s.until = Math.min(s.until, s.time) }
 

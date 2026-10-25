@@ -24,6 +24,7 @@ QtObject {
     readonly property bool companionEnabled: values.companionEnabled
     readonly property bool companionDesktopOnly: values.companionDesktopOnly
     readonly property bool companionReactToPointer: values.companionReactToPointer
+    readonly property bool companionSystemLines: values.companionSystemLines
     readonly property bool animationsEnabled: values.animationsEnabled
     readonly property string weatherCity: values.weatherCity
     readonly property int weatherRefreshMinutes: values.weatherRefreshMinutes
@@ -142,6 +143,7 @@ QtObject {
             "companionEnabled": false,
             "companionDesktopOnly": false,
             "companionReactToPointer": true,
+            "companionSystemLines": true,
             "surfaceStyle": "solid",
             "accentMode": "default",
             "manualAccent": "#C0AFD1",

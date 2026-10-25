@@ -10,11 +10,13 @@ Column {
     property bool companionEnabled: false
     property bool companionDesktopOnly: false
     property bool companionReactToPointer: true
+    property bool companionSystemLines: true
     property bool animationsEnabled: true
     property bool previewActive: false
     signal companionChangedRequested(bool enabled)
     signal companionDesktopOnlyChangedRequested(bool enabled)
     signal companionReactToPointerChangedRequested(bool enabled)
+    signal companionSystemLinesChangedRequested(bool enabled)
     signal revealRequested(var item)
     spacing: 16
 
@@ -88,6 +90,18 @@ Column {
             : "Naomi не следит за курсором. Окно целиком пропускает клики и наведение."
         checked: root.companionReactToPointer
         onClicked: root.companionReactToPointerChangedRequested(checked)
+        onFocusReceived: root.revealRequested(this)
+    }
+    SettingsToggle {
+        objectName: "settingsCompanionSystemLinesToggle"
+        tokens: root.tokens
+        text: "Комментировать системные события"
+        description: root.companionSystemLines
+            ? "Naomi замечает высокую нагрузку, долгое бездействие и возвращение, новые терминалы и игры, множество окон, низкий заряд, ночную работу, обновление системы и потерю интернета. Реплики редкие, у каждой своя пауза."
+            : "Naomi молчит о событиях системы. Приветствие, редкие реплики и реплики на поглаживание остаются."
+        checked: root.companionSystemLines
+        enabled: root.companionEnabled
+        onClicked: root.companionSystemLinesChangedRequested(checked)
         onFocusReceived: root.revealRequested(this)
     }
     SettingsLabel {

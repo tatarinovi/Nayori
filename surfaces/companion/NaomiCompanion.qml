@@ -16,6 +16,8 @@ Item {
     // Следить головой за курсором по всему компоненту (предпросмотр) или только над головой.
     property bool followPointer: false
     property bool greet: true
+    // Комментировать системные события (CPU, окна, батарея, сеть, обновление). Предпросмотр в настройках — нет.
+    property bool systemLines: false
     property real illustrationWidth: 280
     property real illustrationHeight: 534
 
@@ -32,12 +34,15 @@ Item {
     function say(text, holdSeconds) { return brain.say(text, holdSeconds) }
     // Повод для реплики из набора NaomiLines.js: greeting, idle, petStart, petAgain, petLong, petEnd.
     function react(kind) { return brain.react(kind) }
+    // Показать системную реплику вручную: cpu, idle, terminal, game, battery, windows, night, update, offline, return.
+    function trigger(kind, value) { return brain.trigger(kind, value) }
     signal spoke(string text)
 
     NaomiController {
         id: brain
         active: root.active
         greet: root.greet
+        systemLines: root.systemLines
         reactToPointer: root.reactToPointer
         reducedMotion: root.tokens.motion.off || !root.animationsEnabled
         pointerInside: art.pointerInside

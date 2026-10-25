@@ -187,6 +187,7 @@ ShellRoot {
             animationsEnabled: settingsStore.animationsEnabled
             desktopOnly: settingsStore.companionDesktopOnly
             reactToPointer: settingsStore.companionReactToPointer
+            systemLines: settingsStore.companionSystemLines
             screen: root.probeScreen
             bottomInset: Math.max(88, settingsStore.bottomReserved + 16)
         }

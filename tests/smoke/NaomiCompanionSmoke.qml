@@ -63,6 +63,7 @@ ShellRoot {
             }
             function reset() {
                 naomi.reactToPointer = true
+                naomi.systemLines = false
                 naomi.controller.automatic = false
                 mouseMove(naomi, 5, 5)
                 settle(12)
@@ -191,10 +192,101 @@ ShellRoot {
                 for (let i = 0; i < 60 * 30; i++) naomi.controller.advance(1 / 60)
                 compare(naomi.controller.bubbleVisible, false)
             }
+            // Системные реплики: ручной вызов, события, настройка, скрытая Naomi, поглаживание.
+            function step_system_lines() {
+                naomi.controller.systemState.nightKey = naomi.controller.dayKey()
+                naomi.systemLines = true
+                naomi.controller.hideBubble()
+                settle(5)
+                compare(naomi.trigger("nope"), false)
+                const kinds = naomi.controller.triggerKinds()
+                compare(kinds.length, 10)
+                for (const kind of kinds) {
+                    ok(naomi.trigger(kind), "manual trigger " + kind)
+                    ok(naomi.controller.bubbleVisible && naomi.controller.bubbleText.length > 20, "line for " + kind)
+                    naomi.controller.hideBubble()
+                    settle(3)
+                }
+                ok(naomi.trigger("battery", 5) && naomi.controller.bubbleText.indexOf("У нас осталось 5% заряда.") === 0, "battery percent: " + naomi.controller.bubbleText)
+                ok(naomi.trigger("night", 2) && naomi.controller.bubbleText.indexOf("Уже два часа ночи.") === 0, "night hour: " + naomi.controller.bubbleText)
+                naomi.controller.hideBubble()
+                settle(3)
+
+                // Событие: низкий заряд приходит как реплика через очередь и облако.
+                naomi.controller.systemBattery(false, 3, false)
+                settle(30)
+                compare(naomi.controller.bubbleVisible, false)
+                naomi.controller.systemBattery(true, 15, false)
+                settle(2)
+                ok(naomi.controller.bubbleVisible, "battery event spoke")
+                ok(naomi.controller.bubbleText.indexOf("У нас осталось 15% заряда.") === 0, naomi.controller.bubbleText)
+                // Поглаживание не перебивает системную реплику.
+                const shownText = naomi.controller.bubbleText
+                ok(!naomi.controller.react("petEnd", 5), "petting does not interrupt a system line")
+                compare(naomi.controller.bubbleText, shownText)
+                naomi.controller.hideBubble()
+                settle(60)
+
+                // Во время поглаживания системная реплика ждёт.
+                naomi.controller.systemNetwork("online")
+                settle(2)
+                naomi.controller.systemNetwork("offline")
+                const h = head()
+                mouseMove(naomi, h.x, h.y)
+                settle(12)
+                compare(naomi.controller.bubbleVisible, false)
+                mouseMove(naomi, 5, 5)
+                settle(2)
+                ok(naomi.controller.bubbleVisible && naomi.controller.bubbleText.indexOf("Интернет пропал.") === 0, "line waited for the petting to end")
+                naomi.controller.hideBubble()
+                settle(60)
+                naomi.controller.systemNetwork("online")
+
+                // Настройка выключена и Naomi скрыта: событие не говорит и не копится.
+                naomi.systemLines = false
+                naomi.controller.systemIdle("away", true)
+                naomi.controller.systemIdle("away", false)
+                settle(60)
+                compare(naomi.controller.bubbleVisible, false)
+                naomi.systemLines = true
+                settle(60)
+                compare(naomi.controller.bubbleVisible, false)
+                naomi.active = false
+                naomi.controller.systemIdle("away", true)
+                naomi.controller.systemIdle("away", false)
+                settle(60)
+                compare(naomi.controller.bubbleVisible, false)
+                naomi.active = true
+                settle(60)
+                compare(naomi.controller.bubbleVisible, false)
+                // Те же события при включённой настройке говорят.
+                naomi.controller.systemIdle("away", true)
+                naomi.controller.systemIdle("away", false)
+                settle(2)
+                ok(naomi.controller.bubbleVisible && naomi.controller.bubbleText.indexOf("О, ты вернулся.") === 0, "return line")
+                naomi.controller.hideBubble()
+                settle(5)
+            }
+            // Самые длинные реплики помещаются в облако на пять строк и не обрезаются.
+            function step_system_lines_fit_bubble() {
+                const b = naomi.bubble
+                for (const kind of ["windows", "night", "game", "offline", "update", "cpu", "battery"]) {
+                    naomi.controller.hideBubble()
+                    settle(3)
+                    ok(naomi.trigger(kind), "trigger " + kind)
+                    until(function () { return b.opacity > 0.95 }, "bubble fades in for " + kind)
+                    ok(b.shown && inside(b), kind + " inside the window: " + b.y + " " + b.width + "x" + b.height)
+                    ok(b.height <= 5 * 24 + 2 * b.padY, kind + " within five lines: " + b.height)
+                    ok(naomi.controller.bubbleText.length <= 100)
+                    ok(b.contentWidth <= b.textWidth + 1, kind + " not truncated horizontally")
+                    ok(!b.truncated, kind + " is not elided")
+                }
+                naomi.controller.hideBubble()
+            }
             function test_all() {
                 for (const step of [step_geometry, step_pointer_over_head_and_petting, step_no_pet_over_body_or_when_disabled,
                                     step_say_and_bubble_geometry, step_greeting_on_appearance, step_spoke_signal, step_reduced_motion_instant,
-                                    step_hover_not_over_other_regions_when_idle]) {
+                                    step_hover_not_over_other_regions_when_idle, step_system_lines, step_system_lines_fit_bubble]) {
                     console.log("NAOMI step " + step.name)
                     reset()
                     step()

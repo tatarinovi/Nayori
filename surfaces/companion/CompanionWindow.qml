@@ -13,6 +13,9 @@ PanelWindow {
     // true: окно ловит курсор над головой Naomi (поглаживание). Клики по этому небольшому
     // эллипсу не проходят сквозь неё. false: окно целиком прозрачно для ввода.
     property bool reactToPointer: true
+    // Комментировать системные события (нагрузка, окна, батарея, сеть, обновление, бездействие, ночь).
+    // false — источники отключаются, реплики не копятся. Приветствие и поглаживание не зависят.
+    property bool systemLines: true
     // Над иллюстрацией — место под облачко с репликой (до пяти строк), оно прозрачно для ввода.
     readonly property int bubbleSpace: 128
     readonly property real companionScale: Math.max(0.1, Math.min(1,
@@ -45,6 +48,18 @@ PanelWindow {
     IpcHandler {
         target: "naomi"
         function say(text: string): bool { return companion.say(text, 0) }
+        // qs ipc call naomi trigger cpu — системная реплика вручную, без кулдаунов и независимо от настройки.
+        function trigger(kind: string): bool { return companion.trigger(kind, undefined) }
+        // qs ipc call naomi triggerValue battery 5 — то же с заряженностью (battery) или часом 0–5 (night).
+        function triggerValue(kind: string, value: string): bool { return companion.trigger(kind, value) }
+        // qs ipc call naomi triggers — список видов.
+        function triggers(): string { return companion.controller.triggerKinds().join(" ") }
+    }
+
+    // Источники системных событий: CPU, niri, UPower, сеть, ввод, процессы обновления.
+    NaomiSystemSources {
+        controller: companion.controller
+        enabled: root.systemLines
     }
 
     Region { id: emptyMask }
@@ -65,6 +80,7 @@ PanelWindow {
         active: true
         animationsEnabled: root.animationsEnabled
         reactToPointer: root.reactToPointer
+        systemLines: root.systemLines
         followPointer: false
         illustrationWidth: root.illustrationWidth
         illustrationHeight: root.illustrationHeight
