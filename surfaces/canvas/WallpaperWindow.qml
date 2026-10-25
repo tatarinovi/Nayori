@@ -16,11 +16,17 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Background
     WlrLayershell.namespace: "nayori-canvas"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-    StaticRenderer {
+    WallpaperCrossfade {
         anchors.fill: parent
-        source: root.wallpaper.source
+        source: String(root.wallpaper.source)
         mode: root.wallpaper.mode
         backgroundColor: root.tokens.color.background
-        onFailedChanged: if (root.screen) root.manager.report(root.screen.name, failed)
+        reduceMotion: root.tokens.motion.off
+        duration: root.tokens.motion.base
+        managerReady: root.manager.ready
+        outputName: root.screen && root.screen.name ? String(root.screen.name) : ""
+        onRenderFailed: function (failed) {
+            if (root.screen) root.manager.report(root.screen.name, failed)
+        }
     }
 }

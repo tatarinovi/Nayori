@@ -10,8 +10,10 @@ import "surfaces/launcher"
 import "surfaces/settings"
 import "surfaces/panel"
 import "services/canvas"
+import "services/palette"
 import "services/island"
 import "surfaces/canvas"
+import "surfaces/companion"
 // qmllint enable unused-imports
 
 // Compile the actual entrypoint without instantiating its desktop surfaces.

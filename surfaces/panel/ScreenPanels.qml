@@ -8,6 +8,7 @@ import "../../islands/workspaces"
 import "../../islands/apps"
 import "../../islands/status"
 import "../island"
+import "../launcher"
 import "../settings"
 import "../../services/niri"
 import "../../services/ui"
@@ -21,8 +22,52 @@ Scope {
     readonly property var tokens: tokenSet
     readonly property bool topEnabled: panelScreen !== null
         && (panelScreen === shellState.probeScreen || !shellState.hideSecondaryIsland)
+    readonly property string screenName: panelScreen ? panelScreen.name : ""
     property bool expandedOpened: false
     property bool dashboardHoverBlocked: false
+    readonly property bool launcherHere: shellState.launcherOpened
+        && panelScreen !== null
+        && panelScreen === shellState.currentOverlayScreen
+    function panelHoleX(win) {
+        if (!root.launcherHere || !win || !win.visible || !root.panelScreen)
+            return 0
+        const screenW = root.panelScreen.width
+        const w = win.width
+        if (win.side < 0)
+            return root.tokens.spacing.large
+        if (win.side > 0)
+            return Math.max(0, screenW - root.tokens.spacing.large - w)
+        return Math.max(0, Math.round((screenW - w) / 2))
+    }
+    function panelHoleY(win) {
+        if (!root.launcherHere || !win || !win.visible || !root.panelScreen)
+            return 0
+        return Math.max(0, root.panelScreen.height - root.tokens.spacing.small - win.height)
+    }
+    function panelHoleW(win) {
+        if (!root.launcherHere || !win || !win.visible)
+            return 0
+        return Math.max(0, Math.round(win.width))
+    }
+    function panelHoleH(win) {
+        if (!root.launcherHere || !win || !win.visible)
+            return 0
+        return Math.max(0, Math.round(win.height))
+    }
+    function capsuleScreenX() {
+        if (!root.panelScreen)
+            return 0
+        return Math.round((root.panelScreen.width - capsule.width) / 2)
+    }
+    function capsuleScreenY() {
+        return root.tokens.spacing.small + Math.round(capsule.y)
+    }
+    onLauncherHereChanged: {
+        if (!launcherHere)
+            return
+        expandedOpened = false
+        Qt.callLater(function() { islandWindow.focusLauncherField() })
+    }
     onTopEnabledChanged: {
         if (!topEnabled) {
             expandedOpened = false
@@ -35,9 +80,12 @@ Scope {
         function onStartMenuToggleRequested(outputName) {
             if (!root.panelScreen || root.panelScreen.name !== outputName) return
             root.shellState.launcherOpened = false
-            // A compositor shortcut is independent of the dismissal mouse click.
-            startMenu.blockOpen = false
             startMenu.toggle()
+        }
+        // Меню Пуск одно на все мониторы: открытие на другом закрывает это.
+        function onStartMenuOutputChanged() {
+            if (root.shellState.startMenuOutput !== root.screenName)
+                startMenu.opened = false
         }
         function onLauncherOpenedChanged() {
             if (root.shellState.launcherOpened) root.expandedOpened = false
@@ -198,7 +246,7 @@ Scope {
             })
             available: root.topEnabled
             pointerInside: topHover.hovered || topTrigger.hovered
-            heldOpen: root.expandedOpened
+            heldOpen: root.expandedOpened || root.launcherHere
         }
         HoverHandler {
             id: topHover
@@ -226,9 +274,16 @@ Scope {
             }
         }
         Component.onCompleted: Qt.callLater(function() { islandWindow.animateReady = true })
+        function focusLauncherField() {
+            if (!root.launcherHere || !islandWindow.visible)
+                return
+            capsule.focusSearch()
+        }
         screen: root.panelScreen
         visible: root.topEnabled && (topVisibility.shown || revealOpacity > 0)
         color: "transparent"
+        // Size stays the dashboard window. Opening does not restretch the
+        // surface, and the result list is not part of this rectangle.
         anchors.top: true
         anchors.bottom: false
         anchors.left: false
@@ -236,17 +291,42 @@ Scope {
         margins.top: root.tokens.spacing.small
         implicitWidth: 712
         implicitHeight: 522
+        onVisibleChanged: {
+            if (visible && root.launcherHere)
+                Qt.callLater(islandWindow.focusLauncherField)
+        }
+        Connections {
+            target: capsule.Window.window
+            function onActiveChanged() {
+                if (capsule.Window.window && capsule.Window.window.active)
+                    islandWindow.focusLauncherField()
+            }
+        }
         exclusionMode: ExclusionMode.Ignore
-        focusable: root.expandedOpened
+        // Постоянно true: смена `focusable` вместе с keyboardFocus заставляет Quickshell
+        // отправить OnDemand поверх Exclusive, и niri отдаёт фокус только по наведению.
+        // Режим клавиатуры задаёт один keyboardFocus ниже.
+        focusable: true
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "nayori-island"
-        WlrLayershell.keyboardFocus: root.expandedOpened ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+        WlrLayershell.keyboardFocus: root.launcherHere
+            ? WlrKeyboardFocus.Exclusive
+            : (root.expandedOpened ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None)
+        // У PanelWindow нет Keys: Escape ловит только Shortcut.
+        Shortcut {
+            enabled: root.launcherHere
+            sequences: [StandardKey.Cancel]
+            context: Qt.WindowShortcut
+            onActivated: root.shellState.launcherOpened = false
+        }
 
         Region { id: islandGlass; item: capsule; radius: Math.round(capsule.radius) }
         BackgroundEffect.blurRegion: root.tokens.frosted ? islandGlass : null
-        // Маска совпадает с капсулой: тень и пустые поля клики не забирают.
         mask: Region {
-            item: capsule
+            x: Math.round(capsule.x)
+            y: Math.round(capsule.y)
+            width: Math.max(0, Math.round(capsule.width))
+            height: Math.max(0, Math.round(capsule.height))
             radius: Math.round(capsule.radius)
         }
 
@@ -266,7 +346,10 @@ Scope {
             audioReaction: root.shellState.islandAudio
             notifications: root.shellState.islandNotifications
             id: capsule
+            z: 1
             expanded: root.expandedOpened
+            launcherOpen: root.launcherHere
+            onLauncherDismissed: root.shellState.launcherOpened = false
             weatherCity: root.shellState.weatherCity
             weatherService: root.shellState.weatherService
             islandRotationEnabled: root.shellState.islandRotationEnabled
@@ -281,6 +364,7 @@ Scope {
                 root.shellState.openSettings("weather")
             }
             anchors.top: parent.top
+            anchors.topMargin: 0
             anchors.horizontalCenter: parent.horizontalCenter
             tokens: root.tokenSet
             active: islandWindow.visible
@@ -301,6 +385,52 @@ Scope {
                 root.shellState.openSettings("home")
             }
         }
+
+        // Lyrics push the clock out of the island. One reveal, retargeted.
+        Rectangle {
+            id: lyricClock
+            z: 2
+            visible: reveal > 0.001
+            height: 48
+            radius: height / 2
+            width: lyricClockText.implicitWidth + root.tokens.spacing.medium * 2
+            color: root.tokens.material.island
+            border.width: 1
+            border.color: root.tokens.color.border
+            antialiasing: true
+            anchors.verticalCenter: capsule.verticalCenter
+            anchors.right: capsule.left
+            anchors.rightMargin: root.tokens.spacing.small
+            property real reveal: capsule.lyricsClock ? 1 : 0
+            Behavior on reveal {
+                NumberAnimation {
+                    duration: root.tokens.motion.off ? 0 : root.tokens.motion.base
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
+                }
+            }
+            opacity: reveal
+            transform: Translate {
+                x: root.tokens.motion.off ? 0 : (1 - lyricClock.reveal) * root.tokens.spacing.small
+            }
+            SystemClock {
+                id: lyricClockTime
+                precision: SystemClock.Seconds
+                enabled: lyricClock.visible
+            }
+            Text {
+                id: lyricClockText
+                anchors.centerIn: parent
+                text: Qt.formatTime(lyricClockTime.date, "HH:mm:ss")
+                color: root.tokens.color.text
+                font.family: root.tokens.type.body.family
+                font.pixelSize: 16
+                font.weight: root.tokens.type.body.weight
+                font.letterSpacing: 0.4
+                renderType: Text.NativeRendering
+                textFormat: Text.PlainText
+            }
+        }
     }
 
     IslandWindow {
@@ -312,7 +442,6 @@ Scope {
         side: -1
         island: dockCluster
         materialRegion: Region {
-            Region { item: startButton; radius: root.tokens.radius.small }
             Region { item: workspaces; radius: Math.round(workspaces.radius) }
         }
 
@@ -330,7 +459,7 @@ Scope {
                 spacing: root.tokens.spacing.small
 
                 Item {
-                    implicitWidth: root.tokens.panel.control
+                    implicitWidth: startButton.slotWidth
                     implicitHeight: root.tokens.panel.height
                     width: implicitWidth
                     height: implicitHeight
@@ -366,8 +495,18 @@ Scope {
         anchorItem: startButton
         anchorWindow: workspacesWindow
         onOpenedChanged: {
-            if (opened)
-                startContext.opened = false
+            if (!opened) {
+                if (root.shellState.startMenuOutput === root.screenName)
+                    root.shellState.startMenuOutput = ""
+                return
+            }
+            startContext.opened = false
+            root.shellState.launcherOpened = false
+            root.shellState.startMenuOutput = root.screenName
+        }
+        Component.onDestruction: {
+            if (root.shellState && root.shellState.startMenuOutput === root.screenName)
+                root.shellState.startMenuOutput = ""
         }
     }
 
@@ -379,8 +518,10 @@ Scope {
         anchorItem: startButton
         anchorWindow: workspacesWindow
         onOpenedChanged: {
-            if (opened)
-                startMenu.opened = false
+            if (!opened)
+                return
+            startMenu.opened = false
+            root.shellState.launcherOpened = false
         }
     }
 
@@ -415,6 +556,111 @@ Scope {
             opacity: statusWindow.revealOpacity
             tokens: root.tokenSet
             menuWindow: statusWindow
+        }
+    }
+
+    PanelWindow {
+        id: launcherDismiss
+        screen: root.panelScreen
+        visible: root.launcherHere
+        color: "transparent"
+        anchors.top: true
+        anchors.bottom: true
+        anchors.left: true
+        anchors.right: true
+        exclusionMode: ExclusionMode.Ignore
+        focusable: false
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.namespace: "nayori-launcher-dismiss"
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+        mask: Region {
+            width: root.launcherHere ? Math.max(0, Math.round(launcherDismiss.width)) : 0
+            height: root.launcherHere ? Math.max(0, Math.round(launcherDismiss.height)) : 0
+            Region {
+                intersection: Intersection.Subtract
+                x: root.capsuleScreenX()
+                y: root.capsuleScreenY()
+                width: Math.max(0, Math.round(capsule.width))
+                height: Math.max(0, Math.round(capsule.height))
+            }
+            Region {
+                intersection: Intersection.Subtract
+                x: root.panelHoleX(workspacesWindow)
+                y: root.panelHoleY(workspacesWindow)
+                width: root.panelHoleW(workspacesWindow)
+                height: root.panelHoleH(workspacesWindow)
+            }
+            Region {
+                intersection: Intersection.Subtract
+                x: root.panelHoleX(appsWindow)
+                y: root.panelHoleY(appsWindow)
+                width: root.panelHoleW(appsWindow)
+                height: root.panelHoleH(appsWindow)
+            }
+            Region {
+                intersection: Intersection.Subtract
+                x: root.panelHoleX(statusWindow)
+                y: root.panelHoleY(statusWindow)
+                width: root.panelHoleW(statusWindow)
+                height: root.panelHoleH(statusWindow)
+            }
+        }
+        MouseArea {
+            anchors.fill: parent
+            enabled: root.launcherHere
+            acceptedButtons: Qt.AllButtons
+            onPressed: root.shellState.launcherOpened = false
+        }
+    }
+
+    PanelWindow {
+        id: launcherList
+        screen: root.panelScreen
+        color: "transparent"
+        anchors.top: true
+        margins.top: root.capsuleScreenY() + Math.round(capsule.height) + root.tokens.spacing.small
+        // Карточка уже строки поиска на отступ с каждой стороны. Радиус концентричен
+        // подложке выбранной строки: наружный = внутренний (medium) + поля карточки.
+        readonly property int cardRadius: root.tokens.radius.medium + root.tokens.spacing.small
+        implicitWidth: Math.max(1, Math.round(capsule.width) - root.tokens.spacing.large * 2)
+        implicitHeight: Math.max(1, Math.round(listBody.implicitHeight + root.tokens.spacing.small * 2))
+        exclusionMode: ExclusionMode.Ignore
+        focusable: false
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.namespace: "nayori-launcher-list"
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+        property real reveal: root.launcherHere && capsule.listOpen ? 1 : 0
+        Behavior on reveal {
+            NumberAnimation {
+                duration: root.tokens.motion.off ? 0 : root.tokens.motion.base
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
+            }
+        }
+        visible: reveal > 0.01
+        mask: Region {
+            width: root.launcherHere && capsule.listOpen ? Math.max(0, Math.round(launcherList.width)) : 0
+            height: root.launcherHere && capsule.listOpen ? Math.max(0, Math.round(launcherList.height)) : 0
+            radius: launcherList.cardRadius
+        }
+        Rectangle {
+            anchors.fill: parent
+            // PanelWindow has no opacity; fade the content instead.
+            opacity: launcherList.reveal
+            radius: launcherList.cardRadius
+            color: root.tokens.frosted ? root.tokens.material.island : root.tokens.material.dense
+            border.width: 1
+            border.color: root.tokens.color.accentSoft
+            clip: true
+            antialiasing: true
+            LauncherDropdown {
+                id: listBody
+                x: root.tokens.spacing.small
+                y: root.tokens.spacing.small
+                width: parent.width - root.tokens.spacing.small * 2
+                tokens: root.tokenSet
+                host: capsule.listSource
+            }
         }
     }
 }

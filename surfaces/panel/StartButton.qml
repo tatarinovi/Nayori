@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
-import "../../islands/shared"
 
 // Левая кнопка и правая кнопка не делят один clicked.
 Button {
@@ -12,15 +11,20 @@ Button {
     property bool menusOpen: false
     property string iconStyle: "current"
     property string hint: "Пуск"
+    // Hit target matches the mark. slotWidth is a little wider so the
+    // mark stays inside the cluster's rounded mask. Bar height is unchanged.
+    readonly property int glyphSize: 42
+    readonly property int slotWidth: glyphSize + 6
 
     signal contextRequested()
     signal contextReleased()
 
     padding: 0
-    implicitWidth: tokens.panel.control
-    implicitHeight: tokens.panel.control
+    implicitWidth: glyphSize
+    implicitHeight: glyphSize
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
+    clip: false
     Accessible.name: hint
     scale: down && !tokens.motion.off ? 0.96 : 1
     opacity: enabled ? 1 : 0.45
@@ -30,24 +34,33 @@ Button {
             easing.type: Easing.OutCubic
         }
     }
-    PanelTooltip {
-        tokens: root.tokens
-        target: root
-        hovered: root.hovered && !root.down && !root.menusOpen
-        text: root.hint
-    }
     background: Rectangle {
         radius: root.tokens.radius.small
-        color: root.down || root.checked || root.menusOpen ? root.tokens.color.accentSoft
-              : root.hovered ? root.tokens.color.surface : root.tokens.frosted ? root.tokens.material.panel : "transparent"
+        color: "transparent"
         border.width: root.visualFocus ? 1 : 0
         border.color: root.tokens.color.accent
     }
     contentItem: Item {
+        clip: false
         NayoriMark {
             variant: root.iconStyle
             anchors.centerIn: parent
-            ink: root.enabled ? root.tokens.color.text : root.tokens.color.textMuted
+            width: root.glyphSize
+            height: root.glyphSize
+            opacity: !root.enabled ? 0.45
+                   : root.iconStyle === "fox" ? 1
+                   : (root.down || root.menusOpen) ? 0.72
+                   : root.hovered ? 0.84
+                   : 1
+            ink: !root.enabled ? root.tokens.color.textMuted
+                : (root.down || root.checked || root.menusOpen || root.hovered) ? root.tokens.color.accent
+                : root.tokens.color.text
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast
+                    easing.type: Easing.OutCubic
+                }
+            }
         }
     }
     MouseArea {

@@ -10,6 +10,7 @@ import "../panel"
 FocusScope {
     id: root
     property var wallpaperManager: null
+    property var companionTokens: tokens
     required property var tokens
     property int topReserved: 0
     property int bottomReserved: 0
@@ -48,8 +49,26 @@ FocusScope {
     property var niri: null
     property string surfaceStyle: "solid"
     signal surfaceStyleChangedRequested(string style)
+    property string accentMode: "default"
+    signal accentModeChangedRequested(string mode)
+    property string manualAccent: "#C0AFD1"
+    signal manualAccentChangedRequested(string color)
+    property string accentStatus: ""
+    property color accentPreview: "#C0AFD1"
+    property var accentCandidates: []
+    signal accentResetRequested()
+    property bool companionEnabled: false
+    signal companionChangedRequested(bool enabled)
+    property bool companionDesktopOnly: false
+    signal companionDesktopOnlyChangedRequested(bool enabled)
     property bool animationsEnabled: true
     signal animationsChangedRequested(bool enabled)
+    property bool niriColorIntegration: true
+    signal niriColorIntegrationChangedRequested(bool enabled)
+    property bool strataThemeIntegration: true
+    signal strataThemeIntegrationChangedRequested(bool enabled)
+    property string strataError: ""
+    property string strataNotice: ""
     signal islandRotationEnabledChangedRequested(bool enabled)
     signal islandRotationSecondsChangedRequested(int seconds)
     signal preferredTerminalChangedRequested(string terminalId)
@@ -108,9 +127,9 @@ FocusScope {
         {key: "mouse", page: 11, title: "Мышь", group: "Устройства", description: "Что можно прочитать о мыши в этой сессии niri"},
         {key: "keyboard", page: 12, title: "Клавиатура", group: "Устройства", description: "Раскладка и повтор, которые задаёт niri"},
         {key: "shortcuts", page: 13, title: "Сочетания клавиш", group: "Устройства", description: "Сочетания из конфигурации niri. Запись файла выключена"},
-        {key: "appearance", page: 2, title: "Внешний вид", group: "Персонализация", description: "Прозрачность и анимации интерфейса"},
-        {key: "wallpapers", page: 4, title: "Обои", group: "Персонализация", description: "Фон рабочего стола — общий или отдельный для каждого монитора"},
-        {key: "panels", page: 1, title: "Панель задач", group: "Персонализация", description: "Автоскрытие островов и место для окон у краёв экрана"},
+        {key: "appearance", page: 2, title: "Внешний вид", group: "Персонализация", description: "Прозрачность, акцент и анимации интерфейса"},
+        {key: "wallpapers", page: 4, title: "Обои", group: "Персонализация", description: "Выберите папку и изображение для рабочего стола"},
+        {key: "panels", page: 1, title: "Панель задач", group: "Персонализация", description: "Автоскрытие островов, место для окон у краёв экрана и мониторы"},
         {key: "start", page: 14, title: "Пуск", group: "Персонализация", description: "Значок и приложения кнопки «Пуск»"},
         {key: "island", page: 15, title: "Dynamic Island", group: "Персонализация", description: "Смена страниц острова, город и интервал погоды"},
         {key: "lockscreen", page: 16, title: "Экран блокировки", group: "Персонализация", description: "В Nayori нет своего экрана блокировки"},
@@ -120,6 +139,8 @@ FocusScope {
         {key: "workspaces", page: 19, title: "Рабочие столы", group: "Окна и столы", description: "Столы, которые сейчас сообщает niri"},
         {key: "defaults", page: 20, title: "По умолчанию", group: "Приложения", description: "Приложения по умолчанию через xdg-mime"},
         {key: "autostart", page: 21, title: "Автозапуск", group: "Приложения", description: "Записи автозапуска пользователя и системы"},
+        {key: "naomi", page: 25, title: "Naomi", group: "Приложения", description: "Спутница на рабочем столе и её анимация"},
+        {key: "integrations", page: 24, title: "Интеграции", group: "Приложения", description: "Цвета Nayori в\u00A0niri и тема Strata"},
         {key: "updates", page: 22, title: "Обновления", group: "NayoriOS", description: "Обновление пакетов в терминале, только по кнопке"},
         {key: "about", page: 23, title: "О системе", group: "NayoriOS", description: "Версии Nayori, niri, Quickshell и системы"}
     ]
@@ -127,7 +148,7 @@ FocusScope {
     readonly property var section: sections.find(item => item.page === currentPage) || sections[0]
     readonly property bool persistsSettings: {
         const key = section.key
-        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island"
+        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key === "naomi"
     }
     readonly property var categories: [
         {name: "Обзор", caption: "Обзор", glyph: "home"},
@@ -546,6 +567,7 @@ FocusScope {
                 Layout.maximumWidth: 960
                 tokens: root.tokens
                 showHeading: false
+                wallpapers: root.wallpaperManager
                 topReserved: root.topReserved
                 bottomReserved: root.bottomReserved
                 hideSecondaryIsland: root.hideSecondaryIsland
@@ -578,6 +600,14 @@ FocusScope {
                     surfaceStyle: root.surfaceStyle
                     onRevealRequested: item => appearanceScroll.reveal(item)
                     onSurfaceStyleChangedRequested: style => root.surfaceStyleChangedRequested(style)
+                    accentMode: root.accentMode
+                    onAccentModeChangedRequested: mode => root.accentModeChangedRequested(mode)
+                    manualAccent: root.manualAccent
+                    onManualAccentChangedRequested: color => root.manualAccentChangedRequested(color)
+                    accentStatus: root.accentStatus
+                    accentPreview: root.accentPreview
+                    accentCandidates: root.accentCandidates
+                    onAccentResetRequested: root.accentResetRequested()
                     animationsEnabled: root.animationsEnabled
                     onAnimationsChangedRequested: enabled => root.animationsChangedRequested(enabled)
                 }
@@ -667,6 +697,33 @@ FocusScope {
             SettingsScroll { AutostartPage { width: parent.width; tokens: root.tokens } }
             SettingsScroll { UpdatesPage { width: parent.width; tokens: root.tokens; preferredTerminal: root.preferredTerminal } }
             SettingsScroll { AboutPage { width: parent.width; tokens: root.tokens } }
+            SettingsScroll {
+                IntegrationsPage {
+                    width: parent.width
+                    tokens: root.tokens
+                    niriColorIntegration: root.niriColorIntegration
+                    strataThemeIntegration: root.strataThemeIntegration
+                    strataError: root.strataError
+                    strataNotice: root.strataNotice
+                    onNiriColorIntegrationChangedRequested: enabled => root.niriColorIntegrationChangedRequested(enabled)
+                    onStrataThemeIntegrationChangedRequested: enabled => root.strataThemeIntegrationChangedRequested(enabled)
+                }
+            }
+            SettingsScroll {
+                id: naomiScroll
+                NaomiPage {
+                    companionTokens: root.companionTokens
+                    width: parent.width
+                    tokens: root.tokens
+                    companionEnabled: root.companionEnabled
+                    animationsEnabled: root.animationsEnabled
+                    previewActive: root.currentPage === 25 && root.visible
+                    onCompanionChangedRequested: enabled => root.companionChangedRequested(enabled)
+                    companionDesktopOnly: root.companionDesktopOnly
+                    onCompanionDesktopOnlyChangedRequested: enabled => root.companionDesktopOnlyChangedRequested(enabled)
+                    onRevealRequested: item => naomiScroll.reveal(item)
+                }
+            }
         }
         Rectangle {
             id: footer

@@ -12,7 +12,7 @@ TextField {
     color: tokens.color.text
     placeholderTextColor: tokens.color.textMuted
     selectionColor: tokens.color.accent
-    selectedTextColor: tokens.color.background
+    selectedTextColor: tokens.color.accentText
     font.family: tokens.type.body.family
     font.pixelSize: tokens.settings.body
     leftPadding: 12

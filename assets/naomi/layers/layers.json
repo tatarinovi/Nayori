@@ -172,6 +172,51 @@
    "w": 37,
    "h": 25,
    "z": 18
+  },
+  {
+   "name": "eye_happy_left",
+   "file": "eye_happy_left.png",
+   "x": 379,
+   "y": 196,
+   "w": 42,
+   "h": 31,
+   "z": 19
+  },
+  {
+   "name": "eye_happy_right",
+   "file": "eye_happy_right.png",
+   "x": 421,
+   "y": 183,
+   "w": 48,
+   "h": 33,
+   "z": 20
+  },
+  {
+   "name": "mouth_smile",
+   "file": "mouth_smile.png",
+   "x": 415,
+   "y": 226,
+   "w": 24,
+   "h": 17,
+   "z": 21
+  },
+  {
+   "name": "blush_left",
+   "file": "blush_left.png",
+   "x": 391,
+   "y": 208,
+   "w": 38,
+   "h": 38,
+   "z": 22
+  },
+  {
+   "name": "blush_right",
+   "file": "blush_right.png",
+   "x": 424,
+   "y": 198,
+   "w": 36,
+   "h": 36,
+   "z": 23
   }
  ],
  "pivots": {

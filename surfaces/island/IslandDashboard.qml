@@ -343,7 +343,7 @@ FocusScope {
                                 implicitHeight: 26
                                 radius: 6
                                 color: today ? root.tokens.color.accent : "transparent"
-                                Label { anchors.centerIn: parent; text: day.inMonth ? day.dayNumber : ""; color: day.today ? root.tokens.color.background : root.tokens.color.text; font.pixelSize: 13; font.underline: day.today; font.weight: day.today ? Font.Bold : Font.Medium }
+                                Label { anchors.centerIn: parent; text: day.inMonth ? day.dayNumber : ""; color: day.today ? root.tokens.color.accentText : root.tokens.color.text; font.pixelSize: 13; font.underline: day.today; font.weight: day.today ? Font.Bold : Font.Medium }
                             }
                         }
                     }

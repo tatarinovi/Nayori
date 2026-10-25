@@ -197,7 +197,7 @@ IslandCard {
             Canvas {
                 anchors.centerIn: parent
                 width: 18; height: 18
-                property color ink: root.tokens.color.text
+                property color ink: lyricsToggle.checked ? root.tokens.color.accentSoftText : root.tokens.color.text
                 onInkChanged: requestPaint()
                 onPaint: {
                     const c = getContext("2d")

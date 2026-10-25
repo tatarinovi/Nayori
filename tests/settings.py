@@ -19,7 +19,7 @@ with tempfile.TemporaryDirectory(prefix="ns-") as directory:
                                 env=env, capture_output=True, text=True, timeout=20 if name == "ui" else 10)
         output = result.stdout + result.stderr
         assert result.returncode == 0 and f"SETTINGS_PASS {name}" in output, output
-        assert not any(s in output for s in ["ReferenceError", "TypeError", "Unable to assign", "Failed to load", "SETTINGS_FAIL"]), output
+        assert not any(s in output for s in ["ReferenceError", "TypeError", "Unable to assign", "Failed to load", "Binding loop", "SETTINGS_FAIL"]), output
         print(f"PASS {name}")
     storage = base / "normal"
     run("write", storage)
@@ -27,6 +27,8 @@ with tempfile.TemporaryDirectory(prefix="ns-") as directory:
     saved = json.loads(path.read_text())
     assert saved["weatherCity"] == "Москва" and saved["autoHideApps"]
     assert saved["weatherRefreshMinutes"] == 30
+    assert saved["companionEnabled"] is True
+    assert saved["companionDesktopOnly"] is True
     assert saved["surfaceStyle"] == "frosted"
     assert saved["startIconStyle"] == "fox"
     before = path.read_bytes()

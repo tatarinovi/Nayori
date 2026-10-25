@@ -19,6 +19,10 @@ QtObject {
     readonly property int topReserved: values.topReserved
     readonly property int bottomReserved: values.bottomReserved
     readonly property string surfaceStyle: values.surfaceStyle
+    readonly property string accentMode: values.accentMode
+    readonly property string manualAccent: values.manualAccent
+    readonly property bool companionEnabled: values.companionEnabled
+    readonly property bool companionDesktopOnly: values.companionDesktopOnly
     readonly property bool animationsEnabled: values.animationsEnabled
     readonly property string weatherCity: values.weatherCity
     readonly property int weatherRefreshMinutes: values.weatherRefreshMinutes
@@ -27,6 +31,8 @@ QtObject {
     readonly property string startIconStyle: values.startIconStyle
     readonly property string preferredTerminal: values.preferredTerminal
     readonly property string preferredFileManager: values.preferredFileManager
+    readonly property bool niriColorIntegration: values.niriColorIntegration
+    readonly property bool strataThemeIntegration: values.strataThemeIntegration
     property bool ready: false
     property bool dirty: false
     property bool saving: false
@@ -132,14 +138,20 @@ QtObject {
             "topReserved": 0,
             "bottomReserved": 0,
             "animationsEnabled": true,
+            "companionEnabled": false,
+            "companionDesktopOnly": false,
             "surfaceStyle": "solid",
+            "accentMode": "default",
+            "manualAccent": "#C0AFD1",
             "startIconStyle": "current",
             "weatherCity": "",
             "weatherRefreshMinutes": 15,
             "islandRotationEnabled": true,
             "islandRotationSeconds": 15,
             "preferredTerminal": "kitty",
-            "preferredFileManager": "io.github.lgse.Strata"
+            "preferredFileManager": "io.github.lgse.Strata",
+            "niriColorIntegration": true,
+            "strataThemeIntegration": true
         };
     }
 
@@ -171,6 +183,26 @@ QtObject {
                 return fallback;
             const trimmed = value.trim();
             return trimmed.length > 0 ? trimmed : fallback;
+        }
+
+        if (key === "accentMode")
+            return value === "default" || value === "automatic" || value === "manual" ? value : fallback;
+
+        if (key === "niriColorIntegration" || key === "strataThemeIntegration")
+            return typeof value === "boolean" ? value : fallback;
+
+        if (key === "manualAccent") {
+            if (typeof value !== "string")
+                return fallback;
+            const match = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.exec(value.trim());
+            if (!match)
+                return fallback;
+            let body = match[1];
+            if (body.length === 3)
+                body = body[0] + body[0] + body[1] + body[1] + body[2] + body[2];
+            else if (body.length === 8)
+                body = body.slice(2);
+            return "#" + body.toUpperCase();
         }
 
         return typeof value === "boolean" ? value : fallback;

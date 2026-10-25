@@ -34,7 +34,7 @@ CheckBox {
         Text {
             anchors.centerIn: parent
             text: toggle.checked ? "✓" : ""
-            color: toggle.tokens.color.background
+            color: toggle.tokens.color.accentText
             font.family: toggle.tokens.type.body.family
             font.pixelSize: toggle.tokens.settings.body
             textFormat: Text.PlainText

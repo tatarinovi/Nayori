@@ -63,7 +63,7 @@ Button {
                 text: root.text
                 elide: Text.ElideRight
                 textFormat: Text.PlainText
-                color: root.tokens.color.text
+                color: root.down || root.checked ? root.tokens.color.accentSoftText : root.tokens.color.text
                 font.family: root.tokens.type.body.family
                 font.pixelSize: root.tokens.type.body.size
                 font.weight: root.tokens.type.body.weight

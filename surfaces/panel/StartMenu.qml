@@ -17,7 +17,6 @@ PanelWindow {
     property var anchorWindow: null
 
     property bool opened: false
-    property bool blockOpen: false
     property real reveal: opened ? 1 : 0
     readonly property bool presenting: visible
     readonly property alias menuContent: menuSurface
@@ -61,11 +60,6 @@ PanelWindow {
     readonly property bool sessionBusy: session.busy
 
     function toggle() {
-        if (blockOpen) {
-            blockOpen = false
-            blockTimer.stop()
-            return
-        }
         opened = !opened
     }
 
@@ -227,8 +221,6 @@ PanelWindow {
         }
         visible = true
         profile.refresh()
-        blockOpen = false
-        blockTimer.stop()
         if (!keepFailure) resetTransient()
         Qt.callLater(root.focusPage)
     }
@@ -268,12 +260,6 @@ PanelWindow {
             if (root.failure === "")
                 root.opened = false
         }
-    }
-
-    Timer {
-        id: blockTimer
-        interval: 200
-        onTriggered: root.blockOpen = false
     }
 
     Item {
@@ -372,7 +358,7 @@ PanelWindow {
                             MenuGlyph {
                                 anchors.centerIn: parent
                                 kind: "settings"
-                                ink: root.tokens.color.text
+                                ink: settingsAction.down ? root.tokens.color.accentSoftText : root.tokens.color.text
                                 width: 24; height: 24
                             }
                         }

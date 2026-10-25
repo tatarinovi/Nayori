@@ -33,7 +33,7 @@ Column {
                     color: root.tokens.color.text
                     placeholderTextColor: root.tokens.color.textMuted
                     selectionColor: root.tokens.color.accent
-                    selectedTextColor: root.tokens.color.background
+                    selectedTextColor: root.tokens.color.accentText
                     font.family: root.tokens.type.body.family
                     font.pixelSize: root.tokens.settings.body
                     leftPadding: 12
@@ -79,7 +79,7 @@ Column {
                     palette.base: root.tokens.color.surfaceAlt
                     palette.button: root.tokens.color.surfaceAlt
                     palette.highlight: root.tokens.color.accent
-                    palette.highlightedText: root.tokens.color.background
+                    palette.highlightedText: root.tokens.color.accentText
                     Accessible.name: "Интервал обновления погоды в минутах"
                     font.family: root.tokens.type.body.family
                     font.pixelSize: root.tokens.settings.body

@@ -6,10 +6,15 @@ import "../../services/settings"
 // Shell-owned: one UI instance, no storage and no dependency on panel geometry.
 QtObject {
     id: root
+    property var companionTokens: tokens
     required property var tokens
     required property var settingsService
     required property var wallpaperManager
     property var niri: null
+    property string accentStatus: ""
+    property var accentCandidates: []
+    property string strataError: ""
+    property string strataNotice: ""
     property SettingsUsage usage: SettingsUsage { }
 
     property string userName: Quickshell.env("USER") || ""
@@ -25,7 +30,7 @@ QtObject {
         display: 5, sound: 6, power: 7, network: 8, localsend: 9,
         bluetooth: 10, mouse: 11, keyboard: 12, shortcuts: 13, start: 14,
         island: 15, lockscreen: 16, windows: 17, alttab: 18, workspaces: 19,
-        defaults: 20, autostart: 21, updates: 22, about: 23
+        defaults: 20, autostart: 21, updates: 22, about: 23, integrations: 24, naomi: 25
     })
 
     function open() { return show("") }
@@ -106,6 +111,7 @@ QtObject {
         SettingsWindow {
             id: surface
             settingsReady: root.settingsService.ready
+            companionTokens: root.companionTokens
             tokens: root.tokens
             wallpaperManager: root.wallpaperManager
             userName: root.userName
@@ -137,6 +143,15 @@ QtObject {
             preferredFileManager: root.settingsService.preferredFileManager
             niri: root.niri
             surfaceStyle: root.settingsService.surfaceStyle
+            accentMode: root.settingsService.accentMode
+            manualAccent: root.settingsService.manualAccent
+            accentStatus: root.accentStatus
+            accentPreview: root.tokens.color.accent
+            accentCandidates: root.accentCandidates
+            companionEnabled: root.settingsService.companionEnabled
+            onCompanionChangedRequested: enabled => root.settingsService.update({companionEnabled: enabled})
+            companionDesktopOnly: root.settingsService.companionDesktopOnly
+            onCompanionDesktopOnlyChangedRequested: enabled => root.settingsService.update({companionDesktopOnly: enabled})
             animationsEnabled: root.settingsService.animationsEnabled
             settingsMessage: root.settingsService.message
             canRecover: root.settingsService.canRecover
@@ -148,11 +163,20 @@ QtObject {
             onWeatherCityChangedRequested: city => root.settingsService.update({weatherCity: city})
             onWeatherRefreshMinutesChangedRequested: minutes => root.settingsService.update({weatherRefreshMinutes: minutes})
             onSurfaceStyleChangedRequested: style => root.settingsService.update({surfaceStyle: style})
+            onAccentModeChangedRequested: mode => root.settingsService.update({accentMode: mode})
+            onManualAccentChangedRequested: color => root.settingsService.update({manualAccent: color, accentMode: "manual"})
+            onAccentResetRequested: root.settingsService.update({accentMode: "default", manualAccent: "#C0AFD1"})
             onAnimationsChangedRequested: enabled => root.settingsService.update({animationsEnabled: enabled})
             onIslandRotationEnabledChangedRequested: enabled => root.settingsService.update({islandRotationEnabled: enabled})
             onIslandRotationSecondsChangedRequested: seconds => root.settingsService.update({islandRotationSeconds: seconds})
             onPreferredTerminalChangedRequested: terminalId => root.settingsService.update({preferredTerminal: terminalId})
             onPreferredFileManagerChangedRequested: fileManagerId => root.settingsService.update({preferredFileManager: fileManagerId})
+            niriColorIntegration: root.settingsService.niriColorIntegration
+            onNiriColorIntegrationChangedRequested: enabled => root.settingsService.update({niriColorIntegration: enabled})
+            strataThemeIntegration: root.settingsService.strataThemeIntegration
+            onStrataThemeIntegrationChangedRequested: enabled => root.settingsService.update({strataThemeIntegration: enabled})
+            strataError: root.strataError
+            strataNotice: root.strataNotice
             onRecoverRequested: root.settingsService.recover()
             onRetryRequested: root.settingsService.flush(false)
             onCloseRequested: root.close()

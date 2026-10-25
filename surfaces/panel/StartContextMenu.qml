@@ -112,7 +112,6 @@ PopupWindow {
     }
 
     visible: false
-    screen: panelScreen
     color: "transparent"
     Region { id: glassRegion; item: root.contentItem; radius: root.tokens.radius.small + root.tokens.spacing.small }
     BackgroundEffect.blurRegion: root.tokens.frosted ? glassRegion : null

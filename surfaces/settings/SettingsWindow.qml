@@ -9,6 +9,7 @@ import QtQuick.Window
 FloatingWindow {
     id: root
     property var wallpaperManager: null
+    property var companionTokens: tokens
     required property var tokens
     property int topReserved: 0
     property int bottomReserved: 0
@@ -35,12 +36,30 @@ FloatingWindow {
     property bool settingsReady: true
     property string surfaceStyle: "solid"
     signal surfaceStyleChangedRequested(string style)
+    property string accentMode: "default"
+    signal accentModeChangedRequested(string mode)
+    property string manualAccent: "#C0AFD1"
+    signal manualAccentChangedRequested(string color)
+    property string accentStatus: ""
+    property color accentPreview: "#C0AFD1"
+    property var accentCandidates: []
+    signal accentResetRequested()
+    property bool companionEnabled: false
+    signal companionChangedRequested(bool enabled)
+    property bool companionDesktopOnly: false
+    signal companionDesktopOnlyChangedRequested(bool enabled)
     property bool animationsEnabled: true
     signal animationsChangedRequested(bool enabled)
     signal islandRotationEnabledChangedRequested(bool enabled)
     signal islandRotationSecondsChangedRequested(int seconds)
     signal preferredTerminalChangedRequested(string terminalId)
     signal preferredFileManagerChangedRequested(string fileManagerId)
+    property bool niriColorIntegration: true
+    signal niriColorIntegrationChangedRequested(bool enabled)
+    property bool strataThemeIntegration: true
+    signal strataThemeIntegrationChangedRequested(bool enabled)
+    property string strataError: ""
+    property string strataNotice: ""
     property string settingsMessage: ""
     property bool canRecover: false
     property bool canRetry: false
@@ -76,6 +95,7 @@ FloatingWindow {
     Settings {
         id: settings
         enabled: root.settingsReady
+        companionTokens: root.companionTokens
         tokens: root.tokens
         wallpaperManager: root.wallpaperManager
         topReserved: root.topReserved
@@ -103,12 +123,30 @@ FloatingWindow {
         currentPage: root.initialPage
         surfaceStyle: root.surfaceStyle
         onSurfaceStyleChangedRequested: style => root.surfaceStyleChangedRequested(style)
+        accentMode: root.accentMode
+        onAccentModeChangedRequested: mode => root.accentModeChangedRequested(mode)
+        manualAccent: root.manualAccent
+        onManualAccentChangedRequested: color => root.manualAccentChangedRequested(color)
+        accentStatus: root.accentStatus
+        accentPreview: root.accentPreview
+        accentCandidates: root.accentCandidates
+        onAccentResetRequested: root.accentResetRequested()
+        companionEnabled: root.companionEnabled
+        onCompanionChangedRequested: enabled => root.companionChangedRequested(enabled)
+        companionDesktopOnly: root.companionDesktopOnly
+        onCompanionDesktopOnlyChangedRequested: enabled => root.companionDesktopOnlyChangedRequested(enabled)
         animationsEnabled: root.animationsEnabled
         onAnimationsChangedRequested: enabled => root.animationsChangedRequested(enabled)
         onIslandRotationEnabledChangedRequested: enabled => root.islandRotationEnabledChangedRequested(enabled)
         onIslandRotationSecondsChangedRequested: seconds => root.islandRotationSecondsChangedRequested(seconds)
         onPreferredTerminalChangedRequested: terminalId => root.preferredTerminalChangedRequested(terminalId)
         onPreferredFileManagerChangedRequested: fileManagerId => root.preferredFileManagerChangedRequested(fileManagerId)
+        niriColorIntegration: root.niriColorIntegration
+        onNiriColorIntegrationChangedRequested: enabled => root.niriColorIntegrationChangedRequested(enabled)
+        strataThemeIntegration: root.strataThemeIntegration
+        onStrataThemeIntegrationChangedRequested: enabled => root.strataThemeIntegrationChangedRequested(enabled)
+        strataError: root.strataError
+        strataNotice: root.strataNotice
         settingsMessage: root.settingsMessage
         canRecover: root.canRecover
         canRetry: root.canRetry

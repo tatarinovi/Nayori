@@ -55,7 +55,7 @@ Column {
         palette.base: root.tokens.color.surfaceAlt
         palette.button: root.tokens.color.surfaceAlt
         palette.highlight: root.tokens.color.accent
-        palette.highlightedText: root.tokens.color.background
+        palette.highlightedText: root.tokens.color.accentText
         Accessible.name: "Интервал смены страниц острова в секундах"
         font.family: root.tokens.type.body.family
         font.pixelSize: root.tokens.settings.body

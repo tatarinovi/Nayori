@@ -313,6 +313,113 @@ def export(name, mask, colors, order, pad=3):
     return {"name": name, "file": f"{name}.png", "x": int(x0), "y": int(y0), "w": int(x1 - x0), "h": int(y1 - y0), "z": order}
 
 
+# --- варианты эмоций: рисуются векторно, видны только при поглаживании ---
+EMO_SS = 8  # во сколько раз рисуем крупнее ради сглаживания
+LASH = (20, 17, 28)  # цвет ресниц: тёмный тон волос, как у нарисованных глаз
+SMILE = (126, 92, 112)  # мягкий тёмно-розовый для линии рта
+# (центр, ширина, наклон в градусах, подъём дуги) — по открытым глазам рисунка
+EYE_HAPPY = {
+    "eye_happy_left": ((400.5, 212.0), 24.0, 4.0, 6.5),
+    "eye_happy_right": ((445.0, 199.5), 30.0, -15.0, 7.5),
+}
+MOUTH = (427.5, 234.2)  # центр нарисованного рта (закрыт, едва заметен)
+BLUSH = {
+    "blush_left": ((410.0, 227.5), 27.0, 14.0, -4.0),
+    "blush_right": ((442.5, 216.5), 24.0, 12.5, -14.0),
+}
+
+
+def bezier(p0, p1, p2, n=48):
+    t = np.linspace(0, 1, n)[:, None]
+    return (1 - t) ** 2 * np.array(p0) + 2 * (1 - t) * t * np.array(p1) + t ** 2 * np.array(p2)
+
+
+def ribbon(points, width_mid, width_end, ss):
+    """Полоса переменной толщины вдоль ломаной: тонкая на концах, толстая посередине."""
+    pts = np.asarray(points, float)
+    d = np.gradient(pts, axis=0)
+    d /= np.linalg.norm(d, axis=1)[:, None] + 1e-9
+    nrm = np.stack([-d[:, 1], d[:, 0]], 1)
+    t = np.linspace(0, 1, len(pts))
+    w = (width_end + (width_mid - width_end) * np.sin(np.pi * t) ** 0.7)[:, None] / 2
+    left = pts + nrm * w
+    right = pts - nrm * w
+    return [tuple(p * ss) for p in np.vstack([left, right[::-1]])]
+
+
+def rotate(point, center, degrees):
+    a = np.radians(degrees)
+    c, s_ = np.cos(a), np.sin(a)
+    x, y = point[0] - center[0], point[1] - center[1]
+    return (center[0] + x * c - y * s_, center[1] + x * s_ + y * c)
+
+
+def emotion_layer(name, box_, painter):
+    """Рисует слой в рамке box_ = (x0, y0, x1, y1) в пикселях источника и сохраняет его."""
+    x0, y0, x1, y1 = box_
+    w, h = x1 - x0, y1 - y0
+    img = Image.new("RGBA", (w * EMO_SS, h * EMO_SS), (0, 0, 0, 0))
+    painter(ImageDraw.Draw(img), lambda p: ((p[0] - x0) * EMO_SS, (p[1] - y0) * EMO_SS), img)
+    img = img.resize((w, h), Image.LANCZOS)
+    img.save(OUT / f"{name}.png", optimize=True)
+    return {"name": name, "file": f"{name}.png", "x": x0, "y": y0, "w": w, "h": h}
+
+
+def happy_eye(center, width, tilt, rise):
+    half = width / 2
+    p0 = (center[0] - half, center[1] + rise * 0.15)
+    p2 = (center[0] + half, center[1] + rise * 0.15)
+    p1 = (center[0], center[1] - rise * 1.55)
+    pts = [rotate(p, center, tilt) for p in bezier(p0, p1, p2)]
+    # короткая ресница-«хвостик» на внешнем конце дуги (наружу и вниз)
+    return pts
+
+
+def build_emotions():
+    skin = tuple(int(v) for v in skin_med)
+    meta = []
+
+    def eye(centre, width, tilt, rise, outer_left):
+        def paint(d, to, img):
+            pts = happy_eye(centre, width, tilt, rise)
+            d.polygon([(p[0], p[1]) for p in ribbon([to(p) for p in pts], 3.4 * EMO_SS, 0.5 * EMO_SS, 1)], fill=LASH + (255,))
+            tip = pts[0] if outer_left else pts[-1]
+            sign = -1 if outer_left else 1
+            tick = [(tip[0], tip[1]), (tip[0] + sign * 2.2, tip[1] + 1.6), (tip[0] + sign * 3.6, tip[1] + 3.8)]
+            d.polygon([(p[0], p[1]) for p in ribbon([to(p) for p in bezier(tick[0], tick[1], tick[2], 12)], 1.7 * EMO_SS, 0.3 * EMO_SS, 1)], fill=LASH + (255,))
+        return paint
+
+    for name, (centre, width, tilt, rise) in EYE_HAPPY.items():
+        pad = 9
+        box_ = (int(centre[0] - width / 2 - pad), int(centre[1] - rise - pad), int(centre[0] + width / 2 + pad), int(centre[1] + rise + pad))
+        meta.append(emotion_layer(name, box_, eye(centre, width, tilt, rise, name.endswith("left"))))
+
+    # улыбка: кожа закрывает нарисованный закрытый рот, поверх — мягкая дуга с приподнятыми уголками
+    def mouth(d, to, img):
+        cx, cy = MOUTH
+        patch = Image.new("L", img.size, 0)
+        ImageDraw.Draw(patch).ellipse([*to((cx - 6.5, cy - 2.8)), *to((cx + 6.5, cy + 2.8))], fill=255)
+        patch = patch.filter(ImageFilter.GaussianBlur(1.0 * EMO_SS))
+        img.alpha_composite(Image.merge("RGBA", (*Image.new("RGB", img.size, skin).split(), patch)))
+        pts = bezier((cx - 4.6, cy - 0.7), (cx + 0.2, cy + 3.2), (cx + 5.0, cy - 1.5))
+        d.polygon([(p[0], p[1]) for p in ribbon([to(p) for p in pts], 1.5 * EMO_SS, 0.3 * EMO_SS, 1)], fill=SMILE + (255,))
+    meta.append(emotion_layer("mouth_smile", (int(MOUTH[0]) - 12, int(MOUTH[1]) - 8, int(MOUTH[0]) + 12, int(MOUTH[1]) + 9), mouth))
+
+    # румянец: белая яркостная маска с мягким краем; в QML её красит цвет secondary
+    for name, (centre, bw, bh, tilt) in BLUSH.items():
+        def blush(d, to, img, centre=centre, bw=bw, bh=bh, tilt=tilt):
+            mask = Image.new("L", img.size, 0)
+            ImageDraw.Draw(mask).ellipse([*to((centre[0] - bw / 2, centre[1] - bh / 2)), *to((centre[0] + bw / 2, centre[1] + bh / 2))], fill=255)
+            mask = mask.rotate(-tilt, center=to(centre), resample=Image.BICUBIC)
+            mask = mask.filter(ImageFilter.GaussianBlur(bh * 0.28 * EMO_SS))
+            arr = np.asarray(mask).astype(float) * 0.62
+            out = np.dstack([np.full(arr.shape, 255.0)] * 3 + [arr]).astype("uint8")
+            img.alpha_composite(Image.fromarray(out, "RGBA"))
+        r = int(max(bw, bh) / 2 + 6)
+        meta.append(emotion_layer(name, (int(centre[0]) - r, int(centre[1]) - r, int(centre[0]) + r, int(centre[1]) + r), blush))
+    return meta
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     for old in OUT.glob("*.png"):
@@ -324,6 +431,10 @@ def main():
         info = export(name, mask, colors, z)
         if info:
             meta.append(info)
+    base_z = len(meta)
+    for z, info in enumerate(build_emotions()):
+        info["z"] = base_z + z
+        meta.append(info)
     pivots = {
         "ear_left": [round(EARL_PIVOT[0] * S), round(EARL_PIVOT[1] * S)],
         "ear_right": [round(EARR_PIVOT[0] * S), round(EARR_PIVOT[1] * S)],
@@ -340,7 +451,9 @@ def main():
     for info in meta:
         l = Image.open(OUT / info["file"])
         comp.alpha_composite(l, (info["x"], info["y"]))
-    comp.convert("RGB").save("/tmp/nl/composite.png")
+    preview = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else None
+    if preview:
+        comp.convert("RGB").save(preview)
     print("слоёв:", len(meta))
 
 

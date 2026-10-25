@@ -179,6 +179,14 @@ ShellRoot {
                     slider.forceActiveFocus()
                     const flick = test.findItem(view, "settings-panels-scroll")
                     test.check(flick.contentY > 0, "focus reveals lower controls")
+                    test.check(flick.height > 0 && flick.contentHeight > flick.height, "panels page scrolls: visible height and taller content")
+                    test.check(flick.contentY + flick.height <= flick.contentHeight + 1, "reveal stays inside the scrollable range")
+                    const revealedY = flick.contentY
+                    const autohide = test.findItem(view, "panels-autohide")
+                    autohide.forceActiveFocus()
+                    test.check(flick.contentY >= 0 && flick.contentY + flick.height <= flick.contentHeight + 1, "focus on the top switch keeps scroll in range")
+                    slider.forceActiveFocus()
+                    test.check(Math.abs(flick.contentY - revealedY) < 1, "refocusing a visible control does not move the page")
                     currentPage = 2
                     const frosted = test.findItem(view, "surfaceStyle-frosted")
                     input.mouseClick(frosted, frosted.width / 2, frosted.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
@@ -191,6 +199,22 @@ ShellRoot {
                     const animationY = animationsControl.mapToItem(appearance.contentItem, 0, 0).y
                     test.check(animationY >= -1 && animationY + animationsControl.height <= appearance.height + 1,
                         "compact appearance scroll reveals keyboard focus")
+                    openKey("naomi")
+                    test.check(currentPage === 25, "dedicated Naomi page opens")
+                    const companionControl = test.findItem(view, "settingsCompanionToggle")
+                    companionControl.forceActiveFocus()
+                    input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                    test.check(!settings.companionEnabled, "companion disables from settings")
+                    input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                    test.check(settings.companionEnabled, "companion re-enables from settings")
+                    const desktopOnlyControl = test.findItem(view, "settingsCompanionDesktopOnlyToggle")
+                    settings.update({companionDesktopOnly: false})
+                    test.check(!desktopOnlyControl.checked, "desktop-only switch follows the service")
+                    desktopOnlyControl.forceActiveFocus()
+                    input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                    test.check(settings.companionDesktopOnly && desktopOnlyControl.checked, "desktop-only applies from settings")
+                    input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                    test.check(!settings.companionDesktopOnly, "desktop-only turns off from settings")
                     settings.update({startIconStyle: "current"})
                     openKey("start")
                     Qt.callLater(exerciseStart)
@@ -239,6 +263,10 @@ ShellRoot {
                     test.intervalRequests++;
                     settings.update({weatherRefreshMinutes: minutes});
                 }
+                companionEnabled: settings.companionEnabled
+                onCompanionChangedRequested: enabled => settings.update({companionEnabled: enabled})
+                companionDesktopOnly: settings.companionDesktopOnly
+                onCompanionDesktopOnlyChangedRequested: enabled => settings.update({companionDesktopOnly: enabled})
                 startIconStyle: settings.startIconStyle
                 onStartIconStyleChangedRequested: style => { test.iconRequests++; settings.update({startIconStyle: style}); }
                 surfaceStyle: settings.surfaceStyle
@@ -312,12 +340,49 @@ ShellRoot {
                     test.check(settings.topReserved === 4 && settings.bottomReserved === 0, "normalize loaded reservations");
                     test.check(settings.autoHideTop === false && settings.animationsEnabled === true && settings.weatherCity === "", "invalid and missing fields use defaults");
                     test.check(!settings.dirty, "load normalization does not write");
+                    test.check(!settings.companionEnabled, "companion defaults off");
+                    test.check(!settings.companionDesktopOnly, "desktop-only defaults off");
+                    settings.update({companionDesktopOnly: "yes"});
+                    test.check(!settings.companionDesktopOnly, "invalid desktop-only value defaults off");
+                    settings.update({companionDesktopOnly: true});
+                    test.check(settings.companionDesktopOnly, "desktop-only applies immediately");
+                    settings.update({companionDesktopOnly: false});
+                    settings.update({companionEnabled: true});
+                    test.check(settings.companionEnabled, "companion enables immediately");
+                    settings.update({companionEnabled: "yes"});
+                    test.check(!settings.companionEnabled, "invalid companion value defaults off");
+                    settings.update({companionEnabled: true});
                     test.check(settings.startIconStyle === "current", "missing icon defaults to current");
                     settings.update({startIconStyle: "fox"});
                     test.check(settings.startIconStyle === "fox", "fox enum accepted");
                     settings.update({startIconStyle: "unsupported"});
                     test.check(settings.startIconStyle === "current", "invalid icon defaults to current");
                     test.check(settings.surfaceStyle === "solid", "missing or invalid style defaults to solid");
+                    test.check(settings.accentMode === "default" && settings.manualAccent === "#C0AFD1", "accent defaults");
+                    settings.update({accentMode: "automatic", manualAccent: "#abc"});
+                    test.check(settings.accentMode === "automatic" && settings.manualAccent === "#AABBCC", "short accent expands");
+                    settings.update({manualAccent: "#80aabbcc"});
+                    test.check(settings.manualAccent === "#AABBCC", "accent keeps rgb from #AARRGGBB");
+                    settings.update({manualAccent: "#C0AFD1FF"});
+                    test.check(settings.manualAccent === "#AFD1FF", "accent drops leading alpha");
+                    settings.update({manualAccent: "#C0AFD1"});
+                    test.check(settings.manualAccent === "#C0AFD1", "full accent kept");
+                    for (const value of ["automatic", "manual", "default"]) {
+                        settings.update({accentMode: value});
+                        test.check(settings.accentMode === value, "accent mode " + value);
+                    }
+                    for (const value of ["glass", "", null, true, 1, "#C0AFD1"]) {
+                        settings.update({accentMode: "manual"});
+                        settings.update({accentMode: value});
+                        test.check(settings.accentMode === "default", "invalid accent mode defaults");
+                    }
+                    settings.update({accentMode: "manual"});
+                    for (const value of ["", "red", "#C0AFD1F", "#ABCD", true, null, 1]) {
+                        settings.update({manualAccent: "#112233"});
+                        settings.update({manualAccent: value});
+                        test.check(settings.manualAccent === "#C0AFD1", "invalid manual accent defaults");
+                    }
+                    settings.update({accentMode: "default", manualAccent: "#C0AFD1"});
                     settings.update({surfaceStyle: "frosted"});
                     test.check(settings.surfaceStyle === "frosted", "frosted accepted");
                     for (const value of ["glass", "Solid", "", null, true, 1]) {
@@ -328,6 +393,12 @@ ShellRoot {
                     test.check(settings.weatherRefreshMinutes === 15, "missing interval uses default");
                     test.check(settings.islandRotationEnabled === true && settings.islandRotationSeconds === 15, "rotation defaults");
                     test.check(settings.preferredTerminal === "kitty" && settings.preferredFileManager === "io.github.lgse.Strata", "app defaults");
+                    test.check(settings.niriColorIntegration === true && settings.strataThemeIntegration === true, "integration defaults");
+                    settings.update({niriColorIntegration: false, strataThemeIntegration: false});
+                    test.check(settings.niriColorIntegration === false && settings.strataThemeIntegration === false, "integration off");
+                    settings.update({niriColorIntegration: "no", strataThemeIntegration: 1});
+                    test.check(settings.niriColorIntegration === true && settings.strataThemeIntegration === true, "invalid integration defaults on");
+                    settings.update({niriColorIntegration: true, strataThemeIntegration: true});
                     settings.update({islandRotationSeconds: 3});
                     test.check(settings.islandRotationSeconds === 5, "rotation clamps low");
                     settings.update({islandRotationSeconds: 500});
@@ -359,6 +430,8 @@ ShellRoot {
                     test.finish();
                 } else if (test.scenario === "restore") {
                     test.check(settings.weatherCity === "Москва" && settings.topReserved === 200 && !settings.animationsEnabled && settings.weatherRefreshMinutes === 30 && settings.surfaceStyle === "frosted" && settings.startIconStyle === "fox", "restored values");
+                    test.check(settings.companionEnabled, "companion restored after restart");
+                    test.check(settings.companionDesktopOnly, "desktop-only restored after restart");
                     test.check(!settings.dirty && test.changes === 1, "no write loop on load");
                     test.finish();
                 } else if (test.scenario === "revert") {
@@ -471,6 +544,8 @@ ShellRoot {
                         "weatherRefreshMinutes": 30,
                         "surfaceStyle": "frosted",
                         "startIconStyle": "fox",
+                        "companionEnabled": true,
+                        "companionDesktopOnly": true,
                         "topReserved": 999,
                         "animationsEnabled": false,
                         "autoHideTop": true

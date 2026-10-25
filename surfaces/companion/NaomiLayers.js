@@ -128,5 +128,40 @@ var layers = {
   "y": 188,
   "w": 37,
   "h": 25
+ },
+ "eye_happy_left": {
+  "file": "eye_happy_left.png",
+  "x": 379,
+  "y": 196,
+  "w": 42,
+  "h": 31
+ },
+ "eye_happy_right": {
+  "file": "eye_happy_right.png",
+  "x": 421,
+  "y": 183,
+  "w": 48,
+  "h": 33
+ },
+ "mouth_smile": {
+  "file": "mouth_smile.png",
+  "x": 415,
+  "y": 226,
+  "w": 24,
+  "h": 17
+ },
+ "blush_left": {
+  "file": "blush_left.png",
+  "x": 391,
+  "y": 208,
+  "w": 38,
+  "h": 38
+ },
+ "blush_right": {
+  "file": "blush_right.png",
+  "x": 424,
+  "y": 198,
+  "w": 36,
+  "h": 36
  }
 };

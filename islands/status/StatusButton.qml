@@ -36,7 +36,9 @@ Button {
             height: 20
             visible: root.iconName !== ""
             property string kind: root.iconName
-            property color ink: root.enabled ? root.tokens.color.text : root.tokens.color.textMuted
+            property color ink: !root.enabled ? root.tokens.color.textMuted
+                : (root.down || root.checked) ? root.tokens.color.accentSoftText
+                : root.tokens.color.text
             onKindChanged: requestPaint()
             onInkChanged: requestPaint()
             onPaint: {
@@ -89,7 +91,7 @@ Button {
             textFormat: Text.PlainText
             visible: root.iconName === ""
             text: root.text
-            color: root.tokens.color.text
+            color: root.down || root.checked ? root.tokens.color.accentSoftText : root.tokens.color.text
             font.family: root.tokens.type.body.family
             font.pixelSize: root.tokens.type.body.size
             font.weight: root.tokens.type.body.weight

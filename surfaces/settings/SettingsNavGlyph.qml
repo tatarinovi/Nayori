@@ -84,10 +84,29 @@ Canvas {
             hole(5, 6, 14, 12, 1)
             c.beginPath(); c.moveTo(4, 19); c.lineTo(10, 11); c.lineTo(14, 16); c.lineTo(17, 12); c.lineTo(21, 19); c.fill()
             c.beginPath(); c.arc(16, 8, 1.5, 0, Math.PI * 2); c.fill()
+        } else if (name === "folder") {
+            tile(2, 4, 9, 6, 2)
+            tile(2, 7, 20, 13, 3)
         } else if (name === "panels") {
             tile(2, 15, 20, 6, 3)
             tile(3, 4, 8, 7, 2)
             c.globalAlpha = 0.5; tile(14, 4, 7, 7, 2)
+        } else if (name === "autohide") {
+            // Two arrowheads moving apart: an island that slides away.
+            c.lineWidth = 1.5
+            c.beginPath(); c.moveTo(12, 2.5); c.lineTo(18, 10); c.lineTo(6, 10); c.closePath(); c.fill(); c.stroke()
+            c.beginPath(); c.moveTo(12, 21.5); c.lineTo(18, 14); c.lineTo(6, 14); c.closePath(); c.fill(); c.stroke()
+        } else if (name === "pointer") {
+            c.lineWidth = 1.5
+            c.beginPath()
+            c.moveTo(5, 3); c.lineTo(5, 19); c.lineTo(9.2, 15.2); c.lineTo(12.4, 21.5)
+            c.lineTo(15.4, 20); c.lineTo(12.3, 13.8); c.lineTo(18, 13.8); c.closePath()
+            c.fill(); c.stroke()
+        } else if (name === "topisland") {
+            // A screen with a pill at the top edge.
+            tile(2, 3, 20, 18, 3)
+            hole(4, 5, 16, 14, 1.5)
+            tile(8, 7, 8, 3, 1.5)
         } else if (name === "island") {
             tile(1, 7, 22, 10, 5)
             hole(4, 10, 3, 4, 1.5); hole(17, 10, 3, 4, 1.5)
@@ -139,6 +158,10 @@ Canvas {
         } else if (name === "autostart") {
             c.beginPath(); c.moveTo(7, 3); c.lineTo(21, 12); c.lineTo(7, 21); c.closePath(); c.fill()
             line(3, 4, 3, 20)
+        } else if (name === "integrations") {
+            c.beginPath(); c.arc(7, 12, 3.2, 0, Math.PI * 2); c.stroke()
+            c.beginPath(); c.arc(17, 12, 3.2, 0, Math.PI * 2); c.stroke()
+            line(10.2, 12, 13.8, 12)
         } else if (name === "updates") {
             c.beginPath(); c.arc(12, 12, 9, Math.PI * 0.1, Math.PI * 1.8); c.stroke()
             line(12, 5, 12, 17); line(8, 13, 12, 17); line(12, 17, 16, 13)
