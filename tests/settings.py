@@ -15,7 +15,7 @@ with tempfile.TemporaryDirectory(prefix="ns-") as directory:
                    QS_DISABLE_FILE_WATCHER="1",
                    QT_QPA_PLATFORMTHEME="basic", QT_QUICK_BACKEND="software",
                    NAYORI_SETTINGS_SCENARIO=name, NAYORI_SETTINGS_DIR=str(folder))
-        result = subprocess.run(["qs", "-p", str(root / "SettingsSmoke.qml"), "--no-color"],
+        result = subprocess.run(["qs", "-p", str(root / "tests/smoke/SettingsSmoke.qml"), "--no-color"],
                                 env=env, capture_output=True, text=True, timeout=20 if name == "ui" else 10)
         output = result.stdout + result.stderr
         assert result.returncode == 0 and f"SETTINGS_PASS {name}" in output, output

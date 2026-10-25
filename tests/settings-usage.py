@@ -11,7 +11,7 @@ with tempfile.TemporaryDirectory(prefix="nayori-usage-") as directory:
     runtime = base / "runtime"
     runtime.mkdir(mode=0o700)
     def run(folder):
-        result = subprocess.run(["qs", "-p", str(root / "SettingsUsageSmoke.qml"), "--no-color"],
+        result = subprocess.run(["qs", "-p", str(root / "tests/smoke/SettingsUsageSmoke.qml"), "--no-color"],
             env=dict(os.environ, QT_QPA_PLATFORM="offscreen", QT_QPA_PLATFORMTHEME="basic", QT_QUICK_BACKEND="software",
                      QS_DISABLE_FILE_WATCHER="1", XDG_RUNTIME_DIR=str(runtime), NAYORI_USAGE_DIR=str(folder)),
             capture_output=True, text=True, timeout=10)

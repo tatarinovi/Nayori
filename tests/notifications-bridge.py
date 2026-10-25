@@ -6,7 +6,7 @@ with tempfile.TemporaryDirectory(prefix='nayori-bridge-test-') as directory:
     os.chmod(directory,0o700)
     env=dict(os.environ,XDG_RUNTIME_DIR=directory,QT_QPA_PLATFORM='offscreen',QT_QPA_PLATFORMTHEME='basic',QT_QUICK_BACKEND='software',NAYORI_ISLAND_NOTIFICATION_TEST='1')
     log=open(directory+'/bridge.log','w+')
-    bridge=subprocess.Popen(['qs','-p',str(root/'NotificationBridgeSmoke.qml'),'--no-color'],env=env,stdout=log,stderr=subprocess.STDOUT)
+    bridge=subprocess.Popen(['qs','-p',str(root/'tests/smoke/NotificationBridgeSmoke.qml'),'--no-color'],env=env,stdout=log,stderr=subprocess.STDOUT)
     def ipc(method,*args):
         return subprocess.check_output(['qs','ipc','--pid',str(bridge.pid),'call','test',method,*map(str,args)],env=env,text=True,stderr=subprocess.DEVNULL).strip()
     def state(): return json.loads(ipc('state'))

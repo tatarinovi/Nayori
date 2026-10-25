@@ -407,6 +407,23 @@ ShellRoot {
                         test.check(test.viewRef.activeFocus, "navigation focus after creation");
                         test.check(test.uiRequests === 0, "service updates must not emit user requests");
                         test.viewRef.grabToImage(function(result) {
+                            for (const category of test.viewRef.categories) {
+                                const button = test.findItem(test.viewRef, "settings-category-" + category.glyph)
+                                const icon = test.findItem(button, "settings-category-icon")
+                                const caption = test.findItem(button, "settings-category-caption")
+                                const point = icon.mapToItem(button, 0, 0)
+                                test.check(Math.abs(point.x + icon.width / 2 - button.width / 2) < 1, "primary icon horizontally centered")
+                                test.check(caption.mapToItem(button, 0, 0).y >= point.y + icon.height, "primary caption below icon")
+                            }
+                            if (test.viewRef.hasSecondary) for (const section of test.viewRef.visibleSections) {
+                                const button = test.findItem(test.viewRef, "settings-nav-" + section.key)
+                                const icon = test.findItem(button, "settings-action-icon")
+                                const captions = test.findItem(button, "settings-action-captions")
+                                test.check(icon.visible && button.glyph === section.key, "second level has icon " + section.key)
+                                const center = captions.mapToItem(button, 0, 0).y + captions.height / 2
+                                test.check(Math.abs(center - button.height / 2) < 1, "second-level text centered in fill")
+                                test.check(Math.abs(icon.mapToItem(button, 0, 0).y + icon.height / 2 - center) < 1, "second-level icon aligned with text")
+                            }
                             if (test.viewRef.currentPage === 0) {
                                 const banner = test.findItem(test.viewRef, "home-customization-banner")
                                 for (const key of ["wallpapers", "appearance", "panels", "island"]) {

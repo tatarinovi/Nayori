@@ -29,7 +29,7 @@ print(json.dumps({"current_condition": [{"temp_C": "oops" if mode == "bad" else 
     env = dict(os.environ, XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORM="offscreen",
                QT_QPA_PLATFORMTHEME="basic", QT_QUICK_BACKEND="software",
                NAYORI_WEATHER_FAKE=str(fake), NAYORI_WEATHER_LOG=str(log))
-    result = subprocess.run(["qs", "-p", str(root / "WeatherServiceSmoke.qml"), "--no-color"],
+    result = subprocess.run(["qs", "-p", str(root / "tests/smoke/WeatherServiceSmoke.qml"), "--no-color"],
                             env=env, capture_output=True, text=True, timeout=15)
     output = result.stdout + result.stderr
     assert result.returncode == 0 and "WEATHER_SERVICE_PASS" in output, output

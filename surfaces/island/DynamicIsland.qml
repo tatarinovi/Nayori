@@ -31,6 +31,34 @@ Rectangle {
     }
     property real lyricProgress: showingLyrics ? 1 : 0
     Behavior on lyricProgress { NumberAnimation { duration: root.tokens.motion.off ? 0 : 250; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.77, 0, 0.175, 1, 1, 1] } }
+    readonly property real lyricEnd: {
+        if (!lyrics || !lyrics.lines || typeof lyrics.currentIndex !== "number") return 0
+        const next = lyrics.lines[lyrics.currentIndex + 1]
+        return next ? next.t : (player && player.length ? player.length : 0)
+    }
+    readonly property string audioKey: "island-border-" + String(root)
+    readonly property bool wantsBeat: active && visible && !!player && !tokens.motion.off
+    property real musicPulse: 0
+    function updateBeatConsumer() {
+        if (audioReaction) audioReaction.consumer(audioKey, wantsBeat)
+        if (!wantsBeat) { beatAnimation.stop(); musicPulse = 0 }
+    }
+    onWantsBeatChanged: updateBeatConsumer()
+    onAudioReactionChanged: updateBeatConsumer()
+    Component.onDestruction: { if (audioReaction) audioReaction.consumer(audioKey, false) }
+    Connections {
+        target: root.audioReaction
+        function onBeat(strength) {
+            if (!root.wantsBeat) return
+            beatRise.to = Math.max(root.musicPulse, Math.max(0, strength) / (Math.max(0, strength) + 0.008))
+            beatAnimation.restart()
+        }
+    }
+    SequentialAnimation {
+        id: beatAnimation
+        NumberAnimation { id: beatRise; target: root; property: "musicPulse"; duration: 90; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "musicPulse"; to: 0; duration: 380; easing.type: Easing.OutCubic }
+    }
     property bool testMode: false
     property var audioReaction: null
     property var notifications: null
@@ -268,6 +296,7 @@ Rectangle {
 
     MarqueeText {
         id: compactLyricsText
+        animateLines: true
         objectName: "compactMusicLyrics"
         anchors.fill: parent
         anchors.leftMargin: 22
@@ -275,6 +304,9 @@ Rectangle {
         tokens: root.tokens
         centered: true
         text: root.compactLyricText
+        words: root.lyrics && root.lyrics.status === "synced" ? root.lyrics.currentWords || [] : []
+        position: root.lyrics && typeof root.lyrics.position === "number" ? root.lyrics.position : 0
+        lineEnd: root.lyricEnd
         opacity: root.showingVolume || root.showingNotification ? 0 : root.lyricProgress
         visible: opacity > 0
         active: root.active && root.showingLyrics && visible
@@ -362,6 +394,14 @@ Rectangle {
                 wheel.accepted = false
             }
         }
+    }
+    IslandBeatBorder {
+        anchors.fill: parent
+        z: 100
+        visible: root.drawChrome && pulse > 0.001
+        accent: root.tokens.color.accent
+        cornerRadius: root.radius
+        pulse: root.musicPulse
     }
     Accessible.role: Accessible.Button
     Accessible.onPressAction: root.dashboardRequested()

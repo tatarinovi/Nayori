@@ -23,7 +23,7 @@ Canvas отображает статические обои средствами
 - `surfaces/settings/WallpaperPage.qml`: страница существующего окна настроек.
 - `shell.qml`: один менеджер, `Variants` по `Quickshell.screens`, передача менеджера в настройки, IPC `canvas`.
 - `surfaces/settings/Settings.qml`, `SettingsWindow.qml`: навигация, передача менеджера, высота страницы с прокруткой.
-- `CanvasSmoke.qml`, `scripts/check-canvas.sh`: изолированные проверки.
+- `tests/smoke/CanvasSmoke.qml`, `scripts/check-canvas.sh`: изолированные проверки.
 
 Файл: `$XDG_CONFIG_HOME/nayori/canvas.json`, по умолчанию `~/.config/nayori/canvas.json`.
 

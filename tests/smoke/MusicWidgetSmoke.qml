@@ -50,7 +50,7 @@ ShellRoot {
     MusicService {
         id: music
         testMode: true; testPlayers: [first,second]
-        testCommand: ["python3", Quickshell.shellPath("tests/fake-lyrics-worker.py")]
+        testCommand: ["python3", Quickshell.shellPath("fake-lyrics-worker.py")]
         Component.onCompleted: consumer("widget-test",true)
     }
     FloatingWindow {
@@ -75,7 +75,8 @@ ShellRoot {
                 const toggle = root.findItem(card,"musicLyricsToggle")
                 verify(toggle.visible && toggle.checked)
                 compare(toggle.text, "")
-                verify(root.findItem(card,"previousLyricLine") !== null)
+                verify(root.findItem(card,"musicTrackProgress") !== null)
+                verify(root.findItem(card,"previousLyricLine") === null)
                 verify(root.findItem(card,"nextLyricLine") !== null)
                 mouseClick(toggle,toggle.width/2,toggle.height/2)
                 verify(card.metadataVisible && !card.lyricMode && !toggle.checked)

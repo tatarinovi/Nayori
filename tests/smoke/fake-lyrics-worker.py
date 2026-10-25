@@ -1,0 +1,1 @@
+../fake-lyrics-worker.py

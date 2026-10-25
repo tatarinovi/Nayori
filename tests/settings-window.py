@@ -20,7 +20,7 @@ with tempfile.TemporaryDirectory(prefix="nwin-") as temporary:
     env = dict(os.environ, XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORMTHEME="basic",
                QS_DISABLE_FILE_WATCHER="1",
                NAYORI_SETTINGS_DIR=str(folder / "config"), XDG_STATE_HOME=str(folder / "state"), QT_QUICK_BACKEND="software",
-               NAYORI_SETTINGS_CONFIG=str(root / "SettingsWindowSmoke.qml"))
+               NAYORI_SETTINGS_CONFIG=str(root / "tests/smoke/SettingsWindowSmoke.qml"))
     if args.wayland:
         display = env.get("WAYLAND_DISPLAY", "wayland-0")
         env["WAYLAND_DISPLAY"] = display if display.startswith("/") else str(Path(original_runtime) / display)
@@ -37,7 +37,7 @@ with tempfile.TemporaryDirectory(prefix="nwin-") as temporary:
                 ["WINDOW_FAIL", "ReferenceError:", "TypeError:", "Unable to assign", "Failed to load configuration"]), result.stdout + result.stderr
         return result.stdout.strip()
     def ipc(method, *values):
-        return run("qs", "ipc", "-p", str(root / "SettingsWindowSmoke.qml"), "call", "settings", method, *values)
+        return run("qs", "ipc", "-p", str(root / "tests/smoke/SettingsWindowSmoke.qml"), "call", "settings", method, *values)
     def snapshot():
         return json.loads(ipc("snapshot"))
     def until(predicate, message):
@@ -55,7 +55,7 @@ with tempfile.TemporaryDirectory(prefix="nwin-") as temporary:
         return [w for w in windows() if w.get("pid") == pid and w.get("app_id") == "nayori-settings-test"
                 and w.get("title") == "Nayori Settings"]
     if not args.wayland:
-        output = run("qs", "-p", str(root / "SettingsWindowSmoke.qml"), "--no-color")
+        output = run("qs", "-p", str(root / "tests/smoke/SettingsWindowSmoke.qml"), "--no-color")
         print("PASS controller native-close/recreate/PID isolation")
     env["NAYORI_WINDOW_WAYLAND"] = "1"  # Persistent IPC harness, also used on offscreen.
     try:
@@ -128,5 +128,5 @@ with tempfile.TemporaryDirectory(prefix="nwin-") as temporary:
         print("PASS history survives close/restart independently of UI")
         print("PASS restart and command reopen")
     finally:
-        run("qs", "kill", "-p", str(root / "SettingsWindowSmoke.qml"), check=False)
+        run("qs", "kill", "-p", str(root / "tests/smoke/SettingsWindowSmoke.qml"), check=False)
 print("SETTINGS_WINDOW_TESTS_PASS")

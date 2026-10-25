@@ -35,7 +35,7 @@ ShellRoot {
             dashboard.selectedPlayer = second
             if (dashboard.player !== second) throw new Error("Paused source selection lost")
             dashboard.selectedPlayer = first
-            dashboard.musicService = {players: [first, second], player: first, lyrics: {status:"synced",currentLine:"Тестовая строка с таймкодом",lines:[{t:0,text:"Тестовая строка с таймкодом"}]}}
+            dashboard.musicService = {players: [first, second], player: first, lyrics: {status:"synced",currentLine:"Тестовая строка с таймкодом и продолжением, которое занимает несколько строк в маленьком музыкальном виджете",nextLine:"Следующая строка песни",lines:[{t:0,text:"Тестовая строка с таймкодом"}]}}
             Qt.callLater(() => {
                 const card = findItem(dashboard, "musicCard")
                 if (!card || !card.lyricMode || card.metadataVisible) throw new Error("Lyrics must replace metadata")

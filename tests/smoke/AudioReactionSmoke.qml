@@ -7,7 +7,7 @@ ShellRoot {
     AudioReaction {
         id: audio
         testMode: true; testPlaying: true; testSink: "sink-one"
-        testCommand: ["python3", Qt.resolvedUrl("tests/fake-audio.py").toString().replace("file://", "")]
+        testCommand: ["python3", Quickshell.shellPath("fake-audio.py")]
         onBeat: root.beats++
         Component.onCompleted: consumer("test", true)
     }

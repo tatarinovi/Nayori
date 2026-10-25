@@ -20,7 +20,7 @@ ShellRoot {
     property bool animations: true
     Tokens { id: theme; animationsEnabled: test.animations }
     Timer { interval: 1; running: true; onTriggered: {
-        const component = Qt.createComponent(Qt.resolvedUrl("shell.qml"))
+        const component = Qt.createComponent(Qt.resolvedUrl("RealShell.qml"))
         if (component.status !== Component.Ready) {
             console.error("ROOT_CONFIG_FAIL " + component.errorString())
             Qt.exit(1)

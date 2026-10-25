@@ -30,11 +30,11 @@ Supported geometry inspected: 352 × 48 compact, 680 × 490 expanded wrapper, 68
 
 Passed:
 
-- Six local weather illustrations integrated and visually inspected in the card: clear, cloudy, rain, snow, storm and fog. `WeatherSmoke.qml` reports `WEATHER_ARTWORK_PASS`, verifies all six images load, and verifies empty/error conditions clear the source. Rounded corners also render in the software backend.
+- Six local weather illustrations integrated and visually inspected in the card: clear, cloudy, rain, snow, storm and fog. `tests/smoke/WeatherSmoke.qml` reports `WEATHER_ARTWORK_PASS`, verifies all six images load, and verifies empty/error conditions clear the source. Rounded corners also render in the software backend.
 - Running Nayori reloaded the updated configuration successfully.
 
 - `/usr/lib/qt6/bin/qmllint surfaces/island/IslandDashboard.qml` exits 0, without diagnostics.
-- `QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QPA_PLATFORMTHEME=basic XDG_RUNTIME_DIR=/tmp/nayori-dashboard-runtime timeout 2s quickshell -p ./MorphSmoke.qml --no-color` reports `MORPH_ISLAND_PASS`. Timeout 124 is expected.
+- `QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QPA_PLATFORMTHEME=basic XDG_RUNTIME_DIR=/tmp/nayori-dashboard-runtime timeout 2s quickshell -p ./tests/smoke/MorphSmoke.qml --no-color` reports `MORPH_ISLAND_PASS`. Timeout 124 is expected.
 - Expanded screenshot `/tmp/nayori-morph-expanded.png` visually inspected: complete calendar footer, no overlap between music/weather/calendar, consistent insets and heading hierarchy. Intermediate morph and reduced-motion geometry assertions pass.
 - Color calculation from sRGB tokens: cream text on music card 13.12:1; muted text 10.15:1. With a completely white weather-image pixel under the 72% graphite overlay, cream is at least 6.21:1 and muted text at least 4.80:1. Current-day dark text on lavender is 9.15:1.
 

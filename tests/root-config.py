@@ -11,7 +11,7 @@ with tempfile.TemporaryDirectory(prefix="nayori-root-") as runtime:
         display = str(Path(os.environ["XDG_RUNTIME_DIR"]) / display)
     env = dict(os.environ, XDG_RUNTIME_DIR=runtime, WAYLAND_DISPLAY=display,
                QT_QPA_PLATFORM="wayland", QT_QPA_PLATFORMTHEME="basic", QT_QUICK_BACKEND="software")
-    result = subprocess.run(["qs", "-p", str(root / "RootConfigSmoke.qml"), "--no-color"],
+    result = subprocess.run(["qs", "-p", str(root / "tests/smoke/RootConfigSmoke.qml"), "--no-color"],
                             env=env, text=True, capture_output=True, timeout=10)
     output = result.stdout + result.stderr
     assert result.returncode == 0 and "ROOT_CONFIG_PASS" in output, output

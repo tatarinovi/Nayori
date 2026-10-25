@@ -66,6 +66,14 @@ Rectangle {
     clip: true
     antialiasing: true
 
+    IslandBeatBorder {
+        anchors.fill: parent
+        z: 100
+        accent: root.tokens.color.accent
+        cornerRadius: root.radius
+        pulse: compact.musicPulse
+    }
+
     Behavior on closedWidth {
         enabled: root.ready
         NumberAnimation {

@@ -32,7 +32,7 @@ ShellRoot {
         id: music
         testMode: true
         testPlayers: [first, second]
-        testCommand: ["python3", Quickshell.shellPath("tests/fake-lyrics-worker.py")]
+        testCommand: ["python3", Quickshell.shellPath("fake-lyrics-worker.py")]
     }
     TestCase {
         id: test

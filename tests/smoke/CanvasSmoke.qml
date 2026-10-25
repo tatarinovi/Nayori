@@ -1,16 +1,16 @@
 import QtQuick
 import Quickshell
-import "./services/canvas"
-import "./surfaces/canvas"
-import "./surfaces/settings"
-import "./tokens"
+import "services/canvas"
+import "surfaces/canvas"
+import "surfaces/settings"
+import "tokens"
 
 ShellRoot {
     id: root
     property int stage: 0
     property int ticks: 0
     property bool prepared: false
-    property var sources: [Qt.resolvedUrl("./assets/wallpapers/nayori.png"), "file:///tmp/nayori-canvas-test.jpg", "file:///tmp/nayori-canvas-test.webp"]
+    property var sources: [Qt.resolvedUrl("assets/wallpapers/nayori.png"), "file:///tmp/nayori-canvas-test.jpg", "file:///tmp/nayori-canvas-test.webp"]
     property var modes: ["fill", "fit", "stretch", "center"]
     function check(ok, reason) { if (!ok) throw new Error(reason) }
     Tokens { id: tokens }

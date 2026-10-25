@@ -114,7 +114,7 @@ hold their owner visible. Reveal and hide use a 140 ms opacity transition with
 a strong ease-out, interrupted from the current value. No reveal animation runs
 on initial loading; disabling animations makes the transition immediate. An
 empty app dock stays hidden even on edge hover.
-`AutoHideSmoke.qml` tests independent state, the close delay, held-open state,
+`tests/smoke/AutoHideSmoke.qml` tests independent state, the close delay, held-open state,
 and empty app availability without moving the pointer or activating windows.
 
 ## Source boundary
@@ -132,11 +132,11 @@ Use the Qt 6 linter (`/usr/lib/qt6/bin/qmllint` on the target machine). The
 unversioned `qmllint` can resolve to the older Qt 5 tool. Quickshell's dynamic
 properties and generated layer-shell types still produce some tooling warnings.
 
-An isolated smoke renderer is provided at `PanelSmoke.qml`:
+An isolated smoke renderer is provided at `tests/smoke/PanelSmoke.qml`:
 
 ```sh
 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QPA_PLATFORMTHEME=basic \
-  timeout 7s qs -p ./PanelSmoke.qml --no-color
+  timeout 7s qs -p ./tests/smoke/PanelSmoke.qml --no-color
 ```
 
 It checks CPU deltas, invalid-sample handling, seconds in the clock, panel and
@@ -147,7 +147,7 @@ Look for `PANEL_SMOKE_PASS`; the timeout's exit code 124 is expected. Native
 layer-shell placement and pointer grabs still require a Wayland session; the
 offscreen backend does not implement window masks.
 
-`MorphSmoke.qml` checks intermediate dimensions, full expansion/collapse, and
+`tests/smoke/MorphSmoke.qml` checks intermediate dimensions, full expansion/collapse, and
 immediate transitions when animations are disabled, and renders preview states.
 
 ## Меню «Пуск»
@@ -171,6 +171,6 @@ qs ipc -p /home/katamy/Projects/nayori call start toggle
 затухания. Клик снаружи запускает закрытие; фокус клавиатуры и область ввода
 освобождаются сразу, без подмены окна снимком.
 
-`StartMenuSmoke.qml` проверяет отрисовку, навигацию, прерывание закрытия,
+`tests/smoke/StartMenuSmoke.qml` проверяет отрисовку, навигацию, прерывание закрытия,
 мгновенный режим и завершение затухания после внешнего закрытия.
 `python3 tests/super-tap.py` проверяет распознавание нажатий без доступа к устройствам.

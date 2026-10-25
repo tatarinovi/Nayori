@@ -17,6 +17,8 @@ IslandCard {
     readonly property bool metadataVisible: !lyricMode
     property real lyricProgress: lyricMode ? 1 : 0
     Behavior on lyricProgress { NumberAnimation { duration: root.tokens.motion.off ? 0 : 250; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.77, 0, 0.175, 1, 1, 1] } }
+    readonly property real trackProgress: player && player.length > 0 && lyrics && typeof lyrics.position === "number"
+        ? Math.max(0, Math.min(1, lyrics.position / player.length)) : 0
     readonly property real controlsBottom: controls.y + controls.height
     function canScrollLyrics(delta) {
         return lyricMode && lyrics.status === "plain" && lyricHover.hovered &&
@@ -145,6 +147,26 @@ IslandCard {
                     }
                     ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
                 }
+            }
+        }
+        Rectangle {
+            objectName: "musicTrackProgress"
+            Layout.fillWidth: true
+            Layout.preferredHeight: 3
+            Layout.topMargin: 2
+            Layout.bottomMargin: 3
+            radius: 1.5
+            visible: root.hasLyrics && !!root.player && root.player.length > 0
+            color: Qt.alpha(root.tokens.color.text, 0.14)
+            Accessible.role: Accessible.ProgressBar
+            Accessible.name: "Прогресс трека"
+            Accessible.description: Math.round(root.trackProgress * 100) + "%"
+            Rectangle {
+                height: parent.height
+                width: parent.width * root.trackProgress
+                radius: parent.radius
+                color: root.tokens.color.accent
+                Behavior on width { NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast; easing.type: Easing.Linear } }
             }
         }
         RowLayout {

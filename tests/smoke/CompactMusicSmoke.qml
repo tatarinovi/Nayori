@@ -9,6 +9,7 @@ ShellRoot {
     QtObject {
         id: player
         property bool isPlaying: true
+        property real length: 10
         property string trackTitle: "Fixture track"
     }
     QtObject {
@@ -17,13 +18,22 @@ ShellRoot {
         property var lines: []
         property string currentLine: ""
         property var currentWords: []
+        property int currentIndex: 0
         property real position: 0
         property string plainText: ""
+    }
+    QtObject {
+        id: fakeAudio
+        property bool playing: true
+        property bool available: true
+        property real energy: 0
+        signal beat(real strength)
+        function consumer(key, enabled) {}
     }
     QtObject { id: service; property var player: null; property var lyrics: text }
     FloatingWindow {
         visible: true; implicitWidth: 448; implicitHeight: 48
-        DynamicIsland { id: island; anchors.fill: parent; tokens: theme; testMode: true; musicService: service }
+        DynamicIsland { id: island; anchors.fill: parent; tokens: theme; testMode: true; musicService: service; audioReaction: fakeAudio }
         TestCase {
             id: test
             when: false
@@ -40,6 +50,20 @@ ShellRoot {
                 compare(island.lyricProgress,1)
                 const ticker = findChild(island,"compactMusicLyrics")
                 verify(ticker.width > island.width - 50)
+                verify(ticker.wordProgress)
+                const before = ticker.sungWidth
+                text.position = 1.5
+                verify(ticker.sungWidth > before)
+                text.position = 0
+                compare(ticker.sungWidth, before)
+                fakeAudio.beat(0.008)
+                wait(60)
+                verify(island.musicPulse > 0.2)
+                const stroke = findChild(island,"musicBeatStroke")
+                verify(stroke.border.width <= 3)
+                verify(stroke.opacity <= 0.45)
+                wait(450)
+                compare(island.musicPulse,0)
                 text.currentLine = "A long fixture lyric line ".repeat(10) + "\nmore words"
                 verify(island.compactLyricText.indexOf("\n") === -1)
                 wait(30)

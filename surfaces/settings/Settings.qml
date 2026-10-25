@@ -345,6 +345,7 @@ FocusScope {
                             objectName: "settings-category-" + modelData.glyph
                             width: parent.width
                             height: 68
+                            padding: 0
                             hoverEnabled: true
                             readonly property bool selected: !root.searchOpen && root.activeCategory === modelData.name
                             Accessible.name: modelData.name
@@ -362,22 +363,28 @@ FocusScope {
                                     color: root.tokens.color.accent
                                 }
                             }
-                            contentItem: Column {
-                                topPadding: 9
-                                spacing: 5
-                                SettingsNavGlyph {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    width: 22; height: 22
-                                    name: categoryButton.modelData.glyph
-                                    ink: categoryButton.selected ? root.tokens.color.accent : root.tokens.color.textMuted
-                                }
-                                Label {
+                            contentItem: Item {
+                                Column {
+                                    anchors.centerIn: parent
                                     width: parent.width
-                                    text: categoryButton.modelData.caption
-                                    horizontalAlignment: Text.AlignHCenter
-                                    color: categoryButton.selected ? root.tokens.color.text : root.tokens.color.textMuted
-                                    font.pixelSize: root.compact ? 9 : 10
-                                    lineHeight: 1.05
+                                    spacing: 6
+                                    SettingsNavGlyph {
+                                        objectName: "settings-category-icon"
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        width: 22; height: 22
+                                        name: categoryButton.modelData.glyph
+                                        ink: categoryButton.selected ? root.tokens.color.accent : root.tokens.color.textMuted
+                                    }
+                                    Label {
+                                        objectName: "settings-category-caption"
+                                        width: parent.width
+                                        text: categoryButton.modelData.caption
+                                        horizontalAlignment: Text.AlignHCenter
+                                        wrapMode: Text.NoWrap
+                                        color: categoryButton.selected ? root.tokens.color.text : root.tokens.color.textMuted
+                                        font.pixelSize: root.compact ? 9 : 10
+                                        lineHeight: 1.05
+                                    }
                                 }
                             }
                             Keys.onDownPressed: {
@@ -475,6 +482,7 @@ FocusScope {
                         objectName: "settings-nav-" + modelData.key
                         width: parent.width
                         text: modelData.title
+                        glyph: modelData.key
                         detail: root.navSearching ? root.sectionPath(modelData) : ""
                         selected: root.currentPage === modelData.page
                         Accessible.selected: selected
