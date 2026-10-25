@@ -81,6 +81,8 @@ qs ipc -p /home/katamy/Projects/nayori call settings openPage weather
 qs ipc -p /home/katamy/Projects/nayori call settings close
 ```
 
+Страница Naomi хранит три переключателя: `companionEnabled` (по умолчанию выкл.), `companionDesktopOnly` (выкл.) и `companionReactToPointer` (по умолчанию вкл.; включает небольшой овал над головой, принимающий курсор и клики, см. `docs/NAOMI.md`). Недопустимое значение сбрасывается к умолчанию.
+
 Разделы: `home`, `panels`, `appearance`, `wallpapers`, `weather`. `open` сохраняет текущий раздел; `openPage` выбирает указанный. Существующие `canvas openSettings` и `canvas closeSettings` сохранены как совместимые входы.
 
 `WallpaperManager` независимо хранит обои в `canvas.json`. Имя и аватар берутся из системы. Навигация и состояние открытых окон не сохраняются.
