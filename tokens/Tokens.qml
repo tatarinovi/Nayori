@@ -1,4 +1,5 @@
 import QtQuick
+import "AccentRoles.js" as AccentRoles
 
 // Один набор ролей. Компоненты берут их отсюда и не пишут hex сами.
 // Графит с холодным фиолетовым подтоном, пыльная лаванда, пыльная роза,
@@ -7,24 +8,49 @@ QtObject {
     id: root
     property bool animationsEnabled: true
     property string surfaceStyle: "solid"
+    // Исходный акцент не переписывается. accentDerived включает расчёт AccentRoles.
+    property color accentSource: "#C0AFD1"
+    property bool accentDerived: false
+    // neutralDerived false — авторский графит. true — фон и поверхности из обоев.
+    property color backgroundSource: "#121217"
+    property color surfaceSource: "#4F4F57"
+    property color surfaceAltSource: "#443D4E"
+    property bool neutralDerived: false
+    readonly property var accentRoles: AccentRoles.roles(root.accentSource, root.accentDerived)
     readonly property bool frosted: surfaceStyle === "frosted"
+    // Frosted graphite keeps its alpha and takes RGB from color.background.
+    function graphite(alphaByte) {
+        const value = root.color.background
+        function channel(amount) {
+            const byte = Math.max(0, Math.min(255, Math.round(amount * 255)))
+            const text = byte.toString(16).toUpperCase()
+            return text.length === 1 ? "0" + text : text
+        }
+        return "#" + channel(alphaByte / 255) + channel(value.r) + channel(value.g) + channel(value.b)
+    }
     // Material fills only: never apply opacity to the whole surface or its text.
     readonly property QtObject material: QtObject {
-        readonly property color panel: root.frosted ? "#B5121217" : root.color.surfaceAlt
-        readonly property color island: root.frosted ? "#CC121217" : root.color.surfaceAlt
-        readonly property color islandExpanded: root.frosted ? "#CC121217" : root.color.background
-        readonly property color dense: root.frosted ? "#EB121217" : root.color.background
-        readonly property color menu: root.frosted ? "#EB121217" : root.color.surfaceAlt
+        readonly property color panel: root.frosted ? root.graphite(0xB5) : root.color.surfaceAlt
+        readonly property color island: root.frosted ? root.graphite(0xCC) : root.color.surfaceAlt
+        readonly property color islandExpanded: root.frosted ? root.graphite(0xCC) : root.color.background
+        readonly property color dense: root.frosted ? root.graphite(0xEB) : root.color.background
+        readonly property color menu: root.frosted ? root.graphite(0xEB) : root.color.surfaceAlt
         readonly property color sidebar: root.frosted ? "#0CFFFFFF" : Qt.tint(root.color.background, "#0CFFFFFF")
     }
     readonly property QtObject color: QtObject {
-        readonly property color background: "#121217"   // oklch(0.185 0.010 286) земля панели
-        readonly property color surface: "#4F4F57"      // oklch(0.430 0.014 286) поднятые заглушки
-        readonly property color surfaceAlt: "#443D4E"   // oklch(0.375 0.030 304) тело капсулы
+        readonly property color background: root.neutralDerived ? root.backgroundSource : "#121217"   // oklch(0.185 0.010 286) земля панели
+        readonly property color surface: root.neutralDerived ? root.surfaceSource : "#4F4F57"      // oklch(0.430 0.014 286) поднятые заглушки
+        readonly property color surfaceAlt: root.neutralDerived ? root.surfaceAltSource : "#443D4E"   // oklch(0.375 0.030 304) тело капсулы
         readonly property color text: "#F0E9DB"         // oklch(0.935 0.020 82)
         readonly property color textMuted: "#D5CEC4"    // oklch(0.855 0.016 80)
-        readonly property color accent: "#C0AFD1"       // oklch(0.780 0.050 308) лаванда
-        readonly property color accentSoft: "#80758C"   // oklch(0.580 0.038 308) та же лаванда, тише
+        // accentDerived false — авторские sRGB. true — роли из accentSource, без сдвига оттенка.
+        readonly property color accent: root.accentDerived ? root.accentRoles.accent : "#C0AFD1"       // oklch(0.780 0.050 308) лаванда
+        readonly property color accentSoft: root.accentDerived ? root.accentRoles.accentSoft : "#80758C"   // oklch(0.580 0.038 308) та же лаванда, тише
+        readonly property color accentHover: root.accentDerived ? root.accentRoles.accentHover : "#80758C"
+        readonly property color accentText: root.accentDerived ? root.accentRoles.accentText : "#121217"
+        // Чернила на accentSoft. Без расчёта это тот же text: #F0E9DB на #80758C.
+        readonly property color accentSoftText: root.accentDerived ? root.accentRoles.accentSoftText : "#F0E9DB"
+        readonly property color accentBorder: root.accentDerived ? root.accentRoles.accentBorder : "#C0AFD1"
         readonly property color secondary: "#CAA7AA"    // oklch(0.760 0.042 12) пыльная роза
         readonly property color border: "#57F0E9DB"     // тёплый текст на 34%
         readonly property color shadow: "#6B05060A"

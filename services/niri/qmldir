@@ -1,3 +1,5 @@
 # Каталог синглтона. Из islands/workspaces и islands/apps:
 # import "../../services/niri"
 singleton Niri 1.0 Niri.qml
+NiriAccent 1.0 NiriAccent.qml
+OverviewRule 1.0 OverviewRule.qml

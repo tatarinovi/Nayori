@@ -1,0 +1,11 @@
+layout {
+    gaps 10
+    focus-ring {
+        width 2
+    }
+    shadow {
+        on
+        color "#00000070"
+    }
+}
+// active-color "#112233"

@@ -1,0 +1,6 @@
+include "cfg/layout.kdl"
+include "cfg/display.kdl"
+include "cfg/misc.kdl"
+include "noctalia.kdl"
+// include "skipped.kdl"
+/- include "dashed.kdl"

@@ -21,6 +21,14 @@ QtObject {
     readonly property string focusedOutput: _focusedOutput
     readonly property var workspaces: _workspaces
     readonly property var windows: _windows
+    // First ConfigLoaded on a connection is the catch-up for the running config.
+    // configReloads counts only later successful loads. Overview uses that to
+    // avoid mapping a backdrop layer before this process has actually loaded it.
+    property bool _configSeen: false
+    property bool _configFailed: false
+    property int _configReloads: 0
+    readonly property bool configFailed: _configFailed
+    readonly property int configReloads: _configReloads
 
     property bool _awaitingHandshake: false
     property bool _streamLive: false
@@ -225,6 +233,7 @@ QtObject {
         _workspaces = []
         _windows = []
         _actionQueue = []
+        _configSeen = false
         try {
             if (streamSocket.connected)
                 streamSocket.connected = false
@@ -344,6 +353,24 @@ QtObject {
             applyWindowFocusChanged(msg.WindowFocusChanged, epoch)
             return
         }
+        if (msg.ConfigLoaded !== undefined) {
+            applyConfigLoaded(msg.ConfigLoaded, epoch)
+            return
+        }
+    }
+
+    function applyConfigLoaded(body, epoch) {
+        if (epoch !== _streamEpoch)
+            return
+        if (!body || typeof body.failed !== "boolean")
+            return
+        _configFailed = body.failed
+        if (!_configSeen) {
+            _configSeen = true
+            return
+        }
+        if (!body.failed)
+            _configReloads += 1
     }
 
     function applyWorkspaces(body, epoch) {
@@ -562,6 +589,23 @@ QtObject {
                 }
             }))
         } catch (e) {
+        }
+    }
+
+    // path остаётся null: niri 26.04 перечитывает текущий файл, а не подменяет его.
+    // Справка действия: «Reload the config file». Это не quit и не перезапуск сессии.
+    function reloadConfig() {
+        try {
+            if (!_available)
+                return false
+            enqueueAction(JSON.stringify({
+                Action: {
+                    LoadConfigFile: { path: null }
+                }
+            }))
+            return true
+        } catch (e) {
+            return false
         }
     }
 
