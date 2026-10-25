@@ -75,6 +75,10 @@ ShellRoot {
     readonly property bool autoHideStatus: settingsStore.autoHideStatus
     readonly property int topReserved: settingsStore.topReserved
     readonly property int bottomReserved: settingsStore.bottomReserved
+    readonly property bool islandRotationEnabled: settingsStore.islandRotationEnabled
+    readonly property int islandRotationSeconds: settingsStore.islandRotationSeconds
+    readonly property string preferredTerminal: settingsStore.preferredTerminal
+    readonly property string preferredFileManager: settingsStore.preferredFileManager
     readonly property string userName: Quickshell.env("USER") || ""
 
     LazyLoader {

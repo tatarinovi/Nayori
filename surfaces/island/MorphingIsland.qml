@@ -27,6 +27,8 @@ Rectangle {
     property bool expanded: false
     property string weatherCity: ""
     property var weatherService: null
+    property bool islandRotationEnabled: true
+    property int islandRotationSeconds: 15
     readonly property bool menuOpened: compact.menuOpened
     property real closedWidth: compact.compactWidth
     readonly property real closedHeight: 48
@@ -78,6 +80,11 @@ Rectangle {
         notifications: root.notifications
         drawChrome: false
         expansionProgress: root.progress
+        islandRotationEnabled: root.islandRotationEnabled
+        islandRotationSeconds: root.islandRotationSeconds
+        weatherCity: root.weatherCity
+        weather: root.weatherService ? root.weatherService.data : null
+        weatherError: root.weatherService ? root.weatherService.error : ""
         width: parent.width
         active: root.active
         anchors.top: parent.top

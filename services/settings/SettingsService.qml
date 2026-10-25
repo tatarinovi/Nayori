@@ -21,6 +21,10 @@ QtObject {
     readonly property bool animationsEnabled: values.animationsEnabled
     readonly property string weatherCity: values.weatherCity
     readonly property int weatherRefreshMinutes: values.weatherRefreshMinutes
+    readonly property bool islandRotationEnabled: values.islandRotationEnabled
+    readonly property int islandRotationSeconds: values.islandRotationSeconds
+    readonly property string preferredTerminal: values.preferredTerminal
+    readonly property string preferredFileManager: values.preferredFileManager
     property bool ready: false
     property bool dirty: false
     property bool saving: false
@@ -127,7 +131,11 @@ QtObject {
             "bottomReserved": 0,
             "animationsEnabled": true,
             "weatherCity": "",
-            "weatherRefreshMinutes": 15
+            "weatherRefreshMinutes": 15,
+            "islandRotationEnabled": true,
+            "islandRotationSeconds": 15,
+            "preferredTerminal": "kitty",
+            "preferredFileManager": "org.gnome.Nautilus"
         };
     }
 
@@ -139,8 +147,21 @@ QtObject {
         if (key === "weatherRefreshMinutes")
             return typeof value === "number" && isFinite(value) && Math.floor(value) === value && value >= 1 && value <= 180 ? value : fallback;
 
+        if (key === "islandRotationSeconds") {
+            if (typeof value !== "number" || !isFinite(value))
+                return fallback;
+            return Math.max(5, Math.min(120, Math.round(value)));
+        }
+
         if (key === "weatherCity")
             return typeof value === "string" ? value.trim() : fallback;
+
+        if (key === "preferredTerminal" || key === "preferredFileManager") {
+            if (typeof value !== "string")
+                return fallback;
+            const trimmed = value.trim();
+            return trimmed.length > 0 ? trimmed : fallback;
+        }
 
         return typeof value === "boolean" ? value : fallback;
     }

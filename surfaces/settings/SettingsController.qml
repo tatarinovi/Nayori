@@ -17,7 +17,13 @@ QtObject {
     property bool activationPending: false
     property int activationAttempts: 0
     property string error: ""
-    readonly property var pageIndexes: ({ home: 0, panels: 1, appearance: 2, weather: 3, wallpapers: 4 })
+    readonly property var pageIndexes: ({
+        home: 0, panels: 1, appearance: 2, weather: 3, wallpapers: 4,
+        display: 5, sound: 6, power: 7, network: 8, localsend: 9,
+        bluetooth: 10, mouse: 11, keyboard: 12, shortcuts: 13, start: 14,
+        island: 15, lockscreen: 16, windows: 17, alttab: 18, workspaces: 19,
+        defaults: 20, autostart: 21, updates: 22, about: 23
+    })
 
     function open() { return show("") }
     function openPage(page) {
@@ -110,6 +116,11 @@ QtObject {
             autoHideStatus: root.settingsService.autoHideStatus
             weatherCity: root.settingsService.weatherCity
             weatherRefreshMinutes: root.settingsService.weatherRefreshMinutes
+            islandRotationEnabled: root.settingsService.islandRotationEnabled
+            islandRotationSeconds: root.settingsService.islandRotationSeconds
+            preferredTerminal: root.settingsService.preferredTerminal
+            preferredFileManager: root.settingsService.preferredFileManager
+            niri: root.niri
             animationsEnabled: root.settingsService.animationsEnabled
             settingsMessage: root.settingsService.message
             canRecover: root.settingsService.canRecover
@@ -121,6 +132,10 @@ QtObject {
             onWeatherCityChangedRequested: city => root.settingsService.update({weatherCity: city})
             onWeatherRefreshMinutesChangedRequested: minutes => root.settingsService.update({weatherRefreshMinutes: minutes})
             onAnimationsChangedRequested: enabled => root.settingsService.update({animationsEnabled: enabled})
+            onIslandRotationEnabledChangedRequested: enabled => root.settingsService.update({islandRotationEnabled: enabled})
+            onIslandRotationSecondsChangedRequested: seconds => root.settingsService.update({islandRotationSeconds: seconds})
+            onPreferredTerminalChangedRequested: terminalId => root.settingsService.update({preferredTerminal: terminalId})
+            onPreferredFileManagerChangedRequested: fileManagerId => root.settingsService.update({preferredFileManager: fileManagerId})
             onRecoverRequested: root.settingsService.recover()
             onRetryRequested: root.settingsService.flush(false)
             onCloseRequested: root.close()

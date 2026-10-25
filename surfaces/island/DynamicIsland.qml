@@ -25,6 +25,11 @@ Rectangle {
     property bool drawChrome: true
     property bool active: true
     property real expansionProgress: 0
+    property bool islandRotationEnabled: true
+    property int islandRotationSeconds: 15
+    property string weatherCity: ""
+    property var weather: null
+    property string weatherError: ""
     signal contextOpened()
     signal dashboardRequested()
     signal launcherRequested()
@@ -96,6 +101,43 @@ Rectangle {
     }
     Timer { id: volumeTimeout; interval: 1800 }
 
+    readonly property bool weatherReady: {
+        if (weatherCity.trim() === "") return false
+        if (weatherError !== "") return false
+        if (!weather) return false
+        const temp = weather.temp_C
+        if (temp === undefined || temp === null) return false
+        const text = String(temp).trim()
+        return text !== "" && isFinite(Number(temp))
+    }
+    readonly property bool rotationBlocked: expansionProgress >= 0.01
+        || playingTitle.length > 0
+        || showingVolume
+        || showingNotification
+    readonly property int rotationIntervalMs: {
+        const seconds = Number(islandRotationSeconds)
+        if (!isFinite(seconds)) return 15000
+        return Math.max(5, Math.min(120, Math.round(seconds))) * 1000
+    }
+    readonly property bool weatherFace: islandRotationEnabled && weatherReady && cycle.showWeather
+    onIslandRotationEnabledChanged: if (!islandRotationEnabled) cycle.showWeather = false
+    onWeatherReadyChanged: if (!weatherReady) cycle.showWeather = false
+    QtObject {
+        id: cycle
+        property bool showWeather: false
+    }
+    Timer {
+        id: rotationTimer
+        interval: root.rotationIntervalMs
+        repeat: true
+        running: root.active && root.islandRotationEnabled && root.weatherReady && !root.rotationBlocked
+        onTriggered: {
+            if (!root.islandRotationEnabled || !root.weatherReady || root.rotationBlocked) return
+            cycle.showWeather = !cycle.showWeather
+        }
+        onIntervalChanged: if (rotationTimer.running) rotationTimer.restart()
+    }
+
     component IslandText: Text {
         color: root.tokens.color.text
         font.family: root.tokens.type.body.family
@@ -159,17 +201,50 @@ Rectangle {
             color: root.tokens.color.accentSoft
             opacity: 0.6
         }
-        IslandText {
-            id: dateLabel
+        // Measured from the date string so weather cannot change foxGap or compactWidth.
+        Item {
+            id: rightSlot
             visible: root.playingTitle.length === 0
+            height: parent.height
+            width: dateLabel.implicitWidth
             x: fox.x + fox.width + restingContent.foxGap + 1
                + (parent.width - fox.x - fox.width - restingContent.foxGap - 1 - width) / 2
-            height: parent.height
-            width: implicitWidth
-            verticalAlignment: Text.AlignVCenter
-            horizontalAlignment: Text.AlignRight
-            text: Qt.formatDate(clock.date, "dd MMM")
-            color: root.tokens.color.textMuted
+            IslandText {
+                id: dateLabel
+                height: parent.height
+                width: implicitWidth
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignRight
+                text: Qt.formatDate(clock.date, "dd MMM")
+                color: root.tokens.color.textMuted
+                opacity: root.weatherFace ? 0 : 1
+                Behavior on opacity {
+                    NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast }
+                }
+            }
+            Item {
+                anchors.fill: parent
+                clip: true
+                opacity: root.weatherFace ? 1 : 0
+                Behavior on opacity {
+                    NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast }
+                }
+                WeatherGlyph {
+                    id: weatherIcon
+                    tokens: root.tokens
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 7
+                    height: 12.25
+                    weatherCode: root.weather ? root.weather.weatherCode : null
+                }
+                IslandText {
+                    id: tempLabel
+                    x: weatherIcon.width + 1
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.weatherReady && root.weather ? root.weather.temp_C + "°" : ""
+                    color: root.tokens.color.textMuted
+                }
+            }
         }
         MarqueeText {
             x: fox.x + fox.width + restingContent.foxGap + 16
@@ -340,5 +415,6 @@ Rectangle {
     Accessible.onPressAction: root.dashboardRequested()
     Accessible.name: "Nayori island, " + Qt.formatTime(clock.date, "HH:mm:ss")
                      + ", " + Qt.formatDate(clock.date, "dddd, d MMMM")
+                     + (weatherReady && weather ? ", " + weather.temp_C + "°" : "")
     Accessible.description: "Hover opens the dashboard. Right click opens the menu. Scroll adjusts volume. Middle click mutes."
 }

@@ -21,9 +21,18 @@ FloatingWindow {
     property string avatarSource: ""
     property string weatherCity: ""
     property int weatherRefreshMinutes: 15
+    property bool islandRotationEnabled: true
+    property int islandRotationSeconds: 15
+    property string preferredTerminal: "kitty"
+    property string preferredFileManager: "org.gnome.Nautilus"
+    property var niri: null
     property bool settingsReady: true
     property bool animationsEnabled: true
     signal animationsChangedRequested(bool enabled)
+    signal islandRotationEnabledChangedRequested(bool enabled)
+    signal islandRotationSecondsChangedRequested(int seconds)
+    signal preferredTerminalChangedRequested(string terminalId)
+    signal preferredFileManagerChangedRequested(string fileManagerId)
     property string settingsMessage: ""
     property bool canRecover: false
     property bool canRetry: false
@@ -47,7 +56,14 @@ FloatingWindow {
         const nativeWindow = contentItem.Window.window
         if (nativeWindow) nativeWindow.requestActivate()
     }
-    function setPage(page) { settings.currentPage = page }
+    property bool shownOnce: false
+    function setPage(page) {
+        settings.currentPage = page
+        // The first show stays collapsed on the default page. A later landing,
+        // including the same page, opens the section that contains it.
+        if (shownOnce)
+            settings.expandForPage(page)
+    }
     readonly property int selectedPage: settings.currentPage
 
     Settings {
@@ -67,9 +83,18 @@ FloatingWindow {
         avatarSource: root.avatarSource
         weatherCity: root.weatherCity
         weatherRefreshMinutes: root.weatherRefreshMinutes
+        islandRotationEnabled: root.islandRotationEnabled
+        islandRotationSeconds: root.islandRotationSeconds
+        preferredTerminal: root.preferredTerminal
+        preferredFileManager: root.preferredFileManager
+        niri: root.niri
         currentPage: root.initialPage
         animationsEnabled: root.animationsEnabled
         onAnimationsChangedRequested: enabled => root.animationsChangedRequested(enabled)
+        onIslandRotationEnabledChangedRequested: enabled => root.islandRotationEnabledChangedRequested(enabled)
+        onIslandRotationSecondsChangedRequested: seconds => root.islandRotationSecondsChangedRequested(seconds)
+        onPreferredTerminalChangedRequested: terminalId => root.preferredTerminalChangedRequested(terminalId)
+        onPreferredFileManagerChangedRequested: fileManagerId => root.preferredFileManagerChangedRequested(fileManagerId)
         settingsMessage: root.settingsMessage
         canRecover: root.canRecover
         canRetry: root.canRetry
@@ -87,7 +112,9 @@ FloatingWindow {
     onClosed: visible = false
 
     onVisibleChanged: {
-        if (visible)
+        if (visible) {
+            shownOnce = true
             Qt.callLater(settings.focusInput)
+        }
     }
 }

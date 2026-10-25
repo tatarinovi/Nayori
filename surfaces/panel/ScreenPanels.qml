@@ -82,7 +82,7 @@ Scope {
         screen: root.panelScreen
         visible: root.panelScreen !== null && root.shellState.autoHideWorkspaces
         side: -1
-        span: workspaces.implicitWidth
+        span: dockCluster.implicitWidth
     }
     EdgeTrigger {
         id: appsTrigger
@@ -256,6 +256,8 @@ Scope {
             expanded: root.expandedOpened
             weatherCity: root.shellState.weatherCity
             weatherService: root.shellState.weatherService
+            islandRotationEnabled: root.shellState.islandRotationEnabled
+            islandRotationSeconds: root.shellState.islandRotationSeconds
             onCloseRequested: {
                 root.expandedOpened = false
                 root.dashboardHoverBlocked = topHover.hovered
@@ -297,15 +299,75 @@ Scope {
         id: workspacesWindow
         autoHide: root.shellState.autoHideWorkspaces
         edgeHovered: workspaceTrigger.hovered
+        heldOpen: startMenu.opened || startContext.opened
         ns: "nayori-workspaces"
         side: -1
-        island: workspaces
+        island: dockCluster
 
-        WorkspacesIsland {
-            id: workspaces
-            outputName: root.panelScreen ? root.panelScreen.name : ""
-            opacity: workspacesWindow.revealOpacity
-            tokens: root.tokenSet
+        // Пуск в том же левом окне: второе окно слева легло бы поверх рабочих столов.
+        Item {
+            id: dockCluster
+            readonly property real radius: workspaces.radius
+            implicitWidth: dockRow.implicitWidth
+            implicitHeight: root.tokens.panel.height
+            width: implicitWidth
+            height: implicitHeight
+
+            Row {
+                id: dockRow
+                spacing: root.tokens.spacing.small
+
+                Item {
+                    implicitWidth: root.tokens.panel.control
+                    implicitHeight: root.tokens.panel.height
+                    width: implicitWidth
+                    height: implicitHeight
+
+                    StartButton {
+                        id: startButton
+                        anchors.centerIn: parent
+                        tokens: root.tokenSet
+                        menusOpen: startMenu.opened || startContext.opened
+                        opacity: workspacesWindow.revealOpacity
+                        onClicked: startMenu.toggle()
+                        onContextRequested: startContext.toggle()
+                        onContextReleased: startContext.armGrab()
+                    }
+                }
+
+                WorkspacesIsland {
+                    id: workspaces
+                    outputName: root.panelScreen ? root.panelScreen.name : ""
+                    opacity: workspacesWindow.revealOpacity
+                    tokens: root.tokenSet
+                }
+            }
+        }
+    }
+
+    StartMenu {
+        id: startMenu
+        tokens: root.tokenSet
+        shellState: root.shellState
+        panelScreen: root.panelScreen
+        anchorItem: startButton
+        anchorWindow: workspacesWindow
+        onOpenedChanged: {
+            if (opened)
+                startContext.opened = false
+        }
+    }
+
+    StartContextMenu {
+        id: startContext
+        tokens: root.tokenSet
+        shellState: root.shellState
+        panelScreen: root.panelScreen
+        anchorItem: startButton
+        anchorWindow: workspacesWindow
+        onOpenedChanged: {
+            if (opened)
+                startMenu.opened = false
         }
     }
 

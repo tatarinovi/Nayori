@@ -99,9 +99,16 @@ ShellRoot {
                     currentPage = 0
                     focusInput()
                     test.check(input.keyClick(Qt.Key_Down, Qt.NoModifier, -1), "send navigation key")
-                    test.check(test.findItem(view, "settings-nav-panels").activeFocus, "arrow navigation")
+                    test.check(test.findItem(view, "settings-nav-display").activeFocus, "arrow navigation")
                     input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
-                    test.check(currentPage === 1, "activate navigation by keyboard")
+                    test.check(currentPage === 5, "activate navigation by keyboard")
+                    const panelsButton = test.findItem(view, "settings-nav-panels")
+                    let guard = 0
+                    while (!panelsButton.activeFocus && guard++ < 40)
+                        test.check(input.keyClick(Qt.Key_Down, Qt.NoModifier, -1), "move toward panels")
+                    test.check(panelsButton.activeFocus, "panels navigation")
+                    input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                    test.check(currentPage === 1, "panels page opens from the sidebar")
                     const slider = test.findItem(view, "bottomReservationSlider")
                     slider.forceActiveFocus()
                     const flick = test.findItem(view, "settings-panels-scroll")
@@ -207,6 +214,25 @@ ShellRoot {
                     test.check(settings.autoHideTop === false && settings.animationsEnabled === true && settings.weatherCity === "", "invalid and missing fields use defaults");
                     test.check(!settings.dirty, "load normalization does not write");
                     test.check(settings.weatherRefreshMinutes === 15, "missing interval uses default");
+                    test.check(settings.islandRotationEnabled === true && settings.islandRotationSeconds === 15, "rotation defaults");
+                    test.check(settings.preferredTerminal === "kitty" && settings.preferredFileManager === "org.gnome.Nautilus", "app defaults");
+                    settings.update({islandRotationSeconds: 3});
+                    test.check(settings.islandRotationSeconds === 5, "rotation clamps low");
+                    settings.update({islandRotationSeconds: 500});
+                    test.check(settings.islandRotationSeconds === 120, "rotation clamps high");
+                    settings.update({islandRotationSeconds: 15.2});
+                    test.check(settings.islandRotationSeconds === 15, "rotation rounds");
+                    settings.update({islandRotationSeconds: "30"});
+                    test.check(settings.islandRotationSeconds === 15, "rotation rejects non-numbers");
+                    settings.update({preferredTerminal: "  foot  "});
+                    test.check(settings.preferredTerminal === "foot", "terminal trims");
+                    settings.update({preferredTerminal: "   "});
+                    test.check(settings.preferredTerminal === "kitty", "empty terminal uses default");
+                    settings.update({preferredFileManager: 12});
+                    test.check(settings.preferredFileManager === "org.gnome.Nautilus", "file manager rejects non-strings");
+                    settings.update({islandRotationEnabled: false});
+                    test.check(settings.islandRotationEnabled === false, "rotation bool");
+                    settings.update({islandRotationSeconds: 15, islandRotationEnabled: true, preferredTerminal: "kitty"});
                     for (const value of [0, 181, 2.5, NaN, Infinity, "30", null, true]) {
                         settings.update({weatherRefreshMinutes: 30});
                         settings.update({weatherRefreshMinutes: value});

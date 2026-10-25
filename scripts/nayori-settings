@@ -10,7 +10,7 @@ case $# in
     *) echo 'Usage: nayori-settings [--page SECTION]' >&2; exit 2 ;;
 esac
 case "$page" in
-    ""|home|panels|appearance|wallpapers|weather) ;;
+    ""|home|panels|appearance|wallpapers|weather|display|sound|power|network|localsend|bluetooth|mouse|keyboard|shortcuts|start|island|lockscreen|windows|alttab|workspaces|defaults|autostart|updates|about) ;;
     *) echo "Unknown settings section: $page" >&2; exit 2 ;;
 esac
 runtime_dir=${XDG_RUNTIME_DIR:?XDG_RUNTIME_DIR is required}
