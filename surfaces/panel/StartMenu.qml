@@ -2,11 +2,12 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Wayland
 import "../../services"
 import "../../services/system"
 
 // Левое меню Пуска. Питание только через SessionActions и только после подтверждения.
-PopupWindow {
+PanelWindow {
     id: root
 
     required property var tokens
@@ -17,15 +18,32 @@ PopupWindow {
 
     property bool opened: false
     property bool blockOpen: false
+    property real reveal: opened ? 1 : 0
+    readonly property bool presenting: visible
+    readonly property alias menuContent: menuSurface
+    readonly property int menuHeight: menuColumn.implicitHeight + inset * 2
+    readonly property int revealedHeight: Math.round(menuHeight * reveal)
+    readonly property alias blurBounds: glassRegion
+    readonly property int panelGap: tokens.spacing.medium
+    Behavior on reveal {
+        NumberAnimation {
+            duration: root.tokens.motion.off ? 0 : root.tokens.motion.base
+            easing.type: root.opened ? Easing.BezierSpline : Easing.Linear
+            easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
+        }
+    }
+    onRevealChanged: {
+        if (!opened && reveal === 0) visible = false
+    }
     property bool keepFailure: false
     property string page: "main"
     property string pendingAction: ""
     property string notice: ""
     property string failure: ""
 
-    readonly property int inset: tokens.spacing.small
-    readonly property int menuWidth: 272
-    readonly property int lift: Math.round((tokens.panel.height - tokens.panel.control) / 2 + tokens.spacing.small)
+    readonly property int inset: tokens.spacing.medium
+    readonly property int menuWidth: 360
+    readonly property int lift: Math.round((tokens.panel.height - tokens.panel.control) / 2 + tokens.spacing.medium)
     readonly property string terminalId: {
         const raw = shellState.preferredTerminal
         const text = raw === undefined || raw === null ? "" : String(raw).trim()
@@ -34,7 +52,7 @@ PopupWindow {
     readonly property string fileManagerId: {
         const raw = shellState.preferredFileManager
         const text = raw === undefined || raw === null ? "" : String(raw).trim()
-        return text || "org.gnome.Nautilus"
+        return text || "io.github.lgse.Strata"
     }
     readonly property string blockedReason: {
         const value = session.unavailableReason
@@ -115,6 +133,11 @@ PopupWindow {
         return ""
     }
 
+    function applicationName(desktopId) {
+        const entry = apps.lookup(desktopId)
+        return entry ? String(entry.name) : "Приложение недоступно"
+    }
+
     function openSettings() {
         shellState.overlayScreen = panelScreen
         shellState.openSettings("home")
@@ -171,36 +194,60 @@ PopupWindow {
     visible: false
     screen: panelScreen
     color: "transparent"
-    grabFocus: opened
-    implicitWidth: menuWidth
-    implicitHeight: menuColumn.implicitHeight + inset * 2
-    anchor.window: anchorWindow
-    anchor.item: anchorItem
-    anchor.edges: Edges.Top | Edges.Left
-    anchor.gravity: Edges.Top | Edges.Right
-    anchor.margins.top: lift
-    anchor.adjustment: PopupAdjustment.Slide
-
-    onOpenedChanged: {
-        visible = opened
-        if (!opened)
-            return
-        blockOpen = false
-        blockTimer.stop()
-        if (!keepFailure)
-            resetTransient()
+    anchors { top: true; bottom: true; left: true; right: true }
+    exclusionMode: ExclusionMode.Ignore
+    focusable: opened
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.namespace: "nayori-start"
+    WlrLayershell.keyboardFocus: opened ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    // Release pointer input immediately, but keep the same surface mapped until
+    // the exit finishes. No compositor dismissal or screenshot window swap.
+    mask: Region { width: root.opened ? root.width : 0; height: root.opened ? root.height : 0 }
+    // The compositor blur has no opacity control. Its region must follow the
+    // actual clipped reveal, rather than the full invisible menu rectangle.
+    Region {
+        id: glassRegion
+        x: revealClip.x
+        y: revealClip.y
+        width: revealClip.width
+        height: root.revealedHeight
+        radius: Math.min(root.tokens.radius.small + root.tokens.spacing.small, height / 2)
     }
-    onVisibleChanged: {
-        if (visible) {
-            Qt.callLater(root.focusPage)
-            return
-        }
-        if (!opened)
-            return
-        blockOpen = true
-        blockTimer.restart()
+    BackgroundEffect.blurRegion: root.tokens.frosted && root.revealedHeight > 0 ? glassRegion : null
+
+    function dismissOutside() {
+        if (!opened) return
         opened = false
     }
+
+    onOpenedChanged: {
+        if (!opened) {
+            if (tokens.motion.off || reveal === 0) visible = false
+            return
+        }
+        visible = true
+        profile.refresh()
+        blockOpen = false
+        blockTimer.stop()
+        if (!keepFailure) resetTransient()
+        Qt.callLater(root.focusPage)
+    }
+    onVisibleChanged: {
+        if (!visible && opened) opened = false
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.AllButtons
+        onPressed: function(mouse) {
+            if (mouse.x < revealClip.x || mouse.x >= revealClip.x + revealClip.width
+                    || mouse.y < revealClip.y || mouse.y >= revealClip.y + revealClip.height)
+                root.dismissOutside()
+        }
+        onWheel: function(wheel) { wheel.accepted = true }
+    }
+
+    UserProfile { id: profile; active: root.opened }
 
     Apps { id: apps }
 
@@ -229,10 +276,24 @@ PopupWindow {
         onTriggered: root.blockOpen = false
     }
 
+    Item {
+        id: revealClip
+        x: Math.max(0, Math.min(root.tokens.spacing.large, root.width - width))
+        y: Math.max(root.tokens.spacing.small,
+                    root.height - root.tokens.spacing.small - root.tokens.panel.height - root.panelGap - height)
+        width: Math.min(root.menuWidth, root.width)
+        height: root.revealedHeight
+        clip: true
+
     Rectangle {
-        anchors.fill: parent
+        id: menuSurface
+        width: parent.width
+        height: root.menuHeight
+        y: parent.height - height
+        enabled: root.opened
+        opacity: root.reveal
         radius: root.tokens.radius.small + root.tokens.spacing.small
-        color: root.tokens.color.surfaceAlt
+        color: root.tokens.material.dense
         border.width: 1
         border.color: root.tokens.color.border
         antialiasing: true
@@ -264,41 +325,78 @@ PopupWindow {
 
                 Item {
                     width: parent.width
-                    height: root.tokens.panel.control
-                    Accessible.ignored: true
-                    NayoriMark {
-                        x: 10
-                        anchors.verticalCenter: parent.verticalCenter
-                        ink: root.tokens.color.text
+                    height: 80
+                    UserAvatar {
+                        x: 8; y: 8
+                        width: 64; height: 64
+                        tokens: root.tokens
+                        source: profile.avatar
+                        username: profile.username
                     }
-                }
-                MenuRow {
-                    id: settingsAction
-                    width: parent.width
-                    tokens: root.tokens
-                    text: "Настройки"
-                    KeyNavigation.down: powerAction
-                    KeyNavigation.up: filesAction
-                    onEscapePressed: root.dismissEscape()
-                    onClicked: root.openSettings()
-                }
-                MenuRow {
-                    id: powerAction
-                    width: parent.width
-                    tokens: root.tokens
-                    text: "Питание ›"
-                    enabled: !root.sessionBusy
-                    KeyNavigation.up: settingsAction
-                    KeyNavigation.down: launcherAction
-                    onEscapePressed: root.dismissEscape()
-                    onClicked: root.showPage("power")
+                    Column {
+                        x: 88
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width - x - 60
+                        spacing: 5
+                        Text {
+                            width: parent.width
+                            text: profile.username
+                            textFormat: Text.PlainText
+                            elide: Text.ElideRight
+                            color: root.tokens.color.text
+                            font.family: root.tokens.type.body.family
+                            font.pixelSize: 20
+                            font.weight: 500
+                        }
+                        Text {
+                            width: parent.width
+                            text: profile.hostname + (profile.uptime ? " · " + profile.uptime : "")
+                            textFormat: Text.PlainText
+                            elide: Text.ElideRight
+                            color: root.tokens.color.textMuted
+                            font.family: root.tokens.type.small.family
+                            font.pixelSize: 12
+                            Accessible.name: profile.hostname + (profile.uptime ? ", время работы " + profile.uptime : "")
+                        }
+                    }
+                    MenuRow {
+                        id: settingsAction
+                        anchors.right: parent.right
+                        anchors.rightMargin: 8
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 44; height: 44
+                        tokens: root.tokens
+                        text: "Настройки"
+                        Accessible.name: text
+                        contentItem: Item {
+                            MenuGlyph {
+                                anchors.centerIn: parent
+                                kind: "settings"
+                                ink: root.tokens.color.text
+                                width: 24; height: 24
+                            }
+                        }
+                        background: Rectangle {
+                            radius: root.tokens.radius.medium
+                            color: settingsAction.down ? root.tokens.color.accentSoft
+                                 : settingsAction.hovered ? root.tokens.color.surface : root.tokens.color.surfaceAlt
+                            border.width: settingsAction.visualFocus ? 1 : 0
+                            border.color: root.tokens.color.accent
+                        }
+                        KeyNavigation.down: launcherAction
+                        KeyNavigation.up: powerAction
+                        onEscapePressed: root.dismissEscape()
+                        onClicked: root.openSettings()
+                    }
                 }
                 MenuRow {
                     id: launcherAction
                     width: parent.width
                     tokens: root.tokens
                     text: "Лаунчер"
-                    KeyNavigation.up: powerAction
+                    subtitle: "Все приложения"
+                    glyph: "apps"
+                    KeyNavigation.up: settingsAction
                     KeyNavigation.down: terminalAction
                     onEscapePressed: root.dismissEscape()
                     onClicked: root.openLauncher()
@@ -308,6 +406,8 @@ PopupWindow {
                     width: parent.width
                     tokens: root.tokens
                     text: "Терминал"
+                    subtitle: root.applicationName(root.terminalId)
+                    glyph: "terminal"
                     KeyNavigation.up: launcherAction
                     KeyNavigation.down: filesAction
                     onEscapePressed: root.dismissEscape()
@@ -317,11 +417,34 @@ PopupWindow {
                     id: filesAction
                     width: parent.width
                     tokens: root.tokens
-                    text: "Файлы"
+                    text: "Файловый менеджер"
+                    subtitle: root.applicationName(root.fileManagerId)
+                    glyph: "folder"
                     KeyNavigation.up: terminalAction
-                    KeyNavigation.down: settingsAction
+                    KeyNavigation.down: powerAction
                     onEscapePressed: root.dismissEscape()
                     onClicked: root.launchDesktop(root.fileManagerId, "Файлы недоступны")
+                }
+                Item {
+                    width: parent.width
+                    height: 17
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: parent.width - 20; height: 1
+                        color: root.tokens.color.border
+                    }
+                }
+                MenuRow {
+                    id: powerAction
+                    width: parent.width
+                    tokens: root.tokens
+                    text: "Питание"
+                    glyph: "power"
+                    enabled: !root.sessionBusy
+                    KeyNavigation.up: filesAction
+                    KeyNavigation.down: settingsAction
+                    onEscapePressed: root.dismissEscape()
+                    onClicked: root.showPage("power")
                 }
             }
 
@@ -331,58 +454,79 @@ PopupWindow {
                 spacing: root.tokens.spacing.small
                 visible: root.page === "power"
 
-                Text {
-                    width: parent.width
-                    text: "Питание"
-                    textFormat: Text.PlainText
-                    color: root.tokens.color.text
-                    font.family: root.tokens.type.display.family
-                    font.pixelSize: root.tokens.type.display.size
-                    font.weight: root.tokens.type.display.weight
-                    font.letterSpacing: root.tokens.type.display.letterSpacing
-                    lineHeight: root.tokens.type.display.lineHeight
-                    lineHeightMode: Text.ProportionalHeight
-                    renderType: Text.NativeRendering
-                }
-                MenuRow {
-                    width: parent.width
-                    tokens: root.tokens
-                    text: "Блокировка"
-                    enabled: !root.sessionBusy
-                    onEscapePressed: root.dismissEscape()
-                    onClicked: root.ask("lock")
-                }
-                MenuRow {
-                    width: parent.width
-                    tokens: root.tokens
-                    text: "Выход"
-                    enabled: !root.sessionBusy
-                    onEscapePressed: root.dismissEscape()
-                    onClicked: root.ask("logout")
-                }
-                MenuRow {
-                    width: parent.width
-                    tokens: root.tokens
-                    text: "Перезагрузка"
-                    enabled: !root.sessionBusy
-                    onEscapePressed: root.dismissEscape()
-                    onClicked: root.ask("reboot")
-                }
-                MenuRow {
-                    width: parent.width
-                    tokens: root.tokens
-                    text: "Выключение"
-                    enabled: !root.sessionBusy
-                    onEscapePressed: root.dismissEscape()
-                    onClicked: root.ask("powerOff")
-                }
                 MenuRow {
                     id: powerBack
                     width: parent.width
                     tokens: root.tokens
+                    showChevron: false
                     text: "Назад"
+                    glyph: "back"
+                    KeyNavigation.down: lockAction
+                    KeyNavigation.up: shutdownAction
                     onEscapePressed: root.dismissEscape()
                     onClicked: root.showPage("main")
+                }
+                Rectangle {
+                    x: 10
+                    width: parent.width - 20
+                    height: 1
+                    color: root.tokens.color.border
+                }
+                MenuRow {
+                    id: lockAction
+                    width: parent.width
+                    tokens: root.tokens
+                    showChevron: false
+                    text: "Заблокировать"
+                    subtitle: "Сохранить сессию открытой"
+                    glyph: "lock"
+                    enabled: !root.sessionBusy
+                    KeyNavigation.up: powerBack
+                    KeyNavigation.down: logoutAction
+                    onEscapePressed: root.dismissEscape()
+                    onClicked: root.ask("lock")
+                }
+                MenuRow {
+                    id: logoutAction
+                    width: parent.width
+                    tokens: root.tokens
+                    showChevron: false
+                    text: "Выйти из сессии"
+                    subtitle: "Закрыть открытые приложения"
+                    glyph: "logout"
+                    enabled: !root.sessionBusy
+                    KeyNavigation.up: lockAction
+                    KeyNavigation.down: rebootAction
+                    onEscapePressed: root.dismissEscape()
+                    onClicked: root.ask("logout")
+                }
+                MenuRow {
+                    id: rebootAction
+                    width: parent.width
+                    tokens: root.tokens
+                    showChevron: false
+                    text: "Перезагрузить"
+                    subtitle: "Запустить компьютер заново"
+                    glyph: "reboot"
+                    enabled: !root.sessionBusy
+                    KeyNavigation.up: logoutAction
+                    KeyNavigation.down: shutdownAction
+                    onEscapePressed: root.dismissEscape()
+                    onClicked: root.ask("reboot")
+                }
+                MenuRow {
+                    id: shutdownAction
+                    width: parent.width
+                    tokens: root.tokens
+                    showChevron: false
+                    text: "Выключить"
+                    subtitle: "Завершить работу компьютера"
+                    glyph: "power"
+                    enabled: !root.sessionBusy
+                    KeyNavigation.up: rebootAction
+                    KeyNavigation.down: powerBack
+                    onEscapePressed: root.dismissEscape()
+                    onClicked: root.ask("powerOff")
                 }
             }
 
@@ -424,6 +568,9 @@ PopupWindow {
                     width: parent.width
                     tokens: root.tokens
                     text: root.confirmLabel()
+                    glyph: root.pendingAction === "powerOff" ? "power" : root.pendingAction
+                    KeyNavigation.down: cancelAction
+                    KeyNavigation.up: cancelAction
                     enabled: root.pendingAction !== "" && !root.sessionBusy
                     onEscapePressed: root.dismissEscape()
                     onClicked: root.runPending()
@@ -431,7 +578,11 @@ PopupWindow {
                 MenuRow {
                     width: parent.width
                     tokens: root.tokens
+                    id: cancelAction
                     text: "Отмена"
+                    glyph: "back"
+                    KeyNavigation.down: confirmAction
+                    KeyNavigation.up: confirmAction
                     onEscapePressed: root.dismissEscape()
                     onClicked: {
                         root.pendingAction = ""
@@ -491,5 +642,6 @@ PopupWindow {
                 renderType: Text.NativeRendering
             }
         }
+    }
     }
 }

@@ -11,6 +11,8 @@ PanelWindow {
     signal closeRequested()
 
     color: "transparent"
+    Region { id: glassRegion; item: launcher; radius: root.tokens.radius.medium }
+    BackgroundEffect.blurRegion: root.tokens.frosted ? glassRegion : null
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     focusable: true
@@ -31,6 +33,7 @@ PanelWindow {
 
     Launcher {
         id: launcher
+        tokens: root.tokens
         anchors.horizontalCenter: parent.horizontalCenter
         y: 64 + root.tokens.spacing.small
         panelWidth: Math.min(560, Math.max(1, parent.width - root.tokens.spacing.large * 2))

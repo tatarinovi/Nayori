@@ -8,6 +8,7 @@ Rectangle {
     required property var tokens
     property bool testMode: false
     property var audioReaction: null
+    property var musicService: null
     property var notifications: null
     property bool notificationPage: false
     readonly property string viewKey: "island-" + String(root)
@@ -16,20 +17,32 @@ Rectangle {
         if (dashboard.item && dashboard.item.currentPage !== (notificationPage ? 1 : 0))
             dashboard.item.currentPage = notificationPage ? 1 : 0
     }
+    readonly property bool wantsMusic: active && visible && !testMode &&
+        ((expanded && !notificationPage) || (!!musicService && !!musicService.player && musicService.player.isPlaying))
+    onWantsMusicChanged: updateMusicConsumer()
+    function updateMusicConsumer() {
+        if (musicService) musicService.consumer(viewKey, wantsMusic)
+    }
+    onMusicServiceChanged: updateMusicConsumer()
+    onActiveChanged: updateMusicConsumer()
+    onVisibleChanged: updateMusicConsumer()
     onExpandedChanged: {
         if (expanded) notificationPage = false
         updateNotificationView()
+        updateMusicConsumer()
     }
-    onNotificationPageChanged: updateNotificationView()
+    onNotificationPageChanged: { updateNotificationView(); updateMusicConsumer() }
     onNotificationsChanged: updateNotificationView()
-    Component.onDestruction: { if (notifications) notifications.view(viewKey, false, false) }
+    Component.onDestruction: {
+        if (notifications) notifications.view(viewKey, false, false)
+        if (musicService) musicService.consumer(viewKey, false)
+    }
     property bool active: true
     property bool expanded: false
     property string weatherCity: ""
     property var weatherService: null
     property bool islandRotationEnabled: true
     property int islandRotationSeconds: 15
-    readonly property bool menuOpened: compact.menuOpened
     property real closedWidth: compact.compactWidth
     readonly property real closedHeight: 48
     readonly property real expandedWidth: 680
@@ -37,7 +50,6 @@ Rectangle {
     property bool ready: false
     property real progress: expanded ? 1 : 0
     signal dashboardRequested()
-    signal contextOpened()
     signal launcherRequested()
     signal settingsRequested()
     signal weatherSettingsRequested()
@@ -48,7 +60,7 @@ Rectangle {
     width: closedWidth + (expandedWidth - closedWidth) * progress
     height: closedHeight + (expandedHeight - closedHeight) * progress
     radius: 24 + 4 * progress
-    color: Qt.tint(root.tokens.color.surfaceAlt, Qt.alpha(root.tokens.color.background, progress))
+    color: root.tokens.frosted ? root.tokens.material.island : Qt.tint(root.tokens.material.island, Qt.alpha(root.tokens.material.islandExpanded, progress))
     border.width: 1
     border.color: root.tokens.color.border
     clip: true
@@ -77,6 +89,7 @@ Rectangle {
         testMode: root.testMode
         tokens: root.tokens
         audioReaction: root.audioReaction
+        musicService: root.musicService
         notifications: root.notifications
         drawChrome: false
         expansionProgress: root.progress
@@ -90,7 +103,6 @@ Rectangle {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
         onDashboardRequested: root.dashboardRequested()
-        onContextOpened: root.contextOpened()
         onLauncherRequested: root.launcherRequested()
         onSettingsRequested: root.settingsRequested()
     }
@@ -106,6 +118,7 @@ Rectangle {
         enabled: root.expanded && root.progress > 0.9
         onLoaded: Qt.callLater(function() { if (item) item.forceActiveFocus(Qt.TabFocusReason) })
         sourceComponent: IslandDashboard {
+            musicService: root.musicService
             testMode: root.testMode
             tokens: root.tokens
             weatherCity: root.weatherCity
@@ -122,10 +135,5 @@ Rectangle {
             onCloseRequested: root.closeRequested()
             onSettingsRequested: root.weatherSettingsRequested()
         }
-    }
-    MouseArea {
-        anchors.fill: parent
-        acceptedButtons: Qt.RightButton
-        onClicked: compact.toggleContextMenu()
     }
 }

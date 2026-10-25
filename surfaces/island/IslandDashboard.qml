@@ -9,6 +9,9 @@ FocusScope {
     id: root
     required property var tokens
     property bool testMode: false
+    property var testPlayers: []
+    property var musicService: null
+    property var selectedPlayer: null
     property var notifications: null
     property int currentPage: 0
     property real pagePosition: currentPage
@@ -42,8 +45,10 @@ FocusScope {
     implicitHeight: 450
     property date now: new Date()
     property date calendarMonth: new Date(now.getFullYear(), now.getMonth(), 1)
-    readonly property var players: testMode ? [] : Mpris.players.values
+    readonly property var players: musicService ? musicService.players : testMode ? testPlayers : Mpris.players.values
     readonly property var player: {
+        if (musicService) return musicService.player
+        if (selectedPlayer && players.indexOf(selectedPlayer) >= 0) return selectedPlayer
         for (let i = 0; i < players.length; i++) if (players[i].isPlaying) return players[i]
         return players.length ? players[0] : null
     }
@@ -87,7 +92,7 @@ FocusScope {
         visible: root.drawChrome
         anchors.fill: parent
         radius: 28
-        color: root.tokens.color.background
+        color: root.tokens.material.islandExpanded
         border.width: 1
         border.color: root.tokens.color.border
     }
@@ -178,7 +183,7 @@ FocusScope {
                 target: null
                 onWheel: event => {
                     const delta = root.wheelAmount(event)
-                    if (root.currentPage === 1 && notificationsView.canScroll(delta)) {
+                    if ((root.currentPage === 1 && notificationsView.canScroll(delta)) || (root.currentPage === 0 && musicCard.canScrollLyrics(delta))) {
                         event.accepted = false
                         return
                     }
@@ -201,44 +206,17 @@ FocusScope {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 spacing: 12
-                Card {
+                MusicCard {
+                    id: musicCard
                     Layout.fillWidth: true
                     Layout.preferredHeight: 180
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 16
-                        spacing: 8
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Caption { text: "Музыка"; Layout.fillWidth: true }
-                            Caption { text: root.player ? root.player.identity : ""; font.pixelSize: 12; Layout.maximumWidth: 150; maximumLineCount: 1; elide: Text.ElideRight }
-                        }
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 12
-                            Rectangle {
-                                width: 64; height: 64; radius: 6
-                                color: root.tokens.color.surfaceAlt
-                                clip: true
-                                Image { id: cover; anchors.fill: parent; source: root.player ? root.player.trackArtUrl : ""; fillMode: Image.PreserveAspectCrop; visible: status === Image.Ready }
-                                Heading { anchors.centerIn: parent; text: "♪"; color: root.tokens.color.accent; font.pixelSize: 30; visible: cover.status !== Image.Ready }
-                            }
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 6
-                                Heading { Layout.fillWidth: true; text: root.player ? root.player.trackTitle || "Без названия" : "Тихая пауза"; wrapMode: Text.NoWrap; maximumLineCount: 1; elide: Text.ElideRight; font.pixelSize: 19; Accessible.name: text }
-                                Caption { Layout.fillWidth: true; text: root.player ? root.player.trackArtist : "Откройте музыку в любимом плеере"; wrapMode: Text.NoWrap; maximumLineCount: 1; elide: Text.ElideRight; Accessible.name: text }
-                            }
-                        }
-                        RowLayout {
-                            visible: root.player !== null
-                            Layout.alignment: Qt.AlignRight
-                            spacing: 8
-                            Action { text: "⏮"; Accessible.name: "Предыдущий трек"; enabled: !!root.player && root.player.canGoPrevious; onClicked: root.player.previous() }
-                            Action { text: root.player && root.player.isPlaying ? "Ⅱ" : "▶"; Accessible.name: root.player && root.player.isPlaying ? "Приостановить" : "Воспроизвести"; enabled: !!root.player && root.player.canTogglePlaying; onClicked: root.player.togglePlaying() }
-                            Action { text: "⏭"; Accessible.name: "Следующий трек"; enabled: !!root.player && root.player.canGoNext; onClicked: root.player.next() }
-                        }
-                        Item { Layout.fillHeight: true; visible: root.player === null }
+                    tokens: root.tokens
+                    player: root.player
+                    players: root.players
+                    lyrics: root.musicService ? root.musicService.lyrics : null
+                    onPlayerSelected: selected => {
+                        if (root.musicService) root.musicService.selectPlayer(selected)
+                        else root.selectedPlayer = selected
                     }
                 }
                 Card {
@@ -316,7 +294,8 @@ FocusScope {
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: 8
-                            Action { Layout.fillWidth: true; text: root.weatherCity.trim() ? "Изменить город" : "Выбрать город"; onClicked: root.settingsRequested() }
+                            Action { visible: root.weatherCity.trim().length === 0; Layout.fillWidth: true; text: "Выбрать город"; onClicked: root.settingsRequested() }
+                            Item { visible: root.weatherCity.trim().length > 0; Layout.fillWidth: true }
                             Action { visible: root.weatherCity.trim().length > 0; text: "↻"; Accessible.name: "Обновить погоду"; enabled: !root.weatherLoading; onClicked: root.weatherRefreshRequested() }
                         }
                         Caption { text: "wttr.in · запрос по названию города"; font.pixelSize: 11 }

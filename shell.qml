@@ -9,6 +9,7 @@ import Quickshell.Io
 import "tokens"
 import "services/niri"
 import "services/settings"
+import "services/system"
 import "services/weather"
 import "surfaces/launcher"
 import "surfaces/settings"
@@ -20,6 +21,8 @@ import "surfaces/canvas"
 ShellRoot {
     id: root
 
+    readonly property var islandMusic: musicStore
+    MusicService { id: musicStore }
     readonly property var islandAudio: audioReaction
     readonly property var islandNotifications: notificationModel
     AudioReaction { id: audioReaction }
@@ -37,6 +40,7 @@ ShellRoot {
     Tokens {
         id: tokens
         animationsEnabled: settingsStore.animationsEnabled
+        surfaceStyle: settingsStore.surfaceStyle
     }
 
     IpcHandler {
@@ -60,6 +64,20 @@ ShellRoot {
         }
     }
 
+    function toggleStartMenu() {
+        root.startMenuToggleRequested(Niri.focusedOutput || (root.probeScreen ? root.probeScreen.name : ""))
+    }
+    SuperTap {
+        onTapped: root.toggleStartMenu()
+    }
+    signal startMenuToggleRequested(string outputName)
+    IpcHandler {
+        target: "start"
+        function toggle(): void {
+            root.toggleStartMenu()
+        }
+    }
+
     readonly property var tokenSet: tokens
     property bool launcherOpened: false
     readonly property bool settingsOpened: settingsController.opened
@@ -77,6 +95,7 @@ ShellRoot {
     readonly property int bottomReserved: settingsStore.bottomReserved
     readonly property bool islandRotationEnabled: settingsStore.islandRotationEnabled
     readonly property int islandRotationSeconds: settingsStore.islandRotationSeconds
+    readonly property string startIconStyle: settingsStore.startIconStyle
     readonly property string preferredTerminal: settingsStore.preferredTerminal
     readonly property string preferredFileManager: settingsStore.preferredFileManager
     readonly property string userName: Quickshell.env("USER") || ""

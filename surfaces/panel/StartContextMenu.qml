@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Wayland
 import Quickshell.Io
 import "../../services"
 
@@ -113,6 +114,8 @@ PopupWindow {
     visible: false
     screen: panelScreen
     color: "transparent"
+    Region { id: glassRegion; item: root.contentItem; radius: root.tokens.radius.small + root.tokens.spacing.small }
+    BackgroundEffect.blurRegion: root.tokens.frosted ? glassRegion : null
     grabFocus: opened && grabArmed
     implicitWidth: menuWidth
     implicitHeight: menuColumn.implicitHeight + inset * 2
@@ -185,7 +188,7 @@ PopupWindow {
     Rectangle {
         anchors.fill: parent
         radius: root.tokens.radius.small + root.tokens.spacing.small
-        color: root.tokens.color.surfaceAlt
+        color: root.tokens.material.menu
         border.width: 1
         border.color: root.tokens.color.border
         antialiasing: true

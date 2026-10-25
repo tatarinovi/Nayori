@@ -17,12 +17,16 @@ ShellRoot {
     property int changes: 0
     property var viewRef: null
     property int uiRequests: 0
+    property int surfaceStyleRequests: 0
+    property int iconRequests: 0
+    property var visitedSections: []
     property int intervalRequests: 0
     property int closeRequests: 0
     property bool interactionsChecked: false
     property int capturePage: 0
+    readonly property var capturePages: viewRef ? viewRef.sections.map(section => section.page) : [0]
     property int sizeIndex: 0
-    readonly property var sizes: [Qt.size(720, 560), Qt.size(1100, 760), Qt.size(1600, 1000)]
+    readonly property var sizes: [Qt.size(720, 560), Qt.size(1100, 760), Qt.size(1600, 1000), Qt.size(880, 680)]
     property bool uiVisible: true
     readonly property string scenario: Quickshell.env("NAYORI_SETTINGS_SCENARIO") || "write"
 
@@ -57,6 +61,8 @@ ShellRoot {
 
     Tokens {
         id: theme
+        surfaceStyle: settings.surfaceStyle
+        animationsEnabled: settings.animationsEnabled
     }
 
     Connections {
@@ -79,7 +85,7 @@ ShellRoot {
 
     // UI is intentionally absent during the persistence scenarios.
     LazyLoader {
-        active: test.scenario === "ui" && test.uiVisible
+        active: (test.scenario === "ui" || test.scenario === "motion") && test.uiVisible
 
         FloatingWindow {
             visible: true
@@ -94,25 +100,108 @@ ShellRoot {
                 tokens: theme
                 wallpaperManager: wallpaper
                 onCloseRequested: test.closeRequests++
+                frequentKeys: ["appearance", "sound", "network", "power"]
+                recentKeys: ["display", "lockscreen", "wallpapers", "sound", "network", "panels", "island", "power"]
+                onSectionVisited: key => { test.visitedSections = test.visitedSections.concat([key]); }
                 Test.TestEvent { id: input }
                 function exerciseInput() {
-                    currentPage = 0
-                    focusInput()
-                    test.check(input.keyClick(Qt.Key_Down, Qt.NoModifier, -1), "send navigation key")
-                    test.check(test.findItem(view, "settings-nav-display").activeFocus, "arrow navigation")
+                    test.check(section.title === "Обзор" && !hasSecondary, "consistent overview name")
+                    const shortcuts = ["wallpapers", "appearance", "panels", "island"]
+                    for (const key of shortcuts) {
+                        openKey("home")
+                        const item = test.findItem(view, "home-quick-" + key)
+                        item.forceActiveFocus()
+                        input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                        test.check(section.key === key, "overview quick link " + key)
+                    }
+                    for (const key of ["network", "sound", "power"]) {
+                        openKey("home")
+                        const item = test.findItem(view, "home-status-" + key)
+                        item.forceActiveFocus()
+                        input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                        test.check(section.key === key, "overview status link " + key)
+                    }
+                    openKey("home")
+                    const frequent = test.findItem(view, "home-frequent-sound")
+                    frequent.forceActiveFocus()
                     input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
-                    test.check(currentPage === 5, "activate navigation by keyboard")
-                    const panelsButton = test.findItem(view, "settings-nav-panels")
-                    let guard = 0
-                    while (!panelsButton.activeFocus && guard++ < 40)
-                        test.check(input.keyClick(Qt.Key_Down, Qt.NoModifier, -1), "move toward panels")
-                    test.check(panelsButton.activeFocus, "panels navigation")
+                    test.check(currentPage === 6, "frequent section opens")
+                    test.check(test.visitedSections.indexOf("home") < 0, "overview excluded from history")
+                    const visits = test.visitedSections.length
+                    openKey("sound")
+                    test.check(test.visitedSections.length === visits, "same page does not count twice")
+                    openKey("home")
+                    const search = test.findItem(view, "settings-search-toggle")
+                    input.mouseClick(search, search.width / 2, search.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
+                    Qt.callLater(exerciseSearch)
+                }
+                function exerciseSearch() {
+                    const field = test.findItem(view, "settings-search")
+                    test.check(searchOpen && field.visible && field.activeFocus && visibleSections.length === 7 && visibleSections[0].key === "display" && visibleSections[6].key === "island", "global search shows seven most recent sections")
+                    const display = test.findItem(view, "settings-nav-display")
+                    test.check(display.detail === "Система / Экран", "search result includes settings path")
+                    test.check(sectionPath(sections.find(item => item.key === "lockscreen")) === "Облик / Экран блокировки", "appearance path uses visible category name")
+                    for (const letter of "Dynamic") input.keyClickChar(letter, Qt.NoModifier, -1)
+                    test.check(visibleSections.some(item => item.key === "island"), "search finds global section")
+                    navQuery = "а"
+                    test.check(visibleSections.length === 10, "query results limited to ten")
+                    const recent = recentKeys
+                    recentKeys = []
+                    navQuery = ""
+                    test.check(visibleSections.length === 0, "empty history does not invent recent sections")
+                    recentKeys = recent
+                    navQuery = field.text
+                    input.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+                    test.check(searchOpen && navQuery === "" && test.closeRequests === 0, "Escape clears search")
+                    input.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+                    test.check(!searchOpen && test.closeRequests === 0, "Escape closes search without closing settings")
+                    test.check(test.findItem(view, "settings-search-toggle").activeFocus, "search returns focus to trigger")
+                    selectCategory("Система")
+                    test.check(!field.visible, "no search field in category navigation")
+                    Qt.callLater(exerciseSystem)
+                }
+                function exerciseSystem() {
+                    focusInput()
+                    test.check(test.findItem(view, "settings-nav-display").activeFocus, "category navigation focus")
+                    input.keyClick(Qt.Key_Down, Qt.NoModifier, -1)
+                    input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                    test.check(currentPage === 6, "activate category page by keyboard")
+                    selectCategory("Персонализация")
+                    Qt.callLater(exercisePersonal)
+                }
+                function exercisePersonal() {
+                    focusInput()
+                    input.keyClick(Qt.Key_Down, Qt.NoModifier, -1)
+                    input.keyClick(Qt.Key_Down, Qt.NoModifier, -1)
                     input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
                     test.check(currentPage === 1, "panels page opens from the sidebar")
                     const slider = test.findItem(view, "bottomReservationSlider")
                     slider.forceActiveFocus()
                     const flick = test.findItem(view, "settings-panels-scroll")
                     test.check(flick.contentY > 0, "focus reveals lower controls")
+                    currentPage = 2
+                    const frosted = test.findItem(view, "surfaceStyle-frosted")
+                    input.mouseClick(frosted, frosted.width / 2, frosted.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
+                    test.check(settings.surfaceStyle === "frosted" && test.surfaceStyleRequests === 1, "style action applies once")
+                    settings.update({surfaceStyle: "solid"})
+                    test.check(!frosted.checked && test.surfaceStyleRequests === 1, "service updates style without signal loop")
+                    const animationsControl = test.findItem(view, "settingsAnimationsToggle")
+                    animationsControl.forceActiveFocus()
+                    const appearance = test.findItem(view, "settingsAppearanceScroll")
+                    const animationY = animationsControl.mapToItem(appearance.contentItem, 0, 0).y
+                    test.check(animationY >= -1 && animationY + animationsControl.height <= appearance.height + 1,
+                        "compact appearance scroll reveals keyboard focus")
+                    settings.update({startIconStyle: "current"})
+                    openKey("start")
+                    Qt.callLater(exerciseStart)
+                }
+                function exerciseStart() {
+                    const fox = test.findItem(view, "startIcon-fox")
+                    fox.forceActiveFocus()
+                    input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                    test.check(settings.startIconStyle === "fox" && test.iconRequests === 1, "fox applies immediately exactly once")
+                    settings.update({startIconStyle: "current"})
+                    test.check(!fox.checked && test.iconRequests === 1, "service updates icon selection without feedback")
                     currentPage = 3
                     const field = test.findItem(view, "weatherCityInput")
                     const original = settings.weatherCity
@@ -140,12 +229,22 @@ ShellRoot {
                     test.check(test.closeRequests === 1, "unhandled Escape closes settings")
                     currentPage = 0
                     focusInput()
+                    frequentKeys = ["appearance", "shortcuts", "lockscreen", "island"]
+                    test.interactionsChecked = true
+                    timer.start()
                 }
                 weatherCity: settings.weatherCity
                 weatherRefreshMinutes: settings.weatherRefreshMinutes
                 onWeatherRefreshMinutesChangedRequested: minutes => {
                     test.intervalRequests++;
                     settings.update({weatherRefreshMinutes: minutes});
+                }
+                startIconStyle: settings.startIconStyle
+                onStartIconStyleChangedRequested: style => { test.iconRequests++; settings.update({startIconStyle: style}); }
+                surfaceStyle: settings.surfaceStyle
+                onSurfaceStyleChangedRequested: style => {
+                    test.surfaceStyleRequests++;
+                    settings.update({surfaceStyle: style});
                 }
                 animationsEnabled: settings.animationsEnabled
                 onAnimationsChangedRequested: function(enabled) {
@@ -189,7 +288,7 @@ ShellRoot {
                 return ;
 
             test.ticks++;
-            if (test.ticks > 70) {
+            if (test.ticks > 400) {
                 test.check(false, "timeout");
                 return ;
             }
@@ -213,9 +312,22 @@ ShellRoot {
                     test.check(settings.topReserved === 4 && settings.bottomReserved === 0, "normalize loaded reservations");
                     test.check(settings.autoHideTop === false && settings.animationsEnabled === true && settings.weatherCity === "", "invalid and missing fields use defaults");
                     test.check(!settings.dirty, "load normalization does not write");
+                    test.check(settings.startIconStyle === "current", "missing icon defaults to current");
+                    settings.update({startIconStyle: "fox"});
+                    test.check(settings.startIconStyle === "fox", "fox enum accepted");
+                    settings.update({startIconStyle: "unsupported"});
+                    test.check(settings.startIconStyle === "current", "invalid icon defaults to current");
+                    test.check(settings.surfaceStyle === "solid", "missing or invalid style defaults to solid");
+                    settings.update({surfaceStyle: "frosted"});
+                    test.check(settings.surfaceStyle === "frosted", "frosted accepted");
+                    for (const value of ["glass", "Solid", "", null, true, 1]) {
+                        settings.update({surfaceStyle: "frosted"});
+                        settings.update({surfaceStyle: value});
+                        test.check(settings.surfaceStyle === "solid", "invalid style defaults to solid");
+                    }
                     test.check(settings.weatherRefreshMinutes === 15, "missing interval uses default");
                     test.check(settings.islandRotationEnabled === true && settings.islandRotationSeconds === 15, "rotation defaults");
-                    test.check(settings.preferredTerminal === "kitty" && settings.preferredFileManager === "org.gnome.Nautilus", "app defaults");
+                    test.check(settings.preferredTerminal === "kitty" && settings.preferredFileManager === "io.github.lgse.Strata", "app defaults");
                     settings.update({islandRotationSeconds: 3});
                     test.check(settings.islandRotationSeconds === 5, "rotation clamps low");
                     settings.update({islandRotationSeconds: 500});
@@ -229,7 +341,7 @@ ShellRoot {
                     settings.update({preferredTerminal: "   "});
                     test.check(settings.preferredTerminal === "kitty", "empty terminal uses default");
                     settings.update({preferredFileManager: 12});
-                    test.check(settings.preferredFileManager === "org.gnome.Nautilus", "file manager rejects non-strings");
+                    test.check(settings.preferredFileManager === "io.github.lgse.Strata", "file manager rejects non-strings");
                     settings.update({islandRotationEnabled: false});
                     test.check(settings.islandRotationEnabled === false, "rotation bool");
                     settings.update({islandRotationSeconds: 15, islandRotationEnabled: true, preferredTerminal: "kitty"});
@@ -246,7 +358,7 @@ ShellRoot {
                     settings.flush(true);
                     test.finish();
                 } else if (test.scenario === "restore") {
-                    test.check(settings.weatherCity === "Москва" && settings.topReserved === 200 && !settings.animationsEnabled && settings.weatherRefreshMinutes === 30, "restored values");
+                    test.check(settings.weatherCity === "Москва" && settings.topReserved === 200 && !settings.animationsEnabled && settings.weatherRefreshMinutes === 30 && settings.surfaceStyle === "frosted" && settings.startIconStyle === "fox", "restored values");
                     test.check(!settings.dirty && test.changes === 1, "no write loop on load");
                     test.finish();
                 } else if (test.scenario === "revert") {
@@ -254,22 +366,74 @@ ShellRoot {
                     settings.update({weatherCity: "temporary"});
                     settings.update({weatherCity: original});
                     test.phase = 5;
+                } else if (test.scenario === "motion") {
+                    const view = test.viewRef
+                    if (test.ticks === 8) {
+                        test.check(view.sidebarWidth === view.railWidth && !view.hasSecondary, "overview has no second level")
+                        view.openKey("start")
+                    } else if (test.ticks === 9) {
+                        const main = test.findItem(view, "settings-main")
+                        const sidebar = test.findItem(view, "settings-sidebar")
+                        test.check(main.opacity < 1, "page fades before replacement")
+                        test.check(sidebar.width > view.railWidth && sidebar.width < view.sidebarWidth, "sidebar expands smoothly")
+                    } else if (test.ticks === 14) {
+                        test.check(view.displayedPage === 14 && view.displayedCategory === "Персонализация", "page and second level settle")
+                        view.openKey("display")
+                    } else if (test.ticks === 15) {
+                        const main = test.findItem(view, "settings-main")
+                        const opacityBefore = main.opacity
+                        view.openKey("windows")
+                        test.check(main.opacity === opacityBefore, "rapid navigation preserves current opacity")
+
+                    } else if (test.ticks === 21) {
+                        test.check(view.displayedPage === 17 && view.displayedCategory === "Окна и столы", "rapid navigation settles on latest target")
+                        test.check(test.findItem(view, "settings-main").opacity === 1, "opacity restored")
+                        view.openKey("home")
+                        settings.update({animationsEnabled: false})
+                        test.check(view.displayedPage === 0 && view.displayedCategory === "Обзор", "disabling motion commits pending selection")
+                    } else if (test.ticks === 23) {
+                        test.check(!test.findItem(view, "settings-secondary").visible, "overview secondary disappears")
+                        view.openKey("start")
+                        test.check(view.displayedPage === 14 && view.displayedCategory === "Персонализация", "disabled animations apply immediately")
+                        test.finish()
+                    }
                 } else if (test.scenario === "ui") {
                     if (test.ticks > 8) {
                         if (!test.interactionsChecked) {
+                            timer.stop();
                             test.viewRef.exerciseInput();
-                            test.interactionsChecked = true;
+                            return;
                         }
                         test.check(test.viewRef.activeFocus, "navigation focus after creation");
                         test.check(test.uiRequests === 0, "service updates must not emit user requests");
                         test.viewRef.grabToImage(function(result) {
-                            result.saveToFile(settings.storageDirectory + "/settings-" + test.sizeIndex + "-" + test.capturePage + ".png");
-                            if (test.capturePage === 4 && test.sizeIndex < test.sizes.length - 1) {
+                            if (test.viewRef.currentPage === 0) {
+                                const banner = test.findItem(test.viewRef, "home-customization-banner")
+                                for (const key of ["wallpapers", "appearance", "panels", "island"]) {
+                                    const card = test.findItem(test.viewRef, "home-quick-" + key)
+                                    const position = card.mapToItem(banner, 0, 0)
+                                    test.check(position.y >= 16 && position.y + card.height <= banner.height - 15, "customization stays inside banner " + key)
+                                    const glyph = test.findItem(card, "home-link-icon")
+                                    const caption = test.findItem(card, "home-link-title")
+                                    const arrow = test.findItem(card, "home-link-arrow")
+                                    const center = glyph.y + glyph.height / 2
+                                    test.check(Math.abs(center - caption.y - caption.height / 2) < 1
+                                        && Math.abs(center - arrow.y - arrow.height / 2) < 1, "customization content centered " + key)
+                                }
+                                for (const key of ["appearance", "shortcuts", "lockscreen", "island"]) {
+                                    const card = test.findItem(test.viewRef, "home-frequent-" + key)
+                                    const glyph = test.findItem(card, "home-link-icon")
+                                    const caption = test.findItem(card, "home-link-title")
+                                    test.check(caption.y >= glyph.y + glyph.height, "frequent icon and long title do not overlap " + key)
+                                }
+                            }
+                            result.saveToFile(settings.storageDirectory + "/settings-" + test.sizeIndex + "-" + test.capturePages[test.capturePage] + ".png");
+                            if (test.capturePage === test.capturePages.length - 1 && test.sizeIndex < test.sizes.length - 1) {
                                 test.sizeIndex++;
                                 test.capturePage = 0;
                                 test.viewRef.currentPage = 0;
                                 timer.start();
-                            } else if (test.capturePage === 4) {
+                            } else if (test.capturePage === test.capturePages.length - 1) {
                                 test.uiVisible = false;
                                 settings.update({weatherCity: "window closed"});
                                 test.phase = 6;
@@ -278,7 +442,7 @@ ShellRoot {
                             }
                             else {
                                 test.capturePage++;
-                                test.viewRef.currentPage = test.capturePage;
+                                test.viewRef.currentPage = test.capturePages[test.capturePage];
                                 timer.start();
                             }
                         });
@@ -288,6 +452,8 @@ ShellRoot {
                     settings.update({
                         "weatherCity": "  Москва  ",
                         "weatherRefreshMinutes": 30,
+                        "surfaceStyle": "frosted",
+                        "startIconStyle": "fox",
                         "topReserved": 999,
                         "animationsEnabled": false,
                         "autoHideTop": true

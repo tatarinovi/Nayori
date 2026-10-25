@@ -3,7 +3,9 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Quickshell
 import "../../services/system"
+import "../panel"
 
 FocusScope {
     id: root
@@ -19,13 +21,33 @@ FocusScope {
     property bool autoHideStatus: false
     property string userName: ""
     property string avatarSource: ""
+    property var frequentKeys: []
+    property var recentKeys: []
+    signal sectionVisited(string key)
+    readonly property url homeWallpaper: {
+        if (!wallpaperManager) return ""
+        const state = wallpaperManager.state
+        const output = Quickshell.screens.length ? Quickshell.screens[0].name : ""
+        return wallpaperManager.wallpaper(output).source
+    }
+    readonly property var frequentSections: frequentKeys.map(key => {
+        const item = sections.find(section => section.key === key && key !== "home")
+        if (!item) return null
+        const category = categories.find(category => category.name === item.group)
+        const specific = ["sound", "network", "power", "wallpapers", "panels", "island"]
+        return {key: item.key, title: item.title, glyph: specific.indexOf(item.key) >= 0 ? item.key : category ? category.glyph : "apps"}
+    }).filter(item => item !== null).slice(0, 4)
     property string weatherCity: ""
     property int weatherRefreshMinutes: 15
     property bool islandRotationEnabled: true
     property int islandRotationSeconds: 15
+    property string startIconStyle: "current"
+    signal startIconStyleChangedRequested(string style)
     property string preferredTerminal: "kitty"
-    property string preferredFileManager: "org.gnome.Nautilus"
+    property string preferredFileManager: "io.github.lgse.Strata"
     property var niri: null
+    property string surfaceStyle: "solid"
+    signal surfaceStyleChangedRequested(string style)
     property bool animationsEnabled: true
     signal animationsChangedRequested(bool enabled)
     signal islandRotationEnabledChangedRequested(bool enabled)
@@ -50,10 +72,33 @@ FocusScope {
     implicitHeight: 760
     readonly property bool compact: width < 960
     readonly property int inset: compact ? 24 : 32
-    readonly property int sidebarWidth: compact ? 184 : 232
+    readonly property int railWidth: compact ? 68 : 76
+    readonly property int secondaryWidth: compact ? 184 : 232
+    readonly property bool hasSecondary: currentPage !== 0 || searchOpen
+    readonly property int sidebarWidth: railWidth + (hasSecondary ? secondaryWidth : 0)
+    property int displayedPage: 0
+    onDisplayedPageChanged: if (displayedPage === 0)
+        Qt.callLater(function() { if (homeScroll.contentItem) homeScroll.contentItem.contentY = 0 })
+    property string displayedCategory: "Обзор"
+    readonly property var displayedSection: sections.find(item => item.page === displayedPage) || sections[0]
+    property bool viewReady: false
+    Component.onCompleted: viewReady = true
+    onActiveCategoryChanged: if (viewReady) secondaryMotion.reveal()
+    onAnimationsEnabledChanged: if (!animationsEnabled) {
+        pageMotion.finish()
+        secondaryMotion.finish()
+        sidebarResize.complete()
+        secondaryFade.complete()
+        Qt.callLater(function() {
+            if (!root.animationsEnabled) {
+                sidebarResize.complete()
+                secondaryFade.complete()
+            }
+        })
+    }
     // Stable IDs support future sections without exposing page indexes over IPC.
     readonly property var sections: [
-        {key: "home", page: 0, title: "Главная", group: "Обзор", description: "Состояние сети, звука и быстрый переход к разделам"},
+        {key: "home", page: 0, title: "Обзор", group: "Обзор", description: "Состояние сети, звука и быстрый переход к разделам"},
         {key: "display", page: 5, title: "Экран", group: "Система", description: "Подключённые мониторы. Режимы вывода niri отсюда не меняются"},
         {key: "sound", page: 6, title: "Звук", group: "Система", description: "Устройства вывода и ввода PipeWire и их громкость"},
         {key: "power", page: 7, title: "Питание", group: "Система", description: "Блокировка, завершение сеанса, перезагрузка и выключение"},
@@ -63,14 +108,14 @@ FocusScope {
         {key: "mouse", page: 11, title: "Мышь", group: "Устройства", description: "Что можно прочитать о мыши в этой сессии niri"},
         {key: "keyboard", page: 12, title: "Клавиатура", group: "Устройства", description: "Раскладка и повтор, которые задаёт niri"},
         {key: "shortcuts", page: 13, title: "Сочетания клавиш", group: "Устройства", description: "Сочетания из конфигурации niri. Запись файла выключена"},
+        {key: "appearance", page: 2, title: "Внешний вид", group: "Персонализация", description: "Прозрачность и анимации интерфейса"},
         {key: "wallpapers", page: 4, title: "Обои", group: "Персонализация", description: "Фон рабочего стола — общий или отдельный для каждого монитора"},
         {key: "panels", page: 1, title: "Панель задач", group: "Персонализация", description: "Автоскрытие островов и место для окон у краёв экрана"},
-        {key: "start", page: 14, title: "Пуск", group: "Персонализация", description: "Терминал и файловый менеджер для кнопки «Пуск»"},
+        {key: "start", page: 14, title: "Пуск", group: "Персонализация", description: "Значок и приложения кнопки «Пуск»"},
         {key: "island", page: 15, title: "Dynamic Island", group: "Персонализация", description: "Смена страниц острова, город и интервал погоды"},
         {key: "lockscreen", page: 16, title: "Экран блокировки", group: "Персонализация", description: "В Nayori нет своего экрана блокировки"},
         {key: "weather", page: 3, title: "Погода", group: "Персонализация", description: "Город для прогноза в Dynamic Island", sidebar: false},
         {key: "windows", page: 17, title: "Окна", group: "Окна и столы", description: "Фокус окон и ограничения конфигурации niri"},
-        {key: "appearance", page: 2, title: "Анимации", group: "Окна и столы", description: "Движение лисы и переходы интерфейса"},
         {key: "alttab", page: 18, title: "Alt+Tab", group: "Окна и столы", description: "Переключение окон в этой сессии niri"},
         {key: "workspaces", page: 19, title: "Рабочие столы", group: "Окна и столы", description: "Столы, которые сейчас сообщает niri"},
         {key: "defaults", page: 20, title: "По умолчанию", group: "Приложения", description: "Приложения по умолчанию через xdg-mime"},
@@ -84,89 +129,73 @@ FocusScope {
         const key = section.key
         return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island"
     }
+    readonly property var categories: [
+        {name: "Обзор", caption: "Обзор", glyph: "home"},
+        {name: "Система", caption: "Система", glyph: "system"},
+        {name: "Устройства", caption: "Устройства", glyph: "devices"},
+        {name: "Персонализация", caption: "Облик", glyph: "appearance"},
+        {name: "Окна и столы", caption: "Окна", glyph: "windows"},
+        {name: "Приложения", caption: "Приложения", glyph: "apps"},
+        {name: "NayoriOS", caption: "NayoriOS", glyph: "about"}
+    ]
+    property bool searchOpen: false
     property string navQuery: ""
-    property var openGroupList: []
-    property string navigatedGroup: ""
+    property string activeCategory: "Обзор"
     readonly property string navQueryFolded: navQuery.trim().toLowerCase()
-    readonly property bool navSearching: navQueryFolded !== ""
-    readonly property bool navHasMatches: {
-        if (!navSearching)
-            return true
-        const seen = []
-        for (let i = 0; i < navigationSections.length; i++) {
-            const group = navigationSections[i].group
-            if (seen.indexOf(group) >= 0)
-                continue
-            seen.push(group)
-            if (groupShown(group))
-                return true
+    readonly property bool navSearching: searchOpen
+    readonly property var visibleSections: navSearching
+        ? searchSections()
+        : navigationSections.filter(item => item.group === displayedCategory)
+    readonly property bool navHasMatches: visibleSections.length > 0
+    function sectionPath(item) {
+        const group = item.group === "Персонализация" ? "Облик" : item.group
+        return item.key === "home" ? "Настройки / Обзор" : group + " / " + item.title
+    }
+    function searchSections() {
+        if (!navQueryFolded) {
+            return recentKeys.map(key => sections.find(item => item.key === key))
+                .filter(item => item && item.key !== "home").slice(0, 7)
         }
-        return false
+        return sections.filter(item => queryHit(item.title) || queryHit(sectionPath(item)) || queryHit(item.description))
+            .sort((left, right) => {
+                const a = recentKeys.indexOf(left.key)
+                const b = recentKeys.indexOf(right.key)
+                return (a < 0 ? sections.length : a) - (b < 0 ? sections.length : b)
+            }).slice(0, 10)
+    }
+    function queryHit(text) {
+        return String(text || "").toLowerCase().indexOf(navQueryFolded) >= 0
+    }
+    function openSearch() {
+        searchOpen = true
+        Qt.callLater(function() { navSearch.forceActiveFocus(Qt.ShortcutFocusReason) })
+    }
+    function closeSearch(restoreFocus) {
+        searchOpen = false
+        navSearch.text = ""
+        navQuery = ""
+        if (restoreFocus) searchToggle.forceActiveFocus(Qt.ShortcutFocusReason)
+    }
+    function dismissSearch() {
+        if (navQuery !== "" || navSearch.text !== "") {
+            navSearch.text = ""
+            navQuery = ""
+            navSearch.forceActiveFocus(Qt.ShortcutFocusReason)
+        } else closeSearch(true)
     }
     function openKey(key) {
         const match = sections.find(item => item.key === key)
-        if (!match)
-            return
+        if (!match) return
+        closeSearch(false)
+        activeCategory = match.group
         currentPage = match.page
-        expandForPage(match.page)
     }
-    function expandForPage(page) {
-        const item = sections.find(entry => entry.page === page)
-        if (!item || item.sidebar === false)
-            return
-        navigatedGroup = item.group
-        setGroupOpen(item.group, true)
-    }
-    function groupIsOpen(name) {
-        return openGroupList.indexOf(name) >= 0
-    }
-    function setGroupOpen(name, open) {
-        if (groupIsOpen(name) === open)
-            return
-        const next = []
-        for (let i = 0; i < openGroupList.length; i++) {
-            if (openGroupList[i] !== name)
-                next.push(openGroupList[i])
-        }
-        if (open)
-            next.push(name)
-        openGroupList = next
-    }
-    function toggleGroup(name) {
-        if (navSearching)
-            return
-        setGroupOpen(name, !groupIsOpen(name))
-    }
-    function collapseToNavigation() {
-        const item = sections.find(entry => entry.page === currentPage && entry.sidebar !== false)
-        openGroupList = item && item.group === navigatedGroup ? [navigatedGroup] : []
-    }
-    function queryHit(text) {
-        return navQueryFolded !== "" && String(text || "").toLowerCase().indexOf(navQueryFolded) >= 0
-    }
-    function groupShown(group) {
-        if (!navSearching)
-            return true
-        if (queryHit(group))
-            return true
-        return navigationSections.some(item => item.group === group && (queryHit(item.title) || queryHit(item.description)))
-    }
-    function pageVisible(item) {
-        if (!item)
-            return false
-        if (!navSearching)
-            return groupIsOpen(item.group)
-        if (queryHit(item.group))
-            return true
-        return queryHit(item.title) || queryHit(item.description)
-    }
-    function isFirstShownGroup(index) {
-        const group = navigationSections[index].group
-        for (let i = 0; i < index; i++) {
-            if (navigationSections[i].group !== group && groupShown(navigationSections[i].group))
-                return false
-        }
-        return true
+    function selectCategory(name) {
+        closeSearch(false)
+        activeCategory = name
+        const match = navigationSections.find(item => item.group === name && item.page === currentPage)
+            || navigationSections.find(item => item.group === name)
+        if (match) currentPage = match.page
     }
     function revealNavigation(item) {
         const flick = navigationScroll.contentItem
@@ -176,89 +205,249 @@ FocusScope {
             flick.contentY = top + item.height - flick.height
     }
     function focusNav(index) {
-        const data = navigationSections[index]
-        if (!data)
+        if (displayedCategory !== activeCategory) {
+            secondaryMotion.finish()
+            Qt.callLater(function() { root.focusNav(index) })
             return
-        if (!pageVisible(data))
-            setGroupOpen(data.group, true)
+        }
         const item = navigation.itemAt(index)
-        if (item)
-            item.focusButton()
+        if (item) item.forceActiveFocus(Qt.TabFocusReason)
     }
     function focusInput() {
-        const index = navigationSections.findIndex(item => item.page === currentPage)
-        if (index < 0)
+        if (searchOpen) { navSearch.forceActiveFocus(Qt.TabFocusReason); return }
+        if (displayedCategory !== activeCategory) {
+            secondaryMotion.finish()
+            Qt.callLater(root.focusInput)
             return
-        const item = navigation.itemAt(index)
-        if (item && item.shownPage)
-            item.focusButton()
+        }
+        const index = visibleSections.findIndex(item => item.page === currentPage)
+        if (hasSecondary && index >= 0) focusNav(index)
+        else {
+            const category = categoryNavigation.itemAt(0)
+            if (category) category.forceActiveFocus(Qt.TabFocusReason)
+        }
     }
     function adjacentNav(from, direction) {
-        const count = navigationSections.length
-        if (count === 0)
-            return from
-        if (!navSearching)
-            return (from + direction + count) % count
-        for (let step = 1; step <= count; step++) {
-            const index = (from + direction * step + count) % count
-            if (pageVisible(navigationSections[index]))
-                return index
-        }
-        return from
+        return (from + direction + visibleSections.length) % visibleSections.length
     }
-    onCurrentPageChanged: expandForPage(currentPage)
-    onNavQueryChanged: {
-        if (navQuery.trim() === "")
-            collapseToNavigation()
+    onCurrentPageChanged: {
+        if (viewReady) pageMotion.reveal()
+        const selectedSection = sections.find(item => item.page === currentPage)
+        if (selectedSection) {
+            activeCategory = selectedSection.group
+            if (viewReady && selectedSection.key !== "home") sectionVisited(selectedSection.key)
+        }
+        Qt.callLater(function() {
+            const index = root.visibleSections.findIndex(item => item.page === root.currentPage)
+            const item = index >= 0 ? navigation.itemAt(index) : null
+            if (item) root.revealNavigation(item)
+        })
     }
     Keys.onEscapePressed: function(event) {
         event.accepted = true
-        root.closeRequested()
+        if (root.searchOpen) root.dismissSearch()
+        else root.closeRequested()
+    }
+    Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_F && (event.modifiers & Qt.ControlModifier)) {
+            event.accepted = true
+            root.openSearch()
+        }
     }
 
     NiriConfigView { id: niriConfig }
 
-    Rectangle { anchors.fill: parent; color: root.tokens.color.background }
+    Rectangle { anchors.fill: parent; color: root.tokens.material.dense }
     Rectangle {
         id: sidebar
+        objectName: "settings-sidebar"
         width: root.sidebarWidth
+        clip: true
+        Behavior on width {
+            enabled: root.viewReady && root.animationsEnabled && !root.tokens.motion.off
+            NumberAnimation {
+                id: sidebarResize
+                duration: root.animationsEnabled && !root.tokens.motion.off ? root.tokens.motion.base : 0
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
+            }
+        }
         anchors { top: parent.top; bottom: parent.bottom; left: parent.left }
-        color: Qt.tint(root.tokens.color.background, "#0CFFFFFF")
+        color: root.tokens.material.sidebar
         Rectangle { anchors.right: parent.right; height: parent.height; width: 1; color: root.tokens.color.border }
+        Rectangle {
+            id: primaryRail
+            width: root.railWidth
+            height: parent.height
+            color: root.tokens.material.dense
+            Rectangle { anchors.right: parent.right; height: parent.height; width: 1; color: root.tokens.color.border }
+            NayoriMark {
+                id: brandMark
+                anchors { top: parent.top; topMargin: 22; horizontalCenter: parent.horizontalCenter }
+                width: 44; height: 44
+                variant: "fox"
+                ink: root.tokens.color.accent
+            }
+            AbstractButton {
+                id: searchToggle
+                objectName: "settings-search-toggle"
+                anchors { top: brandMark.bottom; topMargin: 18; left: parent.left; right: parent.right; margins: 6 }
+                height: 44
+                hoverEnabled: true
+                Accessible.name: "Поиск по всем настройкам"
+                Accessible.description: "Ctrl+F"
+                onClicked: root.searchOpen ? root.closeSearch(true) : root.openSearch()
+                Keys.onDownPressed: {
+                    const item = categoryNavigation.itemAt(0)
+                    if (item) item.forceActiveFocus(Qt.TabFocusReason)
+                }
+                background: Rectangle {
+                    radius: root.tokens.radius.small
+                    color: root.searchOpen || searchToggle.hovered ? root.tokens.color.surfaceAlt : "transparent"
+                    border.width: searchToggle.visualFocus ? 1 : 0
+                    border.color: root.tokens.color.accent
+                }
+                contentItem: Item {
+                    Canvas {
+                        anchors.centerIn: parent
+                        width: 22; height: 22
+                        property color ink: root.searchOpen ? root.tokens.color.accent : root.tokens.color.textMuted
+                        onInkChanged: requestPaint()
+                        onPaint: {
+                            const c = getContext("2d")
+                            c.reset()
+                            c.strokeStyle = ink
+                            c.lineWidth = 2
+                            c.lineCap = "round"
+                            c.beginPath(); c.arc(9, 9, 6, 0, Math.PI * 2); c.stroke()
+                            c.beginPath(); c.moveTo(14, 14); c.lineTo(20, 20); c.stroke()
+                        }
+                    }
+                }
+            }
+            ScrollView {
+                id: categoryScroll
+                anchors { top: searchToggle.bottom; topMargin: 12; bottom: parent.bottom; bottomMargin: 16; left: parent.left; right: parent.right; margins: 6 }
+                clip: true
+                contentWidth: availableWidth
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                ScrollBar.vertical.policy: ScrollBar.AsNeeded
+                Column {
+                    width: categoryScroll.availableWidth
+                    spacing: 6
+                    Repeater {
+                        id: categoryNavigation
+                        model: root.categories
+                        delegate: AbstractButton {
+                            id: categoryButton
+                            required property var modelData
+                            required property int index
+                            objectName: "settings-category-" + modelData.glyph
+                            width: parent.width
+                            height: 68
+                            hoverEnabled: true
+                            readonly property bool selected: !root.searchOpen && root.activeCategory === modelData.name
+                            Accessible.name: modelData.name
+                            Accessible.selected: selected
+                            onClicked: root.selectCategory(modelData.name)
+                            background: Rectangle {
+                                radius: root.tokens.radius.small
+                                color: categoryButton.selected || categoryButton.hovered ? root.tokens.color.surfaceAlt : "transparent"
+                                border.width: categoryButton.visualFocus ? 1 : 0
+                                border.color: root.tokens.color.accent
+                                Rectangle {
+                                    visible: categoryButton.selected
+                                    anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                                    width: 2; height: 22; radius: 1
+                                    color: root.tokens.color.accent
+                                }
+                            }
+                            contentItem: Column {
+                                topPadding: 9
+                                spacing: 5
+                                SettingsNavGlyph {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    width: 22; height: 22
+                                    name: categoryButton.modelData.glyph
+                                    ink: categoryButton.selected ? root.tokens.color.accent : root.tokens.color.textMuted
+                                }
+                                Label {
+                                    width: parent.width
+                                    text: categoryButton.modelData.caption
+                                    horizontalAlignment: Text.AlignHCenter
+                                    color: categoryButton.selected ? root.tokens.color.text : root.tokens.color.textMuted
+                                    font.pixelSize: root.compact ? 9 : 10
+                                    lineHeight: 1.05
+                                }
+                            }
+                            Keys.onDownPressed: {
+                                const item = categoryNavigation.itemAt((index + 1) % root.categories.length)
+                                if (item) item.forceActiveFocus(Qt.TabFocusReason)
+                            }
+                            Keys.onUpPressed: {
+                                const item = categoryNavigation.itemAt((index - 1 + root.categories.length) % root.categories.length)
+                                if (item) item.forceActiveFocus(Qt.TabFocusReason)
+                            }
+                            Keys.onRightPressed: root.focusNav(0)
+                        }
+                    }
+                }
+            }
+        }
+        Item {
+            id: secondary
+            objectName: "settings-secondary"
+            x: root.railWidth
+            width: root.secondaryWidth
+            height: parent.height
+            visible: root.hasSecondary || (root.animationsEnabled && opacity > 0)
+            enabled: root.hasSecondary
+            opacity: root.hasSecondary ? 1 : 0
+            Behavior on opacity {
+                enabled: root.viewReady && root.animationsEnabled && !root.tokens.motion.off
+                NumberAnimation { id: secondaryFade; duration: root.animationsEnabled && !root.tokens.motion.off ? root.tokens.motion.base : 0 }
+            }
+            Item {
+                anchors.fill: parent
+                opacity: secondaryMotion.progress
+            SettingsPageMotion {
+                id: secondaryMotion
+                enabled: root.animationsEnabled && !root.tokens.motion.off
+                duration: root.tokens.motion.base
+                onSwapRequested: root.displayedCategory = root.activeCategory
+            }
         Column {
             id: identity
-            anchors { top: parent.top; left: parent.left; right: parent.right; margins: 24 }
+            anchors { top: parent.top; left: parent.left; right: parent.right; topMargin: 27; leftMargin: 20; rightMargin: 16 }
             spacing: 8
+            Label { text: "НАСТРОЙКИ / 設定"; font.pixelSize: 10; font.letterSpacing: 1.2; color: root.tokens.color.accent }
             Label {
-                text: "Nayori"
+                width: parent.width
+                text: root.navSearching ? "Поиск" : (root.displayedCategory === "Персонализация" ? "Облик" : root.displayedCategory)
+                wrapMode: Text.Wrap
                 font.family: root.tokens.type.display.family
-                font.pixelSize: 30
+                font.pixelSize: root.compact ? 21 : 24
                 color: root.tokens.color.text
             }
-            Label { text: "НАСТРОЙКИ / 設定"; font.pixelSize: 11; font.letterSpacing: 1.3; color: root.tokens.color.accent }
         }
         SettingsField {
             id: navSearch
             objectName: "settings-search"
-            anchors { top: identity.bottom; topMargin: 16; left: parent.left; leftMargin: 16 }
-            width: sidebar.width - 32
+            visible: root.searchOpen
+            anchors { top: identity.bottom; topMargin: 22; left: parent.left; leftMargin: 12; right: parent.right; rightMargin: 12 }
             tokens: root.tokens
-            placeholderText: "Поиск"
-            Accessible.name: "Поиск"
+            placeholderText: "Найти раздел"
+            Accessible.name: "Поиск по всем настройкам"
             onTextEdited: root.navQuery = text
+            Keys.onDownPressed: root.focusNav(0)
             Keys.onEscapePressed: function(event) {
-                if (text !== "") {
-                    text = ""
-                    root.navQuery = ""
-                    event.accepted = true
-                } else {
-                    event.accepted = false
-                }
+                event.accepted = true
+                root.dismissSearch()
             }
         }
         ScrollView {
             id: navigationScroll
-            anchors { top: navSearch.bottom; topMargin: 12; bottom: sidebarFooter.top; bottomMargin: 24; left: parent.left; right: parent.right; leftMargin: 16; rightMargin: 16 }
+            anchors { top: root.searchOpen ? navSearch.bottom : identity.bottom; topMargin: root.searchOpen ? 16 : 22; bottom: parent.bottom; bottomMargin: 22; left: parent.left; right: parent.right; leftMargin: 10; rightMargin: 10 }
             clip: true
             contentWidth: availableWidth
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
@@ -266,133 +455,85 @@ FocusScope {
             Column {
                 id: navigationColumn
                 width: navigationScroll.availableWidth
-                spacing: 0
+                spacing: 4
                 Label {
-                    visible: root.navSearching && !root.navHasMatches
+                    visible: !root.navHasMatches
                     width: parent.width
-                    leftPadding: 12
-                    text: "Ничего не найдено"
+                    leftPadding: 10; rightPadding: 10
+                    text: root.navQueryFolded ? "Ничего не найдено" : "Недавно открытых разделов пока нет"
                     color: root.tokens.color.textMuted
                     font.pixelSize: 13
                 }
                 Repeater {
                     id: navigation
-                    model: root.navigationSections
-                    delegate: Column {
-                        id: entry
+                    model: root.visibleSections
+                    delegate: Action {
+                        id: navButton
                         required property var modelData
                         required property int index
-                        readonly property bool groupStart: index === 0 || root.navigationSections[index - 1].group !== modelData.group
-                        readonly property bool shownGroup: root.groupShown(modelData.group)
-                        readonly property bool shownPage: root.pageVisible(modelData)
-                        readonly property bool currentGroup: root.section.group === modelData.group
+                        navigation: true
+                        objectName: "settings-nav-" + modelData.key
                         width: parent.width
-                        spacing: 0
-                        visible: shownGroup
-                        function focusButton() { navButton.forceActiveFocus(Qt.TabFocusReason) }
-                        Item {
-                            visible: entry.groupStart
-                            width: parent.width
-                            height: entry.groupStart ? leadingSpace + groupButton.height : 0
-                            readonly property int leadingSpace: entry.groupStart && !root.isFirstShownGroup(entry.index) ? 18 : 0
-                            AbstractButton {
-                                id: groupButton
-                                y: parent.leadingSpace
-                                width: parent.width
-                                height: 32
-                                hoverEnabled: true
-                                Accessible.name: entry.modelData.group
-                                onClicked: root.toggleGroup(entry.modelData.group)
-                                background: Rectangle {
-                                    radius: root.tokens.radius.small
-                                    color: groupButton.down || groupButton.hovered ? root.tokens.color.surfaceAlt : "transparent"
-                                    border.width: groupButton.visualFocus ? 1 : 0
-                                    border.color: root.tokens.color.accent
-                                }
-                                contentItem: Label {
-                                    text: entry.modelData.group
-                                    color: entry.currentGroup ? root.tokens.color.accent : root.tokens.color.textMuted
-                                    font.pixelSize: 12
-                                    leftPadding: 12
-                                    rightPadding: 12
-                                    verticalAlignment: Text.AlignVCenter
-                                    elide: Text.ElideRight
-                                    wrapMode: Text.NoWrap
-                                }
-                            }
-                        }
-                        Item {
-                            width: parent.width
-                            height: entry.shownPage ? navButton.implicitHeight + 4 : 0
-                            clip: true
-                            Action {
-                                id: navButton
-                                objectName: "settings-nav-" + entry.modelData.key
-                                width: parent.width
-                                text: entry.modelData.title
-                                focusPolicy: entry.shownPage ? Qt.StrongFocus : Qt.NoFocus
-                                selected: root.currentPage === entry.modelData.page
-                                Accessible.selected: selected
-                                Accessible.ignored: !entry.shownPage
-                                onClicked: root.openKey(entry.modelData.key)
-                                onActiveFocusChanged: if (activeFocus) root.revealNavigation(entry)
-                                Keys.onDownPressed: function(event) {
-                                    event.accepted = true
-                                    root.focusNav(root.adjacentNav(entry.index, 1))
-                                }
-                                Keys.onUpPressed: function(event) {
-                                    event.accepted = true
-                                    root.focusNav(root.adjacentNav(entry.index, -1))
-                                }
-                            }
+                        text: modelData.title
+                        detail: root.navSearching ? root.sectionPath(modelData) : ""
+                        selected: root.currentPage === modelData.page
+                        Accessible.selected: selected
+                        onClicked: root.openKey(modelData.key)
+                        onActiveFocusChanged: if (activeFocus) root.revealNavigation(navButton)
+                        Keys.onDownPressed: function(event) { event.accepted = true; root.focusNav(root.adjacentNav(index, 1)) }
+                        Keys.onUpPressed: function(event) { event.accepted = true; root.focusNav(root.adjacentNav(index, -1)) }
+                        Keys.onLeftPressed: {
+                            const index = root.categories.findIndex(item => item.name === root.activeCategory)
+                            const item = categoryNavigation.itemAt(index)
+                            if (item) item.forceActiveFocus(Qt.TabFocusReason)
                         }
                     }
                 }
             }
         }
-        Label {
-            id: sidebarFooter
-            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 24 }
-            visible: !root.compact
-            height: root.compact ? 0 : implicitHeight
-            text: "Ваше рабочее\nпространство"
-            color: root.tokens.color.textMuted
-            font.family: root.tokens.type.display.family
-            font.pixelSize: 15
+        }
         }
     }
 
     Item {
         id: main
+        objectName: "settings-main"
+        opacity: pageMotion.progress
+        SettingsPageMotion {
+            id: pageMotion
+            enabled: root.animationsEnabled && !root.tokens.motion.off
+            duration: root.tokens.motion.base
+            onSwapRequested: root.displayedPage = root.currentPage
+        }
         anchors { top: parent.top; bottom: parent.bottom; left: sidebar.right; right: parent.right; margins: root.inset }
         Column {
             id: header
             width: parent.width
             spacing: 10
-            Label { text: root.section.group.toUpperCase(); font.pixelSize: 11; font.letterSpacing: 1.4; color: root.tokens.color.accent }
-            Label { width: parent.width; text: root.section.title; font.family: root.tokens.type.display.family; font.pixelSize: root.tokens.settings.heading }
-            Label { width: parent.width; text: root.section.description; color: root.tokens.color.textMuted }
+            Rectangle { width: 40; height: 2; color: root.tokens.color.accent }
+            Label { visible: root.displayedSection.group !== root.displayedSection.title; text: root.displayedSection.group.toUpperCase(); font.pixelSize: 11; font.letterSpacing: 1.4; color: root.tokens.color.accent }
+            Label { width: parent.width; text: root.displayedSection.title; font.family: root.tokens.type.display.family; font.pixelSize: root.tokens.settings.heading; lineHeight: 1.1 }
+            Label { width: parent.width; text: root.displayedSection.description; color: root.tokens.color.textMuted }
         }
         StackLayout {
             id: pages
             anchors { top: header.bottom; topMargin: 28; bottom: footer.top; bottomMargin: 20; left: parent.left; right: parent.right }
-            currentIndex: root.currentPage
-            ScrollView {
+            currentIndex: root.displayedPage
+            SettingsScroll {
                 id: homeScroll
-                clip: true
-                contentWidth: availableWidth
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                 HomePage {
-                    width: Math.min(960, homeScroll.availableWidth - 12)
+                    objectName: "settings-overview"
+                    width: parent.width
                     tokens: root.tokens
                     userName: root.userName
                     avatarSource: root.avatarSource
-                    onPanelsRequested: root.openKey("panels")
-                    onNetworkRequested: root.openKey("network")
-                    onBluetoothRequested: root.openKey("bluetooth")
-                    onUpdatesRequested: root.openKey("updates")
+                    wallpaperSource: root.homeWallpaper
+                    frequentSections: root.frequentSections
+                    onSectionRequested: key => root.openKey(key)
+                    onRevealRequested: item => homeScroll.reveal(item)
                 }
             }
+
             PanelsPage {
                 Layout.maximumWidth: 960
                 tokens: root.tokens
@@ -410,13 +551,25 @@ FocusScope {
             }
             ScrollView {
                 id: appearanceScroll
+                objectName: "settingsAppearanceScroll"
+                function reveal(item) {
+                    const flick = contentItem
+                    const point = item.mapToItem(flick.contentItem, 0, 0)
+                    if (point.y < flick.contentY) flick.contentY = point.y
+                    else if (point.y + item.height > flick.contentY + flick.height)
+                        flick.contentY = point.y + item.height - flick.height
+                }
                 clip: true
                 contentWidth: availableWidth
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                ScrollBar.vertical.active: true
                 AppearancePage {
                     width: Math.min(960, appearanceScroll.availableWidth - 12)
                     tokens: root.tokens
                     showHeading: false
+                    surfaceStyle: root.surfaceStyle
+                    onRevealRequested: item => appearanceScroll.reveal(item)
+                    onSurfaceStyleChangedRequested: style => root.surfaceStyleChangedRequested(style)
                     animationsEnabled: root.animationsEnabled
                     onAnimationsChangedRequested: enabled => root.animationsChangedRequested(enabled)
                 }
@@ -433,6 +586,7 @@ FocusScope {
                 clip: true
                 contentWidth: availableWidth
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                ScrollBar.vertical.active: true
                 WeatherPage {
                     width: Math.min(960, weatherScroll.availableWidth - 12)
                     tokens: root.tokens
@@ -460,9 +614,13 @@ FocusScope {
             SettingsScroll { KeyboardPage { width: parent.width; tokens: root.tokens; niriConfig: niriConfig } }
             SettingsScroll { ShortcutsPage { width: parent.width; tokens: root.tokens; niriConfig: niriConfig } }
             SettingsScroll {
+                id: startScroll
                 StartPage {
+                    onRevealRequested: item => startScroll.reveal(item)
                     width: parent.width
                     tokens: root.tokens
+                    startIconStyle: root.startIconStyle
+                    onStartIconStyleChangedRequested: style => root.startIconStyleChangedRequested(style)
                     preferredTerminal: root.preferredTerminal
                     preferredFileManager: root.preferredFileManager
                     onPreferredTerminalChangedRequested: terminalId => root.preferredTerminalChangedRequested(terminalId)

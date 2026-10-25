@@ -12,6 +12,7 @@ CheckBox {
     focusPolicy: Qt.StrongFocus
     Accessible.name: text
     Accessible.description: description
+    opacity: enabled ? 1 : 0.45
     spacing: 12
     padding: 12
     onActiveFocusChanged: if (activeFocus) focusReceived()
@@ -52,6 +53,7 @@ CheckBox {
             font.weight: toggle.tokens.type.body.weight
             textFormat: Text.PlainText
             wrapMode: Text.WordWrap
+            lineHeight: 1.4
         }
         Text {
             visible: toggle.description.length > 0
@@ -63,6 +65,7 @@ CheckBox {
             font.pixelSize: toggle.tokens.type.small.size
             textFormat: Text.PlainText
             wrapMode: Text.WordWrap
+            lineHeight: 1.4
         }
     }
 }

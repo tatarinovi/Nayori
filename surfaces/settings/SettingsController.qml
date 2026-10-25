@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
+import "../../services/settings"
 
 // Shell-owned: one UI instance, no storage and no dependency on panel geometry.
 QtObject {
@@ -9,6 +10,8 @@ QtObject {
     required property var settingsService
     required property var wallpaperManager
     property var niri: null
+    property SettingsUsage usage: SettingsUsage { }
+
     property string userName: Quickshell.env("USER") || ""
     property var window: null
     property bool opened: false
@@ -106,6 +109,16 @@ QtObject {
             tokens: root.tokens
             wallpaperManager: root.wallpaperManager
             userName: root.userName
+            recentKeys: {
+                const recency = root.usage.lastVisited
+                return root.usage.recentKeys(7)
+            }
+            frequentKeys: {
+                const counts = root.usage.counts
+                const recency = root.usage.lastVisited
+                return root.usage.topKeys(4)
+            }
+            onSectionVisited: key => root.usage.record(key)
             avatarSource: userName ? "file:///var/lib/AccountsService/icons/" + encodeURIComponent(userName) : ""
             topReserved: root.settingsService.topReserved
             bottomReserved: root.settingsService.bottomReserved
@@ -118,9 +131,12 @@ QtObject {
             weatherRefreshMinutes: root.settingsService.weatherRefreshMinutes
             islandRotationEnabled: root.settingsService.islandRotationEnabled
             islandRotationSeconds: root.settingsService.islandRotationSeconds
+            startIconStyle: root.settingsService.startIconStyle
+            onStartIconStyleChangedRequested: style => root.settingsService.update({startIconStyle: style})
             preferredTerminal: root.settingsService.preferredTerminal
             preferredFileManager: root.settingsService.preferredFileManager
             niri: root.niri
+            surfaceStyle: root.settingsService.surfaceStyle
             animationsEnabled: root.settingsService.animationsEnabled
             settingsMessage: root.settingsService.message
             canRecover: root.settingsService.canRecover
@@ -131,6 +147,7 @@ QtObject {
             onHideSecondaryIslandChangedRequested: hidden => root.settingsService.update({hideSecondaryIsland: hidden})
             onWeatherCityChangedRequested: city => root.settingsService.update({weatherCity: city})
             onWeatherRefreshMinutesChangedRequested: minutes => root.settingsService.update({weatherRefreshMinutes: minutes})
+            onSurfaceStyleChangedRequested: style => root.settingsService.update({surfaceStyle: style})
             onAnimationsChangedRequested: enabled => root.settingsService.update({animationsEnabled: enabled})
             onIslandRotationEnabledChangedRequested: enabled => root.settingsService.update({islandRotationEnabled: enabled})
             onIslandRotationSecondsChangedRequested: seconds => root.settingsService.update({islandRotationSeconds: seconds})

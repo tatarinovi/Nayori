@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Wayland
 import QtQuick.Window
 
 // Ordinary compositor-managed toplevel. No relationship to any panel surface.
@@ -19,14 +20,21 @@ FloatingWindow {
     property bool autoHideStatus: false
     property string userName: ""
     property string avatarSource: ""
+    property var frequentKeys: []
+    property var recentKeys: []
+    signal sectionVisited(string key)
     property string weatherCity: ""
     property int weatherRefreshMinutes: 15
     property bool islandRotationEnabled: true
     property int islandRotationSeconds: 15
+    property string startIconStyle: "current"
+    signal startIconStyleChangedRequested(string style)
     property string preferredTerminal: "kitty"
     property string preferredFileManager: "org.gnome.Nautilus"
     property var niri: null
     property bool settingsReady: true
+    property string surfaceStyle: "solid"
+    signal surfaceStyleChangedRequested(string style)
     property bool animationsEnabled: true
     signal animationsChangedRequested(bool enabled)
     signal islandRotationEnabledChangedRequested(bool enabled)
@@ -50,7 +58,10 @@ FloatingWindow {
     implicitWidth: 1100
     implicitHeight: 760
     minimumSize: Qt.size(720, 560)
-    color: tokens.color.background
+    color: "transparent"
+    surfaceFormat.opaque: false
+    Region { id: glassRegion; item: root.contentItem }
+    BackgroundEffect.blurRegion: root.tokens.frosted ? glassRegion : null
 
     function requestActivation() {
         const nativeWindow = contentItem.Window.window
@@ -59,10 +70,6 @@ FloatingWindow {
     property bool shownOnce: false
     function setPage(page) {
         settings.currentPage = page
-        // The first show stays collapsed on the default page. A later landing,
-        // including the same page, opens the section that contains it.
-        if (shownOnce)
-            settings.expandForPage(page)
     }
     readonly property int selectedPage: settings.currentPage
 
@@ -81,14 +88,21 @@ FloatingWindow {
         autoHideStatus: root.autoHideStatus
         userName: root.userName
         avatarSource: root.avatarSource
+        frequentKeys: root.frequentKeys
+        recentKeys: root.recentKeys
+        onSectionVisited: key => root.sectionVisited(key)
         weatherCity: root.weatherCity
         weatherRefreshMinutes: root.weatherRefreshMinutes
         islandRotationEnabled: root.islandRotationEnabled
         islandRotationSeconds: root.islandRotationSeconds
+        startIconStyle: root.startIconStyle
+        onStartIconStyleChangedRequested: style => root.startIconStyleChangedRequested(style)
         preferredTerminal: root.preferredTerminal
         preferredFileManager: root.preferredFileManager
         niri: root.niri
         currentPage: root.initialPage
+        surfaceStyle: root.surfaceStyle
+        onSurfaceStyleChangedRequested: style => root.surfaceStyleChangedRequested(style)
         animationsEnabled: root.animationsEnabled
         onAnimationsChangedRequested: enabled => root.animationsChangedRequested(enabled)
         onIslandRotationEnabledChangedRequested: enabled => root.islandRotationEnabledChangedRequested(enabled)

@@ -8,6 +8,7 @@ ScrollView {
     clip: true
     contentWidth: availableWidth
     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+    ScrollBar.vertical.active: true
     default property alias pageData: column.data
 
     function reveal(item) {

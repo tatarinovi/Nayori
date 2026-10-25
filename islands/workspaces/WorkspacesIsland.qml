@@ -42,7 +42,7 @@ Rectangle {
     width: implicitWidth
     height: implicitHeight
     radius: tokens.radius.small + 8
-    color: tokens.color.surfaceAlt
+    color: tokens.material.panel
     border.width: 1
     border.color: tokens.color.border
     antialiasing: true

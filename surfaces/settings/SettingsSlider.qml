@@ -11,7 +11,8 @@ Slider {
     signal changed(real value)
     from: 0
     to: 1
-    implicitHeight: 32
+    implicitHeight: 44
+    opacity: enabled ? 1 : 0.45
     Accessible.name: label
     onMoved: changed(value)
     Binding {

@@ -23,6 +23,7 @@ ScrollView {
     clip: true
     contentWidth: availableWidth
     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+    ScrollBar.vertical.active: true
     function load() {
         if (!manager) return
         const value = manager.wallpaper(output)

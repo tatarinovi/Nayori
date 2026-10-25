@@ -10,6 +10,7 @@ Button {
 
     required property var tokens
     property bool menusOpen: false
+    property string iconStyle: "current"
     property string hint: "Пуск"
 
     signal contextRequested()
@@ -37,13 +38,14 @@ Button {
     }
     background: Rectangle {
         radius: root.tokens.radius.small
-        color: root.down || root.checked ? root.tokens.color.accentSoft
-              : root.hovered ? root.tokens.color.surface : "transparent"
+        color: root.down || root.checked || root.menusOpen ? root.tokens.color.accentSoft
+              : root.hovered ? root.tokens.color.surface : root.tokens.frosted ? root.tokens.material.panel : "transparent"
         border.width: root.visualFocus ? 1 : 0
         border.color: root.tokens.color.accent
     }
     contentItem: Item {
         NayoriMark {
+            variant: root.iconStyle
             anchors.centerIn: parent
             ink: root.enabled ? root.tokens.color.text : root.tokens.color.textMuted
         }

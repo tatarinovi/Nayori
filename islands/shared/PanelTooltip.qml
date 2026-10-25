@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Wayland
 
 // A separate non-interactive surface: a panel's 48 px window cannot clip it.
 PopupWindow {
@@ -17,6 +18,8 @@ PopupWindow {
     anchor.gravity: Edges.Top
     anchor.margins.top: 10
     color: "transparent"
+    Region { id: glassRegion; item: root.contentItem; radius: root.tokens.radius.small }
+    BackgroundEffect.blurRegion: root.tokens.frosted ? glassRegion : null
     grabFocus: false
     implicitWidth: Math.min(300, label.implicitWidth + 26)
     implicitHeight: label.contentHeight + 20
@@ -30,7 +33,7 @@ PopupWindow {
     Rectangle {
         anchors.fill: parent
         radius: root.tokens.radius.small + 4
-        color: root.tokens.color.background
+        color: root.tokens.material.dense
         border.width: 1
         border.color: root.tokens.color.accentSoft
         Text {

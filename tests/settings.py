@@ -12,10 +12,11 @@ with tempfile.TemporaryDirectory(prefix="ns-") as directory:
     runtime.mkdir(mode=0o700)
     def run(name, folder):
         env = dict(os.environ, XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORM="offscreen",
+                   QS_DISABLE_FILE_WATCHER="1",
                    QT_QPA_PLATFORMTHEME="basic", QT_QUICK_BACKEND="software",
                    NAYORI_SETTINGS_SCENARIO=name, NAYORI_SETTINGS_DIR=str(folder))
         result = subprocess.run(["qs", "-p", str(root / "SettingsSmoke.qml"), "--no-color"],
-                                env=env, capture_output=True, text=True, timeout=10)
+                                env=env, capture_output=True, text=True, timeout=20 if name == "ui" else 10)
         output = result.stdout + result.stderr
         assert result.returncode == 0 and f"SETTINGS_PASS {name}" in output, output
         assert not any(s in output for s in ["ReferenceError", "TypeError", "Unable to assign", "Failed to load", "SETTINGS_FAIL"]), output
@@ -26,6 +27,8 @@ with tempfile.TemporaryDirectory(prefix="ns-") as directory:
     saved = json.loads(path.read_text())
     assert saved["weatherCity"] == "Москва" and saved["autoHideApps"]
     assert saved["weatherRefreshMinutes"] == 30
+    assert saved["surfaceStyle"] == "frosted"
+    assert saved["startIconStyle"] == "fox"
     before = path.read_bytes()
     run("restore", storage)
     assert path.read_bytes() == before
@@ -37,6 +40,7 @@ with tempfile.TemporaryDirectory(prefix="ns-") as directory:
     run("write", storage)
     assert json.loads(path.read_text())["extra"] == saved["extra"]
     run("ui", storage)
+    run("motion", base / "motion")
     mixed = base / "mixed"
     mixed.mkdir()
     (mixed / "settings.json").write_text(json.dumps({"version": 1, "topReserved": 5,

@@ -32,6 +32,13 @@ Scope {
     }
     Connections {
         target: root.shellState
+        function onStartMenuToggleRequested(outputName) {
+            if (!root.panelScreen || root.panelScreen.name !== outputName) return
+            root.shellState.launcherOpened = false
+            // A compositor shortcut is independent of the dismissal mouse click.
+            startMenu.blockOpen = false
+            startMenu.toggle()
+        }
         function onLauncherOpenedChanged() {
             if (root.shellState.launcherOpened) root.expandedOpened = false
         }
@@ -43,7 +50,7 @@ Scope {
         id: dashboardOpenDelay
         interval: 400
         onTriggered: {
-            if (topHover.hovered && !capsule.menuOpened && !root.dashboardHoverBlocked
+            if (topHover.hovered && !root.dashboardHoverBlocked
                     && !root.shellState.launcherOpened)
                 root.expandedOpened = true
         }
@@ -169,6 +176,9 @@ Scope {
         WlrLayershell.namespace: ns
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
+        property var materialRegion: dockGlass
+        Region { id: dockGlass; item: dock.island; radius: dock.island ? Math.round(dock.island.radius) : 0 }
+        BackgroundEffect.blurRegion: root.tokens.frosted ? dock.materialRegion : null
         mask: Region {
             item: dock.island
             radius: dock.island ? Math.round(dock.island.radius) : 0
@@ -188,7 +198,7 @@ Scope {
             })
             available: root.topEnabled
             pointerInside: topHover.hovered || topTrigger.hovered
-            heldOpen: root.expandedOpened || capsule.menuOpened
+            heldOpen: root.expandedOpened
         }
         HoverHandler {
             id: topHover
@@ -232,6 +242,8 @@ Scope {
         WlrLayershell.namespace: "nayori-island"
         WlrLayershell.keyboardFocus: root.expandedOpened ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
+        Region { id: islandGlass; item: capsule; radius: Math.round(capsule.radius) }
+        BackgroundEffect.blurRegion: root.tokens.frosted ? islandGlass : null
         // Маска совпадает с капсулой: тень и пустые поля клики не забирают.
         mask: Region {
             item: capsule
@@ -250,6 +262,7 @@ Scope {
         }
 
         MorphingIsland {
+            musicService: root.shellState.islandMusic
             audioReaction: root.shellState.islandAudio
             notifications: root.shellState.islandNotifications
             id: capsule
@@ -272,11 +285,6 @@ Scope {
             tokens: root.tokenSet
             active: islandWindow.visible
             opacity: islandWindow.revealOpacity
-            onContextOpened: {
-                dashboardOpenDelay.stop()
-                root.expandedOpened = false
-                root.dashboardHoverBlocked = true
-            }
             onDashboardRequested: {
                 root.shellState.launcherOpened = false
                 root.expandedOpened = true
@@ -299,10 +307,14 @@ Scope {
         id: workspacesWindow
         autoHide: root.shellState.autoHideWorkspaces
         edgeHovered: workspaceTrigger.hovered
-        heldOpen: startMenu.opened || startContext.opened
+        heldOpen: startMenu.presenting || startContext.opened
         ns: "nayori-workspaces"
         side: -1
         island: dockCluster
+        materialRegion: Region {
+            Region { item: startButton; radius: root.tokens.radius.small }
+            Region { item: workspaces; radius: Math.round(workspaces.radius) }
+        }
 
         // Пуск в том же левом окне: второе окно слева легло бы поверх рабочих столов.
         Item {
@@ -325,6 +337,7 @@ Scope {
 
                     StartButton {
                         id: startButton
+                        iconStyle: root.shellState.startIconStyle
                         anchors.centerIn: parent
                         tokens: root.tokenSet
                         menusOpen: startMenu.opened || startContext.opened

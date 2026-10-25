@@ -11,4 +11,6 @@ Text {
         font.weight: root.tokens.type.body.weight
         textFormat: Text.PlainText
         wrapMode: Text.WordWrap
+        lineHeight: 1.4
+        lineHeightMode: Text.ProportionalHeight
     }

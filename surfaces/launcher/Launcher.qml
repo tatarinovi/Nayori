@@ -10,6 +10,7 @@ import "../../services"
 Item {
     id: root
 
+    property var tokens: fallbackTokens
     property bool opened: false
     property int selectedIndex: 0
 
@@ -18,7 +19,7 @@ Item {
 
     property int panelWidth: 560
     readonly property int panelMaxHeight: 420
-    readonly property int pad: tokens.spacing.medium
+    readonly property int pad: root.tokens.spacing.medium
 
     readonly property bool searching: catalog.normalizedQuery.length > 0
 
@@ -40,10 +41,10 @@ Item {
     height: implicitHeight
 
     Tokens {
-        id: tokens
+        id: fallbackTokens
     }
 
-    // Свойство детей тоже называется tokens. Отдельное имя, чтобы не связать его само с собой.
+    // Свойство детей тоже называется root.tokens. Отдельное имя, чтобы не связать его само с собой.
     readonly property var tokenSet: tokens
 
     Apps {
@@ -215,17 +216,17 @@ Item {
         blur: 16
         spread: 0
         offset: Qt.vector2d(0, 6)
-        color: tokens.color.shadow
+        color: root.tokens.color.shadow
         z: -1
     }
 
     Rectangle {
         id: chrome
         anchors.fill: parent
-        radius: tokens.radius.medium
-        color: tokens.color.background
+        radius: root.tokens.radius.medium
+        color: root.tokens.material.dense
         border.width: 1
-        border.color: tokens.color.border
+        border.color: root.tokens.color.border
         antialiasing: true
         clip: column.implicitHeight + root.pad * 2 > root.panelMaxHeight
 
@@ -234,7 +235,7 @@ Item {
             x: root.pad
             y: root.pad
             width: parent.width - root.pad * 2
-            spacing: tokens.spacing.small
+            spacing: root.tokens.spacing.small
 
             Item {
                 id: heading
@@ -247,23 +248,23 @@ Item {
                     width: 2
                     height: Math.max(10, Math.round(kicker.implicitHeight * 0.7))
                     radius: 1
-                    color: tokens.color.secondary
+                    color: root.tokens.color.secondary
                     antialiasing: true
                 }
 
                 Row {
                     id: kicker
-                    x: tokens.spacing.small + 2
-                    spacing: tokens.spacing.small
+                    x: root.tokens.spacing.small + 2
+                    spacing: root.tokens.spacing.small
 
                     Text {
                         text: "NAYORI"
-                        color: tokens.color.text
-                        font.family: tokens.type.small.family
-                        font.pixelSize: tokens.type.small.size
-                        font.weight: tokens.type.small.weight
-                        font.letterSpacing: tokens.type.small.letterSpacing
-                        lineHeight: tokens.type.small.lineHeight
+                        color: root.tokens.color.text
+                        font.family: root.tokens.type.small.family
+                        font.pixelSize: root.tokens.type.small.size
+                        font.weight: root.tokens.type.small.weight
+                        font.letterSpacing: root.tokens.type.small.letterSpacing
+                        lineHeight: root.tokens.type.small.lineHeight
                         lineHeightMode: Text.ProportionalHeight
                         renderType: Text.NativeRendering
                         textFormat: Text.PlainText
@@ -271,12 +272,12 @@ Item {
 
                     Text {
                         text: "/"
-                        color: tokens.color.secondary
-                        font.family: tokens.type.small.family
-                        font.pixelSize: tokens.type.small.size
-                        font.weight: tokens.type.small.weight
-                        font.letterSpacing: tokens.type.small.letterSpacing
-                        lineHeight: tokens.type.small.lineHeight
+                        color: root.tokens.color.secondary
+                        font.family: root.tokens.type.small.family
+                        font.pixelSize: root.tokens.type.small.size
+                        font.weight: root.tokens.type.small.weight
+                        font.letterSpacing: root.tokens.type.small.letterSpacing
+                        lineHeight: root.tokens.type.small.lineHeight
                         lineHeightMode: Text.ProportionalHeight
                         renderType: Text.NativeRendering
                         textFormat: Text.PlainText
@@ -284,12 +285,12 @@ Item {
 
                     Text {
                         text: "APPLICATIONS"
-                        color: tokens.color.textMuted
-                        font.family: tokens.type.small.family
-                        font.pixelSize: tokens.type.small.size
-                        font.weight: tokens.type.small.weight
-                        font.letterSpacing: tokens.type.small.letterSpacing
-                        lineHeight: tokens.type.small.lineHeight
+                        color: root.tokens.color.textMuted
+                        font.family: root.tokens.type.small.family
+                        font.pixelSize: root.tokens.type.small.size
+                        font.weight: root.tokens.type.small.weight
+                        font.letterSpacing: root.tokens.type.small.letterSpacing
+                        lineHeight: root.tokens.type.small.lineHeight
                         lineHeightMode: Text.ProportionalHeight
                         renderType: Text.NativeRendering
                         textFormat: Text.PlainText
@@ -301,31 +302,31 @@ Item {
                 id: searchBox
                 width: column.width
                 height: 40
-                radius: tokens.radius.small
-                color: tokens.color.surfaceAlt
+                radius: root.tokens.radius.small
+                color: root.tokens.color.surfaceAlt
                 border.width: 1
-                border.color: field.activeFocus ? tokens.color.accent : tokens.color.border
+                border.color: field.activeFocus ? root.tokens.color.accent : root.tokens.color.border
                 antialiasing: true
 
                 Behavior on border.color {
                     ColorAnimation {
-                        duration: tokens.motion.fast
+                        duration: root.tokens.motion.fast
                         easing.type: Easing.OutCubic
                     }
                 }
 
                 Text {
                     anchors.fill: parent
-                    anchors.leftMargin: tokens.spacing.medium
-                    anchors.rightMargin: tokens.spacing.medium
+                    anchors.leftMargin: root.tokens.spacing.medium
+                    anchors.rightMargin: root.tokens.spacing.medium
                     verticalAlignment: Text.AlignVCenter
                     visible: field.text.length === 0 && field.preeditText.length === 0
                     text: "Search"
-                    color: tokens.color.textMuted
-                    font.family: tokens.type.body.family
-                    font.pixelSize: tokens.type.body.size
-                    font.weight: tokens.type.body.weight
-                    font.letterSpacing: tokens.type.body.letterSpacing
+                    color: root.tokens.color.textMuted
+                    font.family: root.tokens.type.body.family
+                    font.pixelSize: root.tokens.type.body.size
+                    font.weight: root.tokens.type.body.weight
+                    font.letterSpacing: root.tokens.type.body.letterSpacing
                     renderType: Text.NativeRendering
                     textFormat: Text.PlainText
                 }
@@ -333,20 +334,20 @@ Item {
                 TextInput {
                     id: field
                     anchors.fill: parent
-                    anchors.leftMargin: tokens.spacing.medium
-                    anchors.rightMargin: tokens.spacing.medium
+                    anchors.leftMargin: root.tokens.spacing.medium
+                    anchors.rightMargin: root.tokens.spacing.medium
                     verticalAlignment: TextInput.AlignVCenter
                     clip: true
-                    color: tokens.color.text
-                    selectionColor: tokens.color.accentSoft
-                    selectedTextColor: tokens.color.text
+                    color: root.tokens.color.text
+                    selectionColor: root.tokens.color.accentSoft
+                    selectedTextColor: root.tokens.color.text
                     renderType: Text.NativeRendering
                     selectByMouse: true
                     activeFocusOnTab: true
-                    font.family: tokens.type.body.family
-                    font.pixelSize: tokens.type.body.size
-                    font.weight: tokens.type.body.weight
-                    font.letterSpacing: tokens.type.body.letterSpacing
+                    font.family: root.tokens.type.body.family
+                    font.pixelSize: root.tokens.type.body.size
+                    font.weight: root.tokens.type.body.weight
+                    font.letterSpacing: root.tokens.type.body.letterSpacing
 
                     Accessible.name: "Search applications"
 
@@ -389,7 +390,7 @@ Item {
 
             Row {
                 id: hint
-                spacing: tokens.spacing.medium
+                spacing: root.tokens.spacing.medium
 
                 Accessible.role: Accessible.StaticText
                 Accessible.name: "Up and down select, enter opens, escape closes"

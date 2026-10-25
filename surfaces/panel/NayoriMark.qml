@@ -1,31 +1,15 @@
-pragma ComponentBehavior: Bound
-
 import QtQuick
 
-// Временный знак вместо логотипа. Линии, не файл.
-Canvas {
-    id: root
-
+Image {
     required property color ink
-
-    width: 20
-    height: 20
-    onInkChanged: requestPaint()
-    onWidthChanged: requestPaint()
-    onHeightChanged: requestPaint()
-    Component.onCompleted: requestPaint()
-    onPaint: {
-        const ctx = getContext("2d")
-        ctx.reset()
-        ctx.strokeStyle = root.ink
-        ctx.lineWidth = 1.6
-        ctx.lineCap = "round"
-        ctx.lineJoin = "round"
-        ctx.beginPath()
-        ctx.moveTo(width * 0.22, height * 0.78)
-        ctx.lineTo(width * 0.22, height * 0.22)
-        ctx.lineTo(width * 0.78, height * 0.78)
-        ctx.lineTo(width * 0.78, height * 0.22)
-        ctx.stroke()
-    }
+    property string variant: "current"
+    width: 30
+    height: 30
+    source: variant === "fox" ? "../../assets/branding/nayori-fox-logo.png" : "../../assets/branding/nayori-start.png"
+    sourceSize.width: variant === "fox" ? 256 : 120
+    sourceSize.height: variant === "fox" ? 256 : 120
+    sourceClipRect: variant === "fox" ? Qt.rect(48, 42, 163, 184) : Qt.rect(0, 0, 0, 0)
+    fillMode: Image.PreserveAspectFit
+    smooth: true
+    mipmap: true
 }

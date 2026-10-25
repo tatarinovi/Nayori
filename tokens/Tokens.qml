@@ -6,6 +6,17 @@ import QtQuick
 QtObject {
     id: root
     property bool animationsEnabled: true
+    property string surfaceStyle: "solid"
+    readonly property bool frosted: surfaceStyle === "frosted"
+    // Material fills only: never apply opacity to the whole surface or its text.
+    readonly property QtObject material: QtObject {
+        readonly property color panel: root.frosted ? "#B5121217" : root.color.surfaceAlt
+        readonly property color island: root.frosted ? "#CC121217" : root.color.surfaceAlt
+        readonly property color islandExpanded: root.frosted ? "#CC121217" : root.color.background
+        readonly property color dense: root.frosted ? "#EB121217" : root.color.background
+        readonly property color menu: root.frosted ? "#EB121217" : root.color.surfaceAlt
+        readonly property color sidebar: root.frosted ? "#0CFFFFFF" : Qt.tint(root.color.background, "#0CFFFFFF")
+    }
     readonly property QtObject color: QtObject {
         readonly property color background: "#121217"   // oklch(0.185 0.010 286) земля панели
         readonly property color surface: "#4F4F57"      // oklch(0.430 0.014 286) поднятые заглушки

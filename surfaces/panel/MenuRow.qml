@@ -8,11 +8,14 @@ Button {
     id: root
 
     required property var tokens
+    property string subtitle: ""
+    property string glyph: ""
+    property bool showChevron: true
     signal escapePressed()
 
     padding: 0
     implicitWidth: tokens.panel.control
-    implicitHeight: tokens.panel.control
+    implicitHeight: glyph ? 64 : tokens.panel.control
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
     Accessible.name: text
@@ -35,20 +38,55 @@ Button {
         border.width: root.visualFocus ? 1 : 0
         border.color: root.tokens.color.accent
     }
-    contentItem: Text {
-        anchors.fill: parent
-        anchors.leftMargin: 10
-        anchors.rightMargin: 10
-        horizontalAlignment: Text.AlignLeft
-        verticalAlignment: Text.AlignVCenter
-        elide: Text.ElideRight
-        textFormat: Text.PlainText
-        text: root.text
-        color: root.tokens.color.text
-        font.family: root.tokens.type.body.family
-        font.pixelSize: root.tokens.type.body.size
-        font.weight: root.tokens.type.body.weight
-        font.letterSpacing: root.tokens.type.body.letterSpacing
-        renderType: Text.NativeRendering
+    contentItem: Item {
+        Rectangle {
+            x: 10
+            anchors.verticalCenter: parent.verticalCenter
+            width: 42; height: 42
+            radius: root.tokens.radius.medium
+            color: root.tokens.color.surfaceAlt
+            visible: root.glyph !== ""
+            MenuGlyph {
+                anchors.centerIn: parent
+                width: 23; height: 23
+                kind: root.glyph
+                ink: root.tokens.color.accent
+            }
+        }
+        Column {
+            x: root.glyph ? 68 : 10
+            anchors.verticalCenter: parent.verticalCenter
+            width: parent.width - x - (root.glyph && root.showChevron ? 34 : 10)
+            spacing: 4
+            Text {
+                width: parent.width
+                text: root.text
+                elide: Text.ElideRight
+                textFormat: Text.PlainText
+                color: root.tokens.color.text
+                font.family: root.tokens.type.body.family
+                font.pixelSize: root.tokens.type.body.size
+                font.weight: root.tokens.type.body.weight
+            }
+            Text {
+                width: parent.width
+                visible: root.subtitle !== ""
+                text: root.subtitle
+                elide: Text.ElideRight
+                textFormat: Text.PlainText
+                color: root.tokens.color.textMuted
+                font.family: root.tokens.type.small.family
+                font.pixelSize: root.tokens.type.small.size
+            }
+        }
+        Text {
+            anchors.right: parent.right
+            anchors.rightMargin: 14
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.glyph !== "" && root.showChevron
+            text: "›"
+            color: root.tokens.color.accent
+            font.pixelSize: 24
+        }
     }
 }

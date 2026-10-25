@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell.Networking as QsNet
 import Quickshell
+import Quickshell.Wayland
 import Quickshell.Services.Pipewire as QsPw
 import Quickshell.Services.SystemTray
 import Quickshell.Widgets
@@ -25,7 +26,7 @@ Rectangle {
     width: implicitWidth
     height: implicitHeight
     radius: tokens.radius.small + pad
-    color: tokens.color.surfaceAlt
+    color: tokens.material.panel
     border.width: 1
     border.color: tokens.color.border
     antialiasing: true
@@ -179,6 +180,8 @@ Rectangle {
         anchor.edges: Edges.Top | Edges.Right
         anchor.gravity: Edges.Top | Edges.Left
         anchor.margins.top: 8
+        Region { id: popupGlass; item: popupGlassSurface; radius: root.tokens.radius.small + 12 }
+        BackgroundEffect.blurRegion: root.tokens.frosted ? popupGlass : null
         implicitWidth: 320
         implicitHeight: popupColumn.implicitHeight + 24
         color: "transparent"
@@ -191,9 +194,10 @@ Rectangle {
         }
 
         Rectangle {
+            id: popupGlassSurface
             anchors.fill: parent
             radius: root.tokens.radius.small + 12
-            color: root.tokens.color.surfaceAlt
+            color: root.tokens.material.menu
             border.width: 1
             border.color: root.tokens.color.border
 

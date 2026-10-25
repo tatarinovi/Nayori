@@ -18,11 +18,13 @@ QtObject {
     readonly property bool hideSecondaryIsland: values.hideSecondaryIsland
     readonly property int topReserved: values.topReserved
     readonly property int bottomReserved: values.bottomReserved
+    readonly property string surfaceStyle: values.surfaceStyle
     readonly property bool animationsEnabled: values.animationsEnabled
     readonly property string weatherCity: values.weatherCity
     readonly property int weatherRefreshMinutes: values.weatherRefreshMinutes
     readonly property bool islandRotationEnabled: values.islandRotationEnabled
     readonly property int islandRotationSeconds: values.islandRotationSeconds
+    readonly property string startIconStyle: values.startIconStyle
     readonly property string preferredTerminal: values.preferredTerminal
     readonly property string preferredFileManager: values.preferredFileManager
     property bool ready: false
@@ -130,12 +132,14 @@ QtObject {
             "topReserved": 0,
             "bottomReserved": 0,
             "animationsEnabled": true,
+            "surfaceStyle": "solid",
+            "startIconStyle": "current",
             "weatherCity": "",
             "weatherRefreshMinutes": 15,
             "islandRotationEnabled": true,
             "islandRotationSeconds": 15,
             "preferredTerminal": "kitty",
-            "preferredFileManager": "org.gnome.Nautilus"
+            "preferredFileManager": "io.github.lgse.Strata"
         };
     }
 
@@ -152,6 +156,12 @@ QtObject {
                 return fallback;
             return Math.max(5, Math.min(120, Math.round(value)));
         }
+
+        if (key === "startIconStyle")
+            return value === "current" || value === "fox" ? value : fallback;
+
+        if (key === "surfaceStyle")
+            return value === "solid" || value === "frosted" ? value : fallback;
 
         if (key === "weatherCity")
             return typeof value === "string" ? value.trim() : fallback;

@@ -4,12 +4,13 @@ import QtQuick
 import Quickshell
 import Quickshell.Services.Mpris
 import "../../services/status"
-import "../../islands/status"
 
 Rectangle {
     id: root
     required property var tokens
+    property var musicService: null
     readonly property var player: {
+        if (root.musicService) return root.musicService.player && root.musicService.player.isPlaying ? root.musicService.player : null
         if (root.testMode) return null
         const players = Mpris.players.values
         for (let i = 0; i < players.length; ++i)
@@ -17,6 +18,19 @@ Rectangle {
         return null
     }
     readonly property string playingTitle: player ? (player.trackTitle || "Без названия") : ""
+    readonly property var lyrics: musicService ? musicService.lyrics : null
+    readonly property bool compactLyrics: !!player && !!lyrics &&
+        ((lyrics.status === "synced" && lyrics.lines && lyrics.lines.length > 0) ||
+         (lyrics.status === "plain" && !!lyrics.plainText))
+    readonly property bool showingLyrics: compactLyrics && expansionProgress < 0.01
+    readonly property string compactLyricText: {
+        if (!lyrics) return ""
+        const line = lyrics.status === "synced" ? lyrics.currentLine || "♪"
+            : (lyrics.plainText || "").split("\n").find(value => value.trim()) || ""
+        return line.replace(/\s+/g, " ").trim()
+    }
+    property real lyricProgress: showingLyrics ? 1 : 0
+    Behavior on lyricProgress { NumberAnimation { duration: root.tokens.motion.off ? 0 : 250; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.77, 0, 0.175, 1, 1, 1] } }
     property bool testMode: false
     property var audioReaction: null
     property var notifications: null
@@ -30,11 +44,9 @@ Rectangle {
     property string weatherCity: ""
     property var weather: null
     property string weatherError: ""
-    signal contextOpened()
     signal dashboardRequested()
     signal launcherRequested()
     signal settingsRequested()
-    property bool menuOpened: false
     readonly property bool showingVolume: volumeTimeout.running
     property bool audioInitialized: false
 
@@ -54,7 +66,7 @@ Rectangle {
     width: implicitWidth
     height: implicitHeight
     radius: height / 2
-    color: drawChrome ? tokens.color.surfaceAlt : "transparent"
+    color: drawChrome ? tokens.material.island : "transparent"
     border.width: drawChrome ? 1 : 0
     border.color: hover.containsMouse ? tokens.color.accentSoft : tokens.color.border
     antialiasing: true
@@ -75,10 +87,6 @@ Rectangle {
         enabled: root.active
     }
 
-    function toggleContextMenu() {
-        root.contextOpened()
-        root.menuOpened = !root.menuOpened
-    }
     function flashVolume() {
         if (audioInitialized && root.active && root.audio.available)
             volumeTimeout.restart()
@@ -157,7 +165,7 @@ Rectangle {
         // Music uses more of the side slots while preserving equal fox gutters.
         readonly property real foxGap: root.playingTitle.length > 0
             ? Math.min(32, elementGap) : elementGap
-        opacity: root.showingVolume || root.showingNotification ? 0 : 1
+        opacity: root.showingVolume || root.showingNotification ? 0 : 1 - root.lyricProgress
         visible: opacity > 0
         Behavior on opacity {
             NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast }
@@ -190,7 +198,7 @@ Rectangle {
             tokens: root.tokens
             audioReaction: root.audioReaction
             unread: root.notifications ? root.notifications.unreadCount > 0 : false
-            active: root.active && !root.showingVolume && !root.showingNotification
+            active: root.active && restingContent.visible && !root.showingVolume && !root.showingNotification
             reducedMotion: root.tokens.motion.off
         }
         Rectangle {
@@ -204,7 +212,7 @@ Rectangle {
         // Measured from the date string so weather cannot change foxGap or compactWidth.
         Item {
             id: rightSlot
-            visible: root.playingTitle.length === 0
+            visible: root.playingTitle.length === 0 || root.expansionProgress >= 0.01
             height: parent.height
             width: dateLabel.implicitWidth
             x: fox.x + fox.width + restingContent.foxGap + 1
@@ -249,13 +257,28 @@ Rectangle {
         MarqueeText {
             x: fox.x + fox.width + restingContent.foxGap + 16
             width: Math.max(0, parent.width - x - 16)
-            centered: root.expansionProgress > 0.5
             height: parent.height
+            centered: true
             tokens: root.tokens
             text: root.playingTitle
-            visible: text.length > 0
-            active: root.active && restingContent.visible && !root.showingVolume && !root.showingNotification
+            visible: text.length > 0 && root.expansionProgress < 0.01
+            active: root.active && restingContent.visible && !root.showingLyrics
         }
+    }
+
+    MarqueeText {
+        id: compactLyricsText
+        objectName: "compactMusicLyrics"
+        anchors.fill: parent
+        anchors.leftMargin: 22
+        anchors.rightMargin: 22
+        tokens: root.tokens
+        centered: true
+        text: root.compactLyricText
+        opacity: root.showingVolume || root.showingNotification ? 0 : root.lyricProgress
+        visible: opacity > 0
+        active: root.active && root.showingLyrics && visible
+        transform: Translate { x: root.tokens.motion.off ? 0 : 24 * (1 - root.lyricProgress) }
     }
 
     Item {
@@ -324,14 +347,11 @@ Rectangle {
         id: hover
         anchors.fill: parent
         hoverEnabled: true
-        acceptedButtons: Qt.RightButton | Qt.MiddleButton
+        acceptedButtons: Qt.MiddleButton
         cursorShape: Qt.PointingHandCursor
         onClicked: function(mouse) {
             if (mouse.button === Qt.MiddleButton)
                 root.audio.toggleMuted()
-            else if (mouse.button === Qt.RightButton) {
-                root.toggleContextMenu()
-            }
         }
         onWheel: function(wheel) {
             if (wheel.angleDelta.y !== 0 && root.audio.available) {
@@ -343,78 +363,10 @@ Rectangle {
             }
         }
     }
-    PopupWindow {
-        id: islandMenu
-        visible: root.menuOpened
-        anchor.item: root
-        anchor.edges: Edges.Bottom
-        anchor.gravity: Edges.Bottom
-        anchor.margins.bottom: 8
-        implicitWidth: 224
-        implicitHeight: 100
-        color: "transparent"
-        grabFocus: true
-        onVisibleChanged: {
-            if (!visible)
-                root.menuOpened = false
-            else
-                Qt.callLater(function() { launcherAction.forceActiveFocus(Qt.TabFocusReason) })
-        }
-        Rectangle {
-            anchors.fill: parent
-            radius: root.tokens.radius.small + 8
-            color: root.tokens.color.surfaceAlt
-            border.width: 1
-            border.color: root.tokens.color.border
-            Column {
-                x: 8
-                y: 8
-                width: parent.width - 16
-                spacing: 4
-                Keys.onEscapePressed: root.menuOpened = false
-                Keys.onUpPressed: {
-                    if (launcherAction.activeFocus)
-                        settingsAction.forceActiveFocus(Qt.TabFocusReason)
-                    else
-                        launcherAction.forceActiveFocus(Qt.TabFocusReason)
-                }
-                Keys.onDownPressed: {
-                    if (launcherAction.activeFocus)
-                        settingsAction.forceActiveFocus(Qt.TabFocusReason)
-                    else
-                        launcherAction.forceActiveFocus(Qt.TabFocusReason)
-                }
-                StatusButton {
-                    id: launcherAction
-                    tokens: root.tokens
-                    width: parent.width
-                    height: 40
-                    text: "Лаунчер"
-                    Accessible.name: text
-                    onClicked: {
-                        root.menuOpened = false
-                        Qt.callLater(root.launcherRequested)
-                    }
-                }
-                StatusButton {
-                    id: settingsAction
-                    tokens: root.tokens
-                    width: parent.width
-                    height: 40
-                    text: "Настройки"
-                    Accessible.name: text
-                    onClicked: {
-                        root.menuOpened = false
-                        Qt.callLater(root.settingsRequested)
-                    }
-                }
-            }
-        }
-    }
     Accessible.role: Accessible.Button
     Accessible.onPressAction: root.dashboardRequested()
     Accessible.name: "Nayori island, " + Qt.formatTime(clock.date, "HH:mm:ss")
                      + ", " + Qt.formatDate(clock.date, "dddd, d MMMM")
                      + (weatherReady && weather ? ", " + weather.temp_C + "°" : "")
-    Accessible.description: "Hover opens the dashboard. Right click opens the menu. Scroll adjusts volume. Middle click mutes."
+    Accessible.description: "Hover opens the dashboard. Scroll adjusts volume. Middle click mutes."
 }

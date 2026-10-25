@@ -18,7 +18,8 @@ with tempfile.TemporaryDirectory(prefix="nwin-") as temporary:
     runtime.mkdir(mode=0o700)
     original_runtime = os.environ.get("XDG_RUNTIME_DIR", "")
     env = dict(os.environ, XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORMTHEME="basic",
-               NAYORI_SETTINGS_DIR=str(folder / "config"), QT_QUICK_BACKEND="software",
+               QS_DISABLE_FILE_WATCHER="1",
+               NAYORI_SETTINGS_DIR=str(folder / "config"), XDG_STATE_HOME=str(folder / "state"), QT_QUICK_BACKEND="software",
                NAYORI_SETTINGS_CONFIG=str(root / "SettingsWindowSmoke.qml"))
     if args.wayland:
         display = env.get("WAYLAND_DISPLAY", "wayland-0")
@@ -113,10 +114,18 @@ with tempfile.TemporaryDirectory(prefix="nwin-") as temporary:
             until(lambda: owned()[0]["layout"]["window_size"] == before, "unmaximize did not restore geometry")
             print("PASS maximize/unmaximize")
         ipc("close")
+        history = folder / "state/nayori/settings-usage.json"
+        until(lambda: history.exists(), "visit history was not persisted")
+        visits_before = json.loads(history.read_text())["counts"]
+        assert visits_before.get("weather", 0) >= 1 and "home" not in visits_before
         ipc("quit")
         time.sleep(.3)
         run(str(root / "scripts/nayori-settings"), "--page", "panels")
         assert snapshot()["page"] == 1
+        until(lambda: json.loads(history.read_text())["counts"].get("panels", 0) >= 1, "new section was not persisted")
+        visits_after = json.loads(history.read_text())["counts"]
+        assert visits_after.get("weather", 0) == visits_before["weather"]
+        print("PASS history survives close/restart independently of UI")
         print("PASS restart and command reopen")
     finally:
         run("qs", "kill", "-p", str(root / "SettingsWindowSmoke.qml"), check=False)
