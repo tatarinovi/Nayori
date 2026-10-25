@@ -14,7 +14,7 @@ ShellRoot {
     function check(ok, message) { if (!ok) throw new Error(message) }
     Timer {
         interval: 1000; running: true
-        onTriggered: { root.check(audio.available && audio.energy === 0.65 && root.beats > 0, "audio stream"); audio.testSink = "sink-two"; root.check(!audio.available && audio.energy === 0, "output switch clears stale data") }
+        onTriggered: { root.check(audio.available && audio.energy === 0.65 && audio.volume === 0.12 && Math.abs(audio.volumeReference - 0.12) < 0.001 && root.beats > 0, "audio stream"); audio.testSink = "sink-two"; root.check(!audio.available && audio.energy === 0 && audio.volume === 0 && audio.volumeReference === 0, "output switch clears stale data") }
     }
     Timer {
         interval: 2000; running: true

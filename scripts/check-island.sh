@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+python3 tests/island-audio.py
 node tests/island-controller.cjs
+node tests/start-routing.cjs
 # Quickshell qmltypes omit dynamic model values and Loader item members.
 /usr/lib/qt6/bin/qmllint --missing-property disable -I /usr/lib/qt6/qml \
     services/island/*.qml surfaces/island/*.qml \

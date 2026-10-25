@@ -17,6 +17,18 @@ QtObject {
     readonly property string sinkName: testMode ? testSink : (sink ? sink.name : "")
     readonly property bool enabled: wanted && playing && (testMode || Pw.Pipewire.ready) && sinkName !== ""
     property real energy: 0
+    property real volume: 0
+    property real volumeReference: 0
+    property double volumeSampleAt: 0
+    function updateVolume(sample) {
+        const now = Date.now()
+        const elapsed = volumeSampleAt ? Math.max(0, Math.min(1, (now - volumeSampleAt) / 1000)) : 1 / 30
+        volumeSampleAt = now
+        volume = sample
+        // A slow broadband reference preserves local loudness changes at any output level.
+        volumeReference = volumeReference > 0 ? volumeReference + (sample - volumeReference) * (1 - Math.exp(-elapsed / 2.5)) : sample
+    }
+    function clearVolume() { volume = 0; volumeReference = 0; volumeSampleAt = 0 }
     property bool available: false
     property int failures: 0
     property bool intentionalStop: false
@@ -28,7 +40,7 @@ QtObject {
         acceptSamples = false
         root.process.running = false
         root.stale.stop()
-        available = false; energy = 0; failures = 0
+        available = false; energy = 0; clearVolume(); failures = 0
         root.retry.interval = 500; root.retry.restart()
     }
     onEnabledChanged: restart()
@@ -43,22 +55,23 @@ QtObject {
             }
         }
     }
-    property Timer stale: Timer { interval: 1500; onTriggered: { root.available = false; root.energy = 0 } }
+    property Timer stale: Timer { interval: 1500; onTriggered: { root.available = false; root.energy = 0; root.clearVolume() } }
     property Process process: Process {
         onStarted: root.acceptSamples = true
         stdout: SplitParser {
             onRead: data => {
                 if (!root.acceptSamples) return
                 const values = data.trim().split(/\s+/).map(Number)
-                if (values.length !== 2 || !values.every(isFinite)) return
+                if ((values.length !== 2 && values.length !== 3) || !values.every(isFinite)) return
                 root.available = true; root.failures = 0
+                root.updateVolume(values.length === 3 ? Math.max(0, Math.min(1, values[2])) : 0)
                 root.energy = Math.max(0, Math.min(1, values[0])); root.stale.restart()
                 if (values[1] > 0) root.beat(Math.min(1, values[1]))
             }
         }
         onExited: {
             root.acceptSamples = false
-            root.available = false; root.energy = 0
+            root.available = false; root.energy = 0; root.clearVolume()
             if (root.intentionalStop) {
                 root.intentionalStop = false
                 root.retry.interval = 500; root.retry.restart()

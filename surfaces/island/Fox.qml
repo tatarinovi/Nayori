@@ -1,7 +1,10 @@
 import QtQuick
 import "../../services/island"
+import "FoxSprite.js" as Sprite
 
-// Independent controller channels drive the existing resting silhouette.
+// Pixel-art kitsune drawn in code (FoxSprite.js): lies, stands or walks. Independent
+// controller channels (breath, tail, head, pointer parallax, rest/walk/stride, marker)
+// drive it; colours come from tokens only.
 Item {
     id: root
     required property var tokens
@@ -12,6 +15,9 @@ Item {
     property bool unread: false
     property bool hovered: pointer.hovered
     property point hoverPosition: pointer.point.position
+    // Expanded island: cursor anywhere in it, in this item's coordinates.
+    property bool lookActive: false
+    property point lookPosition: Qt.point(0, 0)
     property bool testMode: false
     property alias controller: behavior
     readonly property string consumerKey: "fox-" + String(root)
@@ -25,8 +31,23 @@ Item {
     onAudioReactionChanged: updateConsumer()
     Component.onCompleted: updateConsumer()
     Component.onDestruction: { if (audioReaction) audioReaction.consumer(consumerKey, false) }
-    readonly property color ink: tokens.color.text
-    readonly property color backgroundInk: tokens.color.background
+    // Fur is the muted accent (accentSoft) lightened; belly and far legs a middle step,
+    // socks, ear tips and nose accentSoft itself (the darkest step that still reads on
+    // the graphite island), chest and tail tip cream.
+    readonly property color bodyInk: Qt.lighter(tokens.color.accentSoft, 1.45)
+    readonly property color lightInk: tokens.color.text
+    readonly property color shadeInk: Qt.lighter(tokens.color.accentSoft, 1.12)
+    readonly property color darkInk: tokens.color.accentSoft
+    readonly property color eyeInk: tokens.color.background
+    property var cells: []
+    function rebuild() {
+        const next = Sprite.render(behavior.pose)
+        let same = cells.length === next.length
+        for (let i = 0; same && i < next.length; i++) if (cells[i] !== next[i]) same = false
+        if (same) return
+        cells = next
+        drawing.requestPaint()
+    }
     implicitWidth: 52
     implicitHeight: 30
     Cpu { id: cpu; active: root.active && root.visible && !root.testMode }
@@ -42,84 +63,57 @@ Item {
         hovered: root.hovered
         pointerX: Math.max(-1, Math.min(1, root.hoverPosition.x / root.width * 2 - 1))
         pointerY: Math.max(-1, Math.min(1, root.hoverPosition.y / root.height * 2 - 1))
-        onPoseChanged: drawing.requestPaint()
+        looking: root.lookActive
+        lookX: root.lookPosition.x - root.width / 2
+        lookY: root.lookPosition.y - root.height / 2
+        onPoseChanged: root.rebuild()
     }
     Connections {
         target: root.audioReaction
         function onBeat(strength) { if (root.active && root.visible && !root.reducedMotion) behavior.beat(strength) }
     }
     HoverHandler { id: pointer }
-    onInkChanged: drawing.requestPaint()
-    onBackgroundInkChanged: drawing.requestPaint()
+    onBodyInkChanged: drawing.requestPaint()
+    onLightInkChanged: drawing.requestPaint()
+    onDarkInkChanged: drawing.requestPaint()
+    onShadeInkChanged: drawing.requestPaint()
+    onEyeInkChanged: drawing.requestPaint()
     Rectangle {
         anchors.right: parent.right; anchors.top: parent.top
         width: 5; height: 5; radius: 2.5
         color: root.tokens.color.accent
+        // The cream ring keeps the dot apart from the lavender fur next to it.
+        border.width: 1; border.color: root.tokens.color.text
         visible: behavior.pose.marker
     }
+    // Cells are painted as whole 1x1 squares (runs per row) with no smoothing, so the
+    // sprite stays crisp at 1x and at integer scales.
     Canvas {
         id: drawing
         anchors.fill: parent
-        antialiasing: true
+        antialiasing: false
+        smooth: false
         onPaint: {
             const ctx = getContext("2d")
             ctx.reset()
-            const scale = Math.min(width / 65, height / 36)
-            ctx.translate((width - 65 * scale) / 2, (height - 36 * scale) / 2)
+            const scale = Math.min(width / Sprite.W, height / Sprite.H)
+            ctx.translate((width - Sprite.W * scale) / 2, (height - Sprite.H * scale) / 2)
             ctx.scale(scale, scale)
-            const pose = behavior.pose
-            const breath = pose.breath
-            const look = pose.head
-            const tail = pose.tail
-            ctx.fillStyle = root.ink
-
-            // Belly and tucked paws stay grounded; only the back rises.
-            ctx.beginPath()
-            ctx.moveTo(17, 29)
-            ctx.bezierCurveTo(16, 20 - breath, 28, 17 - breath, 37, 19 - breath)
-            ctx.bezierCurveTo(46, 19, 50, 25, 48, 29)
-            ctx.lineTo(54, 29); ctx.lineTo(55, 31)
-            ctx.lineTo(23, 32); ctx.closePath(); ctx.fill()
-
-            // Broad brush curls along the flank, occasionally flicking its tip.
-            ctx.beginPath()
-            ctx.moveTo(35, 28)
-            ctx.bezierCurveTo(22, 31, 12, 25, 5, 18 + tail)
-            ctx.lineTo(10, 19 + tail)
-            ctx.lineTo(8, 14 + tail)
-            ctx.bezierCurveTo(20, 17 + tail * 0.4, 23, 25, 39, 27)
-            ctx.bezierCurveTo(45, 28, 43, 33, 34, 33)
-            ctx.bezierCurveTo(22, 34, 14, 29, 11, 25 + tail * 0.4)
-            ctx.bezierCurveTo(22, 30, 29, 30, 35, 28)
-            ctx.fill()
-
-            // The fox lifts its muzzle to sniff, then rests it on its paws.
-            ctx.save()
-            ctx.translate(43, 26)
-            ctx.rotate(-look * 0.1 + pose.y * 0.08)
-            ctx.translate(-43 + pose.x * 1.5, -26 - look * 1.8 + pose.y)
-            ctx.beginPath()
-            ctx.moveTo(40, 26)
-            ctx.lineTo(40, 13)
-            ctx.lineTo(46, 19)
-            ctx.lineTo(51, 12)
-            ctx.lineTo(53, 22)
-            ctx.lineTo(62, 25)
-            ctx.lineTo(56, 29)
-            ctx.lineTo(44, 29)
-            ctx.closePath(); ctx.fill()
-            ctx.strokeStyle = root.backgroundInk
-            ctx.lineWidth = 1.2
-            ctx.lineCap = "round"
-            ctx.beginPath()
-            ctx.moveTo(49 + pose.x * 0.5, 23 + pose.y * 0.3)
-            ctx.lineTo(51 + pose.x * 0.5, 23.9 + pose.y * 0.3)
-            ctx.stroke()
-            ctx.restore()
-
+            const colors = [null, root.bodyInk, root.lightInk, root.darkInk, root.shadeInk, root.bodyInk, root.lightInk, root.eyeInk]
+            const cells = root.cells
+            for (let y = 0; y < Sprite.H; y++) {
+                let x = 0
+                while (x < Sprite.W) {
+                    const id = cells[y * Sprite.W + x]
+                    let end = x + 1
+                    while (end < Sprite.W && cells[y * Sprite.W + end] === id) end++
+                    if (id) { ctx.fillStyle = colors[id]; ctx.fillRect(x, y, end - x, 1) }
+                    x = end
+                }
+            }
         }
         onWidthChanged: requestPaint()
         onHeightChanged: requestPaint()
-        Component.onCompleted: requestPaint()
+        Component.onCompleted: { root.rebuild(); requestPaint() }
     }
 }

@@ -13,7 +13,7 @@ Item {
         radius: root.cornerRadius
         color: "transparent"
         border.color: root.accent
-        border.width: 2
+        border.width: 5
         opacity: Math.max(0, Math.min(1, root.pulse)) * 0.45
         antialiasing: true
     }

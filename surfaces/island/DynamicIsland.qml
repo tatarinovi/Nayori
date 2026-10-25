@@ -20,13 +20,11 @@ Rectangle {
     readonly property string playingTitle: player ? (player.trackTitle || "Без названия") : ""
     readonly property var lyrics: musicService ? musicService.lyrics : null
     readonly property bool compactLyrics: !!player && !!lyrics &&
-        ((lyrics.status === "synced" && lyrics.lines && lyrics.lines.length > 0) ||
-         (lyrics.status === "plain" && !!lyrics.plainText))
+        lyrics.status === "synced" && lyrics.lines && lyrics.lines.length > 0
     readonly property bool showingLyrics: compactLyrics && expansionProgress < 0.01
     readonly property string compactLyricText: {
         if (!lyrics) return ""
-        const line = lyrics.status === "synced" ? lyrics.currentLine || "♪"
-            : (lyrics.plainText || "").split("\n").find(value => value.trim()) || ""
+        const line = lyrics.status === "synced" ? lyrics.currentLine || "♪" : ""
         return line.replace(/\s+/g, " ").trim()
     }
     property real lyricProgress: showingLyrics ? 1 : 0
@@ -37,28 +35,31 @@ Rectangle {
         return next ? next.t : (player && player.length ? player.length : 0)
     }
     readonly property string audioKey: "island-border-" + String(root)
-    readonly property bool wantsBeat: active && visible && !!player && !tokens.motion.off
-    property real musicPulse: 0
-    function updateBeatConsumer() {
-        if (audioReaction) audioReaction.consumer(audioKey, wantsBeat)
-        if (!wantsBeat) { beatAnimation.stop(); musicPulse = 0 }
+    readonly property bool wantsAudio: active && visible && !!player && !tokens.motion.off
+    readonly property real volumeTarget: {
+        if (!wantsAudio || !audioReaction || !audioReaction.available) return 0
+        const volume = Number(audioReaction.volume) || 0
+        const reference = Number(audioReaction.volumeReference) || 0
+        return Math.max(0, Math.min(1, volume / Math.max(0.016, reference * 2)))
     }
-    onWantsBeatChanged: updateBeatConsumer()
-    onAudioReactionChanged: updateBeatConsumer()
-    Component.onDestruction: { if (audioReaction) audioReaction.consumer(audioKey, false) }
-    Connections {
-        target: root.audioReaction
-        function onBeat(strength) {
-            if (!root.wantsBeat) return
-            beatRise.to = Math.max(root.musicPulse, Math.max(0, strength) / (Math.max(0, strength) + 0.008))
-            beatAnimation.restart()
+    property real musicPulse: 0
+    property bool volumeRising: false
+    onVolumeTargetChanged: {
+        volumeRising = volumeTarget > musicPulse
+        musicPulse = volumeTarget
+    }
+    Behavior on musicPulse {
+        NumberAnimation {
+            duration: !root.wantsAudio ? 0 : root.volumeRising ? 80 : 250
+            easing.type: Easing.Linear
         }
     }
-    SequentialAnimation {
-        id: beatAnimation
-        NumberAnimation { id: beatRise; target: root; property: "musicPulse"; duration: 90; easing.type: Easing.OutCubic }
-        NumberAnimation { target: root; property: "musicPulse"; to: 0; duration: 380; easing.type: Easing.OutCubic }
+    function updateAudioConsumer() {
+        if (audioReaction) audioReaction.consumer(audioKey, wantsAudio)
     }
+    onWantsAudioChanged: updateAudioConsumer()
+    onAudioReactionChanged: updateAudioConsumer()
+    Component.onDestruction: { if (audioReaction) audioReaction.consumer(audioKey, false) }
     property bool testMode: false
     property var audioReaction: null
     property var notifications: null
@@ -67,6 +68,10 @@ Rectangle {
     property bool drawChrome: true
     property bool active: true
     property real expansionProgress: 0
+    // Set by MorphingIsland while expanded: the fox follows this cursor (own coordinates).
+    property bool lookActive: false
+    property point lookPoint: Qt.point(0, 0)
+    property bool contentYielded: false
     property bool islandRotationEnabled: true
     property int islandRotationSeconds: 15
     property string weatherCity: ""
@@ -147,6 +152,7 @@ Rectangle {
         return text !== "" && isFinite(Number(temp))
     }
     readonly property bool rotationBlocked: expansionProgress >= 0.01
+        || contentYielded
         || playingTitle.length > 0
         || showingVolume
         || showingNotification
@@ -193,7 +199,7 @@ Rectangle {
         // Music uses more of the side slots while preserving equal fox gutters.
         readonly property real foxGap: root.playingTitle.length > 0
             ? Math.min(32, elementGap) : elementGap
-        opacity: root.showingVolume || root.showingNotification ? 0 : 1 - root.lyricProgress
+        opacity: root.contentYielded || root.showingVolume || root.showingNotification ? 0 : 1 - root.lyricProgress
         visible: opacity > 0
         Behavior on opacity {
             NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast }
@@ -222,6 +228,8 @@ Rectangle {
             hovered: hover.containsMouse && hover.mouseX >= fox.x && hover.mouseX <= fox.x + fox.width
                      && hover.mouseY >= fox.y && hover.mouseY <= fox.y + fox.height
             hoverPosition: Qt.point(hover.mouseX - fox.x, hover.mouseY - fox.y)
+            lookActive: root.lookActive
+            lookPosition: Qt.point(root.lookPoint.x - fox.x, root.lookPoint.y - fox.y)
             anchors.centerIn: parent
             tokens: root.tokens
             audioReaction: root.audioReaction
@@ -307,7 +315,7 @@ Rectangle {
         words: root.lyrics && root.lyrics.status === "synced" ? root.lyrics.currentWords || [] : []
         position: root.lyrics && typeof root.lyrics.position === "number" ? root.lyrics.position : 0
         lineEnd: root.lyricEnd
-        opacity: root.showingVolume || root.showingNotification ? 0 : root.lyricProgress
+        opacity: root.contentYielded || root.showingVolume || root.showingNotification ? 0 : root.lyricProgress
         visible: opacity > 0
         active: root.active && root.showingLyrics && visible
         transform: Translate { x: root.tokens.motion.off ? 0 : 24 * (1 - root.lyricProgress) }
@@ -315,7 +323,7 @@ Rectangle {
 
     Item {
         anchors.fill: parent
-        opacity: root.showingVolume && !root.showingNotification ? 1 : 0
+        opacity: root.showingVolume && !root.showingNotification && !root.contentYielded ? 1 : 0
         visible: opacity > 0
         Behavior on opacity {
             NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast }
@@ -352,7 +360,7 @@ Rectangle {
 
     Item {
         anchors.fill: parent
-        opacity: root.showingNotification ? 1 : 0
+        opacity: root.showingNotification && !root.contentYielded ? 1 : 0
         visible: opacity > 0
         Behavior on opacity { NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast } }
         Image {
