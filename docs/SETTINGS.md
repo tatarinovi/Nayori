@@ -81,7 +81,7 @@ qs ipc -p /home/katamy/Projects/nayori call settings openPage weather
 qs ipc -p /home/katamy/Projects/nayori call settings close
 ```
 
-Страница Naomi хранит три переключателя: `companionEnabled` (по умолчанию выкл.), `companionDesktopOnly` (выкл.) и `companionReactToPointer` (по умолчанию вкл.; включает небольшой овал над головой, принимающий курсор и клики, см. `docs/NAOMI.md`). Недопустимое значение сбрасывается к умолчанию.
+Страница Naomi хранит четыре переключателя: `companionEnabled` (по умолчанию выкл.), `companionDesktopOnly` (выкл.), `companionReactToPointer` (по умолчанию вкл.; включает небольшой овал над головой, принимающий курсор и клики, см. `docs/NAOMI.md`) и `companionSystemLines` (по умолчанию вкл.; «Комментировать системные события»: нагрузка, окна, батарея, сеть, обновление, бездействие, ночь; приветствие и поглаживание от него не зависят). Недопустимое значение сбрасывается к умолчанию.
 
 Разделы: `home`, `panels`, `appearance`, `wallpapers`, `weather`. `open` сохраняет текущий раздел; `openPage` выбирает указанный. Существующие `canvas openSettings` и `canvas closeSettings` сохранены как совместимые входы.
 
