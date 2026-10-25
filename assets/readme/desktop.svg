@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+<title id="title">Nayori — Linux desktop shell</title>
+<desc id="desc">Декоративная обложка в виде рабочего стола: графитовый фон, лавандовые окна, остров с часами и нижняя панель. Это иллюстрация, а не снимок интерфейса.</desc>
+<defs>
+ <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#17161e"/><stop offset="1" stop-color="#292333"/></linearGradient>
+ <linearGradient id="accent" x2="1" y2="1"><stop stop-color="#c8b8ef"/><stop offset="1" stop-color="#e8b4cb"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#a895ca" stop-opacity=".22"/><stop offset="1" stop-color="#a895ca" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="1280" height="640" rx="28" fill="url(#bg)"/>
+<ellipse cx="960" cy="320" rx="410" ry="360" fill="url(#glow)"/>
+<g fill="none" stroke="#c8b8ef" stroke-opacity=".09"><circle cx="1010" cy="320" r="270"/><circle cx="1010" cy="320" r="210"/><circle cx="1010" cy="320" r="150"/><path d="M0 535H1280M1040 0V640"/></g>
+<g font-family="Inter, sans-serif">
+ <text x="48" y="43" fill="#a49bad" font-size="12" letter-spacing="3">NAYORI / DESKTOP SESSION</text>
+ <circle cx="1205" cy="38" r="4" fill="#c8b8ef"/><text x="1189" y="62" fill="#a49bad" font-size="10">LIVE</text>
+ <rect x="504" y="22" width="272" height="46" rx="23" fill="#121117" stroke="#49404f"/>
+ <circle cx="531" cy="45" r="4" fill="#dfb4ce"/><text x="550" y="50" font-size="13" fill="#e9e3f1">09:41</text><path d="M606 35V55" stroke="#49404f"/>
+ <text x="623" y="50" font-size="12" fill="#a99fb8">a quiet little world</text>
+ <text x="76" y="180" font-size="12" letter-spacing="4" fill="#c8b8ef">YOUR DESKTOP, AT HOME.</text>
+ <text x="70" y="289" font-family="Literata, Georgia, serif" font-size="114" fill="#f4eef8">Nayori<tspan fill="#e5b2ca">.</tspan></text>
+ <text x="77" y="345" font-size="24" fill="#d9d0e2">Твой ритм. Твой рабочий стол.</text>
+ <text x="78" y="391" font-size="15" fill="#a99fb8">Linux shell · Wayland · Niri · Quickshell</text>
+ <rect x="77" y="429" width="184" height="34" rx="17" fill="#c8b8ef" fill-opacity=".10" stroke="#c8b8ef" stroke-opacity=".3"/>
+ <text x="94" y="451" font-size="11" letter-spacing="2" fill="#c8b8ef">ANIME EDITORIAL</text>
+ <g transform="translate(786 151)">
+  <rect x="22" y="22" width="338" height="287" rx="20" fill="#17151e" stroke="#55455e"/>
+  <rect width="338" height="287" rx="20" fill="#292430" stroke="#65566f"/>
+  <path d="M0 45H338" stroke="#49404f"/>
+  <circle cx="22" cy="23" r="4" fill="#e8b4cb"/><circle cx="38" cy="23" r="4" fill="#c8b8ef"/><circle cx="54" cy="23" r="4" fill="#81788e"/>
+  <text x="238" y="27" font-size="10" fill="#a99fb8" letter-spacing="2">ISLAND</text>
+  <rect x="24" y="68" width="290" height="122" rx="12" fill="#342c3e"/>
+  <path d="M122 153L110 94L145 112L173 106L199 91L199 150L165 169Z" fill="url(#accent)"/>
+  <path d="M122 153L143 140L165 157L184 138L199 150L165 169Z" fill="#f4eef8"/>
+  <path d="M138 133L146 135M180 135L188 132" stroke="#342c3e" stroke-width="4" stroke-linecap="round"/>
+  <text x="25" y="223" fill="#eee6f5" font-size="18" font-family="Literata, Georgia, serif">A little company.</text>
+  <text x="25" y="250" fill="#a99fb8" font-size="12">Музыка, погода и лиса рядом.</text>
+ </g>
+ <rect x="436" y="552" width="408" height="62" rx="23" fill="#1a1720" stroke="#514457"/>
+ <rect x="448" y="563" width="40" height="40" rx="13" fill="url(#accent)"/><path d="M460 590V575L476 590V575" fill="none" stroke="#342c3e" stroke-width="3"/>
+ <path d="M504 569V597" stroke="#49404f"/>
+ <g fill="#bfb0d6"><rect x="521" y="571" width="30" height="26" rx="7"/><rect x="568" y="571" width="30" height="26" rx="7" fill="#e8b4cb"/><rect x="615" y="571" width="30" height="26" rx="7" fill="#8d829e"/></g>
+ <text x="686" y="587" font-size="12" fill="#a99fb8">01</text><circle cx="725" cy="583" r="3" fill="#c8b8ef"/><circle cx="748" cy="583" r="3" fill="#62586f"/><circle cx="771" cy="583" r="3" fill="#62586f"/><circle cx="794" cy="583" r="3" fill="#62586f"/>
+ <text x="48" y="605" font-size="10" fill="#887d96" letter-spacing="2">PERSONAL SHELL / ACTIVE DEVELOPMENT</text>
+</g></svg>
