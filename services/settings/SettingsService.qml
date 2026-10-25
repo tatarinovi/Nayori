@@ -20,6 +20,7 @@ QtObject {
     readonly property int bottomReserved: values.bottomReserved
     readonly property bool animationsEnabled: values.animationsEnabled
     readonly property string weatherCity: values.weatherCity
+    readonly property int weatherRefreshMinutes: values.weatherRefreshMinutes
     property bool ready: false
     property bool dirty: false
     property bool saving: false
@@ -125,7 +126,8 @@ QtObject {
             "topReserved": 0,
             "bottomReserved": 0,
             "animationsEnabled": true,
-            "weatherCity": ""
+            "weatherCity": "",
+            "weatherRefreshMinutes": 15
         };
     }
 
@@ -133,6 +135,9 @@ QtObject {
         const fallback = defaults()[key];
         if (key === "topReserved" || key === "bottomReserved")
             return typeof value === "number" && isFinite(value) ? Math.max(0, Math.min(200, Math.round(value / 4) * 4)) : fallback;
+
+        if (key === "weatherRefreshMinutes")
+            return typeof value === "number" && isFinite(value) && Math.floor(value) === value && value >= 1 && value <= 180 ? value : fallback;
 
         if (key === "weatherCity")
             return typeof value === "string" ? value.trim() : fallback;

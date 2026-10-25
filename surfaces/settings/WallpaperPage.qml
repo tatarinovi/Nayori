@@ -8,6 +8,7 @@ import "../canvas"
 
 ScrollView {
     id: root
+    property bool showHeading: true
     required property var tokens
     required property var manager
     property string output: Quickshell.screens.length ? Quickshell.screens[0].name : ""
@@ -35,6 +36,7 @@ ScrollView {
     Connections {
         target: root.manager
         function onReadyChanged() { root.load() }
+        function onStateChanged() { root.load() }
     }
     Connections {
         target: Quickshell
@@ -46,14 +48,14 @@ ScrollView {
     component Caption: Text {
         color: root.tokens.color.text
         font.family: root.tokens.type.body.family
-        font.pixelSize: root.tokens.type.body.size
+        font.pixelSize: root.tokens.settings.body
         wrapMode: Text.WordWrap
         textFormat: Text.PlainText
     }
     component Action: Button {
         id: button
         focusPolicy: Qt.StrongFocus
-        implicitHeight: 36
+        implicitHeight: root.tokens.settings.control
         contentItem: Caption { text: button.text; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
         background: Rectangle {
             radius: root.tokens.radius.small
@@ -73,7 +75,7 @@ ScrollView {
     Column {
         width: root.availableWidth - 12
         spacing: 10
-        Caption { text: "Обои"; font.pixelSize: 20; font.family: root.tokens.type.display.family }
+        Caption { visible: root.showHeading; text: "Обои"; font.pixelSize: 20; font.family: root.tokens.type.display.family }
         Flow {
             width: parent.width
             spacing: 4

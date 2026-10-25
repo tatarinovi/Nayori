@@ -35,7 +35,7 @@ CheckBox {
             text: toggle.checked ? "✓" : ""
             color: toggle.tokens.color.background
             font.family: toggle.tokens.type.body.family
-            font.pixelSize: toggle.tokens.type.body.size
+            font.pixelSize: toggle.tokens.settings.body
             textFormat: Text.PlainText
         }
     }
@@ -48,7 +48,7 @@ CheckBox {
             text: toggle.text
             color: toggle.tokens.color.text
             font.family: toggle.tokens.type.body.family
-            font.pixelSize: toggle.tokens.type.body.size
+            font.pixelSize: toggle.tokens.settings.body
             font.weight: toggle.tokens.type.body.weight
             textFormat: Text.PlainText
             wrapMode: Text.WordWrap

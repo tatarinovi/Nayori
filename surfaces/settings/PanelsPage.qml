@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Controls
 
 ScrollView {
+    property bool showHeading: true
     required property var tokens
     property int topReserved: 0
     property int bottomReserved: 0
@@ -46,6 +47,7 @@ ScrollView {
             }
             Flickable {
                 id: panelsFlick
+                objectName: "settings-panels-scroll"
                 contentWidth: width
                 contentHeight: panelsColumn.implicitHeight
                 boundsBehavior: Flickable.StopAtBounds
@@ -53,7 +55,7 @@ ScrollView {
                 id: panelsColumn
                 width: root.availableWidth - 12
                 spacing: 12
-                Label { text: "Панели"; font.family: root.tokens.type.display.family; font.pixelSize: 20 }
+                Label { visible: root.showHeading; text: "Панели"; font.family: root.tokens.type.display.family; font.pixelSize: 20 }
                 Label { width: parent.width; text: "Остров скрывается при пересечении с окном. Наведите указатель на край экрана, чтобы показать его. Если Niri не передаёт положение окна, действует обычное автоскрытие."; color: root.tokens.color.textMuted; font.pixelSize: 13 }
                 SettingsToggle {
                     tokens: root.tokens

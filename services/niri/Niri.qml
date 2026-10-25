@@ -90,11 +90,12 @@ QtObject {
         }
     }
 
-    function windowObject(id, appId, title, workspaceId, output, focused, layout, floating) {
+    function windowObject(id, appId, title, workspaceId, output, focused, layout, floating, pid) {
         var geometry = mapGeometry(layout)
         return {
             id: id,
             appId: appId,
+            pid: isId(pid) ? pid : null,
             title: title,
             workspaceId: workspaceId,
             output: output,
@@ -150,7 +151,8 @@ QtObject {
             outputForWorkspace(workspaceId),
             raw.is_focused === true,
             raw.layout,
-            raw.is_floating === true
+            raw.is_floating === true,
+            raw.pid
         )
     }
 
@@ -181,7 +183,7 @@ QtObject {
             var window = current[i]
             var output = outputForWorkspace(window.workspaceId)
             if (output !== window.output) {
-                next.push(windowObject(window.id, window.appId, window.title, window.workspaceId, output, window.focused, window.layout, window.floating))
+                next.push(windowObject(window.id, window.appId, window.title, window.workspaceId, output, window.focused, window.layout, window.floating, window.pid))
                 changed = true
             } else {
                 next.push(window)
@@ -451,7 +453,7 @@ QtObject {
             } else if (window.focused && existing.focused) {
                 next.push(windowObject(
                     existing.id, existing.appId, existing.title, existing.workspaceId,
-                    existing.output, false, existing.layout, existing.floating
+                    existing.output, false, existing.layout, existing.floating, existing.pid
                 ))
             } else {
                 next.push(existing)
@@ -499,7 +501,7 @@ QtObject {
             if (Object.prototype.hasOwnProperty.call(layouts, window.id)) {
                 next.push(windowObject(window.id, window.appId, window.title,
                     window.workspaceId, window.output, window.focused,
-                    layouts[window.id], window.floating))
+                    layouts[window.id], window.floating, window.pid))
                 changed = true
             } else {
                 next.push(window)
@@ -525,7 +527,7 @@ QtObject {
             if (focused !== window.focused) {
                 next.push(windowObject(
                     window.id, window.appId, window.title, window.workspaceId,
-                    window.output, focused, window.layout, window.floating
+                    window.output, focused, window.layout, window.floating, window.pid
                 ))
             } else {
                 next.push(window)

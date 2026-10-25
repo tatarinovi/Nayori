@@ -26,6 +26,7 @@ Rectangle {
     property bool active: true
     property bool expanded: false
     property string weatherCity: ""
+    property var weatherService: null
     readonly property bool menuOpened: compact.menuOpened
     property real closedWidth: compact.compactWidth
     readonly property real closedHeight: 48
@@ -101,6 +102,10 @@ Rectangle {
             testMode: root.testMode
             tokens: root.tokens
             weatherCity: root.weatherCity
+            weather: root.weatherService ? root.weatherService.data : null
+            weatherError: root.weatherService ? root.weatherService.error : ""
+            weatherLoading: root.weatherService ? root.weatherService.loading : false
+            onWeatherRefreshRequested: if (root.weatherService) root.weatherService.refresh()
             notifications: root.notifications
             currentPage: root.notificationPage ? 1 : 0
             onCurrentPageChanged: root.notificationPage = currentPage === 1

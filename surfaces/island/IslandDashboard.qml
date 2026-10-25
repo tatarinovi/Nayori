@@ -3,7 +3,6 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Io
 import Quickshell.Services.Mpris
 
 FocusScope {
@@ -51,22 +50,10 @@ FocusScope {
     property var weather: null
     property string weatherError: ""
     property string weatherCity: ""
-    onWeatherCityChanged: {
-        weather = null
-        weatherError = ""
-        if (weatherCity.trim()) Qt.callLater(fetchWeather)
-    }
-    Component.onCompleted: { if (weatherCity.trim()) fetchWeather() }
+    property bool weatherLoading: false
+    signal weatherRefreshRequested()
     readonly property var ru: Qt.locale("ru_RU")
     function changeMonth(delta) { calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + delta, 1) }
-    function fetchWeather() {
-        const city = root.weatherCity.trim()
-        if (!city || weatherRequest.running) return
-        weather = null
-        weatherError = ""
-        weatherRequest.command = ["curl", "--fail", "--silent", "--show-error", "--max-time", "12", "https://wttr.in/" + encodeURIComponent(city) + "?format=j1"]
-        weatherRequest.running = true
-    }
     readonly property string weatherScene: {
         if (!weather) return "cloudy"
         const code = Number(weather.weatherCode)
@@ -83,19 +70,6 @@ FocusScope {
     }
     Keys.onEscapePressed: function(event) { event.accepted = true; root.closeRequested() }
     Timer { interval: 30000; running: true; repeat: true; onTriggered: root.now = new Date() }
-    Process {
-        id: weatherRequest
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    const data = JSON.parse(text)
-                    if (!data.current_condition || !data.current_condition.length) throw new Error("empty")
-                    root.weather = data.current_condition[0]
-                } catch (error) { root.weatherError = "Не удалось получить погоду. Попробуйте ещё раз" }
-            }
-        }
-        onExited: function(exitCode) { if (exitCode !== 0) root.weatherError = "Погода недоступна. Проверьте соединение и название города" }
-    }
     component Label: IslandLabel { tokens: root.tokens }
     component Caption: Label {
         font.pixelSize: 12
@@ -336,14 +310,14 @@ FocusScope {
                         Caption {
                             visible: !root.weather || !!root.weatherError
                             Layout.fillWidth: true
-                            text: root.weatherError || (weatherRequest.running ? "Обновляем погоду…" : root.weatherCity.trim() ? root.weatherCity : "Укажите город в настройках")
+                            text: root.weatherError || (root.weatherLoading ? "Обновляем погоду…" : root.weatherCity.trim() ? root.weatherCity : "Укажите город в настройках")
                         }
                         Item { Layout.fillHeight: true }
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: 8
                             Action { Layout.fillWidth: true; text: root.weatherCity.trim() ? "Изменить город" : "Выбрать город"; onClicked: root.settingsRequested() }
-                            Action { visible: root.weatherCity.trim().length > 0; text: "↻"; Accessible.name: "Обновить погоду"; enabled: !weatherRequest.running; onClicked: root.fetchWeather() }
+                            Action { visible: root.weatherCity.trim().length > 0; text: "↻"; Accessible.name: "Обновить погоду"; enabled: !root.weatherLoading; onClicked: root.weatherRefreshRequested() }
                         }
                         Caption { text: "wttr.in · запрос по названию города"; font.pixelSize: 11 }
                     }

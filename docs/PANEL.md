@@ -77,20 +77,20 @@ Right click retains its context menu. The expanded body uses on-demand
 keyboard focus so hovering does not take input away from an app. There is no
 separate expanded window or close icon.
 No location is inferred. Weather uses `curl` and wttr.in only when a configured
-city is present; closing the dashboard releases its timers and processes.
+city is present. A shell-owned WeatherService refreshes it in the background at the configured interval (15 minutes by default). All outputs share its cached result; opening or closing the dashboard does not start or stop weather requests.
 
 Settings opens on Home with the login name and AccountsService avatar (or a
 monogram fallback). The Panels page controls upper/lower reserved space and
 four independent auto-hide switches: top island, app dock, workspaces, status.
 Each connected output has its own dynamic island, bottom panels, edge triggers,
 and reserved space. Workspace and application lists follow that output's active
-workspace. Launcher and Settings open on the output that invoked them. Hover,
+workspace. Launcher opens on the output that invoked it. Settings is an independent compositor-managed window; Niri controls its output and placement. Hover,
 expansion, and auto-hide state are independent per output; connecting or removing
 an output adds or removes its surfaces automatically.
 The Panels page also has “Скрыть Dynamic Island на втором мониторе”: it fully
 hides the island and its top edge trigger on outputs other than the first screen,
 including its upper reservation, while keeping their bottom panels available.
-The switch is off by default and shares the other panel preferences' session lifetime.
+The switch is off by default and persists with the other panel preferences in settings.json.
 
 Appearance controls animations; Weather controls the city. These preferences
 currently live for the shell session.

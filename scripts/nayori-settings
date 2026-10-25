@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Open the single settings window; cold start uses the same Nayori shell.
+set -euo pipefail
+project_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+config_path=$(realpath -e -- "${NAYORI_SETTINGS_CONFIG:-$project_dir}")
+page=""
+case $# in
+    0) ;;
+    2) [[ $1 == --page ]] || { echo 'Usage: nayori-settings [--page SECTION]' >&2; exit 2; }; page=$2 ;;
+    *) echo 'Usage: nayori-settings [--page SECTION]' >&2; exit 2 ;;
+esac
+case "$page" in
+    ""|home|panels|appearance|wallpapers|weather) ;;
+    *) echo "Unknown settings section: $page" >&2; exit 2 ;;
+esac
+runtime_dir=${XDG_RUNTIME_DIR:?XDG_RUNTIME_DIR is required}
+lock_key=$(printf '%s' "$config_path" | sha256sum)
+lock_key=${lock_key%% *}
+exec 9>"$runtime_dir/nayori-settings-$lock_key.lock"
+flock -w 12 9 || { echo 'Timed out waiting for another settings request.' >&2; exit 1; }
+call_open() {
+    local result
+    if [[ -n $page ]]; then
+        result=$(qs ipc -p "$config_path" call settings openPage "$page" 2>/dev/null) || return 1
+    else
+        result=$(qs ipc -p "$config_path" call settings open 2>/dev/null) || return 1
+    fi
+    [[ $result != false ]]
+}
+if call_open; then exit 0; fi
+# Closing this inherited lock fd is essential: a daemon must not hold the launcher lock.
+qs -p "$config_path" --no-duplicate --daemonize 9>&- || {
+    echo 'Could not start Nayori.' >&2
+    exit 1
+}
+for ((attempt=0; attempt<100; attempt++)); do
+    if call_open; then exit 0; fi
+    sleep 0.1
+done
+echo 'Nayori did not expose settings IPC within 10 seconds.' >&2
+exit 1

@@ -2,8 +2,10 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import QtTest as Test
 import Quickshell.Io
 import "services/settings"
+import "services/canvas"
 import "surfaces/settings"
 import "tokens"
 
@@ -15,9 +17,23 @@ ShellRoot {
     property int changes: 0
     property var viewRef: null
     property int uiRequests: 0
+    property int intervalRequests: 0
+    property int closeRequests: 0
+    property bool interactionsChecked: false
     property int capturePage: 0
+    property int sizeIndex: 0
+    readonly property var sizes: [Qt.size(720, 560), Qt.size(1100, 760), Qt.size(1600, 1000)]
     property bool uiVisible: true
     readonly property string scenario: Quickshell.env("NAYORI_SETTINGS_SCENARIO") || "write"
+
+    function findItem(item, name) {
+        if (item.objectName === name) return item
+        for (const child of item.children || []) {
+            const found = findItem(child, name)
+            if (found) return found
+        }
+        return null
+    }
 
     function check(ok, message) {
         if (!ok) {
@@ -36,6 +52,8 @@ ShellRoot {
 
         storageDirectory: Quickshell.env("NAYORI_SETTINGS_DIR")
     }
+
+    WallpaperManager { id: wallpaper; storageDirectory: Quickshell.env("NAYORI_SETTINGS_DIR") }
 
     Tokens {
         id: theme
@@ -65,15 +83,63 @@ ShellRoot {
 
         FloatingWindow {
             visible: true
-            implicitWidth: 760
-            implicitHeight: 850
+            implicitWidth: 1600
+            implicitHeight: 1000
 
             Settings {
                 id: view
 
-                anchors.centerIn: parent
+                width: test.sizes[test.sizeIndex].width
+                height: test.sizes[test.sizeIndex].height
                 tokens: theme
+                wallpaperManager: wallpaper
+                onCloseRequested: test.closeRequests++
+                Test.TestEvent { id: input }
+                function exerciseInput() {
+                    currentPage = 0
+                    focusInput()
+                    test.check(input.keyClick(Qt.Key_Down, Qt.NoModifier, -1), "send navigation key")
+                    test.check(test.findItem(view, "settings-nav-panels").activeFocus, "arrow navigation")
+                    input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                    test.check(currentPage === 1, "activate navigation by keyboard")
+                    const slider = test.findItem(view, "bottomReservationSlider")
+                    slider.forceActiveFocus()
+                    const flick = test.findItem(view, "settings-panels-scroll")
+                    test.check(flick.contentY > 0, "focus reveals lower controls")
+                    currentPage = 3
+                    const field = test.findItem(view, "weatherCityInput")
+                    const original = settings.weatherCity
+                    field.forceActiveFocus()
+                    field.selectAll()
+                    for (const letter of "Paris") input.keyClickChar(letter, Qt.NoModifier, -1)
+                    test.check(settings.weatherCity === original, "typing does not apply city")
+                    const apply = test.findItem(view, "weatherApplyButton")
+                    input.keyClick(Qt.Key_Tab, Qt.NoModifier, -1)
+                    test.check(apply.activeFocus, "Tab reaches Apply")
+                    input.keyClick(Qt.Key_Tab, Qt.ShiftModifier, -1)
+                    test.check(field.activeFocus, "Shift+Tab returns to city input")
+                    input.mouseClick(apply, apply.width / 2, apply.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
+                    test.check(settings.weatherCity === "Paris", "Apply changes city")
+                    settings.update({weatherCity: original})
+                    test.check(field.text === original, "service updates open page")
+                    const refresh = test.findItem(view, "weatherRefreshMinutesInput")
+                    const originalMinutes = settings.weatherRefreshMinutes
+                    refresh.forceActiveFocus()
+                    input.keyClick(Qt.Key_Up, Qt.NoModifier, -1)
+                    test.check(test.intervalRequests === 1 && settings.weatherRefreshMinutes === originalMinutes + 1, "SpinBox action emits once and applies interval")
+                    settings.update({weatherRefreshMinutes: originalMinutes})
+                    test.check(refresh.value === originalMinutes && test.intervalRequests === 1, "service updates interval without user signal loop")
+                    input.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+                    test.check(test.closeRequests === 1, "unhandled Escape closes settings")
+                    currentPage = 0
+                    focusInput()
+                }
                 weatherCity: settings.weatherCity
+                weatherRefreshMinutes: settings.weatherRefreshMinutes
+                onWeatherRefreshMinutesChangedRequested: minutes => {
+                    test.intervalRequests++;
+                    settings.update({weatherRefreshMinutes: minutes});
+                }
                 animationsEnabled: settings.animationsEnabled
                 onAnimationsChangedRequested: function(enabled) {
                     test.uiRequests++;
@@ -88,10 +154,10 @@ ShellRoot {
                 }
                 Component.onCompleted: {
                     test.viewRef = view;
-                    test.check(width === 700 && height === 420, "default geometry");
+                    test.check(implicitWidth === 1100 && implicitHeight === 760, "window-independent desired size");
                     for (let i = 0; i < 5; i++) {
                         currentPage = i;
-                        test.check(implicitHeight === (i === 4 ? 740 : 420), "page geometry " + i);
+                        test.check(implicitHeight === 760, "page must not resize window " + i);
                     }
                     currentPage = 0;
                     focusInput();
@@ -140,11 +206,21 @@ ShellRoot {
                     test.check(settings.topReserved === 4 && settings.bottomReserved === 0, "normalize loaded reservations");
                     test.check(settings.autoHideTop === false && settings.animationsEnabled === true && settings.weatherCity === "", "invalid and missing fields use defaults");
                     test.check(!settings.dirty, "load normalization does not write");
+                    test.check(settings.weatherRefreshMinutes === 15, "missing interval uses default");
+                    for (const value of [0, 181, 2.5, NaN, Infinity, "30", null, true]) {
+                        settings.update({weatherRefreshMinutes: 30});
+                        settings.update({weatherRefreshMinutes: value});
+                        test.check(settings.weatherRefreshMinutes === 15, "invalid interval uses default " + value);
+                    }
+                    for (const value of [1, 180, 42]) {
+                        settings.update({weatherRefreshMinutes: value});
+                        test.check(settings.weatherRefreshMinutes === value, "valid interval " + value);
+                    }
                     settings.update({ autoHideApps: true });
                     settings.flush(true);
                     test.finish();
                 } else if (test.scenario === "restore") {
-                    test.check(settings.weatherCity === "Москва" && settings.topReserved === 200 && !settings.animationsEnabled, "restored values");
+                    test.check(settings.weatherCity === "Москва" && settings.topReserved === 200 && !settings.animationsEnabled && settings.weatherRefreshMinutes === 30, "restored values");
                     test.check(!settings.dirty && test.changes === 1, "no write loop on load");
                     test.finish();
                 } else if (test.scenario === "revert") {
@@ -154,11 +230,20 @@ ShellRoot {
                     test.phase = 5;
                 } else if (test.scenario === "ui") {
                     if (test.ticks > 8) {
+                        if (!test.interactionsChecked) {
+                            test.viewRef.exerciseInput();
+                            test.interactionsChecked = true;
+                        }
                         test.check(test.viewRef.activeFocus, "navigation focus after creation");
                         test.check(test.uiRequests === 0, "service updates must not emit user requests");
                         test.viewRef.grabToImage(function(result) {
-                            result.saveToFile(settings.storageDirectory + "/settings-" + test.capturePage + ".png");
-                            if (test.capturePage === 4) {
+                            result.saveToFile(settings.storageDirectory + "/settings-" + test.sizeIndex + "-" + test.capturePage + ".png");
+                            if (test.capturePage === 4 && test.sizeIndex < test.sizes.length - 1) {
+                                test.sizeIndex++;
+                                test.capturePage = 0;
+                                test.viewRef.currentPage = 0;
+                                timer.start();
+                            } else if (test.capturePage === 4) {
                                 test.uiVisible = false;
                                 settings.update({weatherCity: "window closed"});
                                 test.phase = 6;
@@ -176,6 +261,7 @@ ShellRoot {
                 } else {
                     settings.update({
                         "weatherCity": "  Москва  ",
+                        "weatherRefreshMinutes": 30,
                         "topReserved": 999,
                         "animationsEnabled": false,
                         "autoHideTop": true

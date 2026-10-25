@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Controls
 
 Column {
+    property bool showHeading: true
     required property var tokens
     property bool animationsEnabled: true
     signal animationsChangedRequested(bool enabled)
@@ -11,7 +12,7 @@ Column {
     component Action: SettingsAction { tokens: root.tokens }
     id: root
             spacing: 16
-            Label { text: "Внешний вид"; font.family: root.tokens.type.display.family; font.pixelSize: 20 }
+            Label { visible: root.showHeading; text: "Внешний вид"; font.family: root.tokens.type.display.family; font.pixelSize: 20 }
             CheckBox {
                 id: animations
                 width: parent.width

@@ -5,24 +5,24 @@ import QtQuick.Controls
 
 AbstractButton {
     required property var tokens
-        id: action
+        id: button
         property bool selected: false
-        implicitHeight: 40
+        implicitHeight: button.tokens.settings.control
         implicitWidth: Math.max(120, caption.implicitWidth + 24)
         focusPolicy: Qt.StrongFocus
         Accessible.name: text
         background: Rectangle {
-            radius: action.tokens.radius.small
-            color: action.down ? action.tokens.color.surface : action.selected || action.hovered ? action.tokens.color.surfaceAlt : "transparent"
-            border.width: action.visualFocus ? 1 : 0
-            border.color: action.tokens.color.accent
+            radius: button.tokens.radius.small
+            color: button.down ? button.tokens.color.surface : button.selected || button.hovered ? button.tokens.color.surfaceAlt : "transparent"
+            border.width: button.visualFocus ? 1 : 0
+            border.color: button.tokens.color.accent
         }
-        contentItem: SettingsLabel { tokens: action.tokens;
+        contentItem: SettingsLabel { tokens: button.tokens;
             id: caption
-            text: action.text
+            text: button.text
             leftPadding: 12
             rightPadding: 12
             verticalAlignment: Text.AlignVCenter
-            color: action.selected ? action.tokens.color.accent : action.tokens.color.text
+            color: button.selected ? button.tokens.color.accent : button.tokens.color.text
         }
     }

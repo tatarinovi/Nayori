@@ -2,10 +2,10 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
-import Quickshell.Wayland
+import QtQuick.Window
 
-// The shell creates this overlay only while settings are open.
-PanelWindow {
+// Ordinary compositor-managed toplevel. No relationship to any panel surface.
+FloatingWindow {
     id: root
     property var wallpaperManager: null
     required property var tokens
@@ -20,6 +20,8 @@ PanelWindow {
     property string userName: ""
     property string avatarSource: ""
     property string weatherCity: ""
+    property int weatherRefreshMinutes: 15
+    property bool settingsReady: true
     property bool animationsEnabled: true
     signal animationsChangedRequested(bool enabled)
     property string settingsMessage: ""
@@ -29,31 +31,28 @@ PanelWindow {
     signal retryRequested()
     property int initialPage: 0
     signal weatherCityChangedRequested(string city)
+    signal weatherRefreshMinutesChangedRequested(int minutes)
     signal reservationChanged(int top, int bottom)
     signal autoHideChangedRequested(bool top, bool apps, bool workspaces, bool status)
     signal closeRequested()
 
-    color: "transparent"
-    anchors { top: true; bottom: true; left: true; right: true }
-    exclusionMode: ExclusionMode.Ignore
-    focusable: true
-    WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "nayori-settings"
-    WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+    title: "Nayori Settings"
+    visible: false
+    implicitWidth: 1100
+    implicitHeight: 760
+    minimumSize: Qt.size(720, 560)
+    color: tokens.color.background
 
-    MouseArea {
-        anchors.fill: parent
-        acceptedButtons: Qt.AllButtons
-        onClicked: function(mouse) {
-            if (mouse.x < settings.x || mouse.x > settings.x + settings.width
-                    || mouse.y < settings.y || mouse.y > settings.y + settings.height)
-                root.closeRequested()
-        }
-        onWheel: function(wheel) { wheel.accepted = true }
+    function requestActivation() {
+        const nativeWindow = contentItem.Window.window
+        if (nativeWindow) nativeWindow.requestActivate()
     }
+    function setPage(page) { settings.currentPage = page }
+    readonly property int selectedPage: settings.currentPage
 
     Settings {
         id: settings
+        enabled: root.settingsReady
         tokens: root.tokens
         wallpaperManager: root.wallpaperManager
         topReserved: root.topReserved
@@ -67,6 +66,7 @@ PanelWindow {
         userName: root.userName
         avatarSource: root.avatarSource
         weatherCity: root.weatherCity
+        weatherRefreshMinutes: root.weatherRefreshMinutes
         currentPage: root.initialPage
         animationsEnabled: root.animationsEnabled
         onAnimationsChangedRequested: enabled => root.animationsChangedRequested(enabled)
@@ -75,16 +75,16 @@ PanelWindow {
         canRetry: root.canRetry
         onRecoverRequested: root.recoverRequested()
         onRetryRequested: root.retryRequested()
-        width: Math.min(700, Math.max(1, parent.width - root.tokens.spacing.large * 2))
-        height: Math.min(implicitHeight, Math.max(1, parent.height - y - root.tokens.spacing.large))
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: 64 + root.tokens.spacing.small
+        anchors.fill: parent
         onCloseRequested: root.closeRequested()
         onReservationChanged: function(top, bottom) { root.reservationChanged(top, bottom) }
         onAutoHideChangedRequested: function(top, apps, workspaces, status) { root.autoHideChangedRequested(top, apps, workspaces, status) }
         onWeatherCityChangedRequested: function(city) { root.weatherCityChangedRequested(city) }
+        onWeatherRefreshMinutesChangedRequested: minutes => root.weatherRefreshMinutesChangedRequested(minutes)
         Component.onCompleted: Qt.callLater(focusInput)
     }
+
+    onClosed: visible = false
 
     onVisibleChanged: {
         if (visible)

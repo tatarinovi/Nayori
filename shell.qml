@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 //@ pragma UseQApplication
+//@ pragma AppId nayori
 
 import QtQuick
 import Quickshell
@@ -8,6 +9,7 @@ import Quickshell.Io
 import "tokens"
 import "services/niri"
 import "services/settings"
+import "services/weather"
 import "surfaces/launcher"
 import "surfaces/settings"
 import "surfaces/panel"
@@ -24,47 +26,55 @@ ShellRoot {
     NotificationModel { id: notificationModel }
     Notifications { model: notificationModel }
 
-    SettingsService { id: settingsService }
+    SettingsService { id: settingsStore }
+    WeatherService {
+        id: weatherStore
+        enabled: settingsStore.ready
+        city: settingsStore.weatherCity
+        refreshMinutes: settingsStore.weatherRefreshMinutes
+    }
+    readonly property var weatherService: weatherStore
     Tokens {
         id: tokens
-        motion.off: !settingsService.animationsEnabled
+        animationsEnabled: settingsStore.animationsEnabled
     }
 
     IpcHandler {
         target: "canvas"
-        function closeSettings(): void { root.settingsOpened = false }
+        function closeSettings(): void { settingsController.close() }
         function applyDefault(): void {
-            wallpaperManager.apply("", "", "fill", true, true)
+            wallpaperStore.apply("", "", "fill", true, true)
         }
         function openSettings(): void {
-            root.launcherOpened = false
-            root.settingsPage = 4
-            root.settingsOpened = true
+            root.openSettings("wallpapers")
         }
     }
-    WallpaperManager { id: wallpaperManager }
+    WallpaperManager { id: wallpaperStore }
     Variants {
-        model: wallpaperManager.enabled ? Quickshell.screens : []
+        model: wallpaperStore.enabled ? Quickshell.screens : []
         WallpaperWindow {
             required property var modelData
             screen: modelData
-            manager: wallpaperManager
+            manager: wallpaperStore
             tokens: root.tokenSet
         }
     }
 
     readonly property var tokenSet: tokens
     property bool launcherOpened: false
-    property bool settingsOpened: false
-    property int settingsPage: 0
-    readonly property string weatherCity: settingsService.weatherCity
-    readonly property bool hideSecondaryIsland: settingsService.hideSecondaryIsland
-    readonly property bool autoHideTop: settingsService.autoHideTop
-    readonly property bool autoHideApps: settingsService.autoHideApps
-    readonly property bool autoHideWorkspaces: settingsService.autoHideWorkspaces
-    readonly property bool autoHideStatus: settingsService.autoHideStatus
-    readonly property int topReserved: settingsService.topReserved
-    readonly property int bottomReserved: settingsService.bottomReserved
+    readonly property bool settingsOpened: settingsController.opened
+    function openSettings(page): bool {
+        root.launcherOpened = false
+        return settingsController.openPage(page || "home")
+    }
+    readonly property string weatherCity: settingsStore.weatherCity
+    readonly property bool hideSecondaryIsland: settingsStore.hideSecondaryIsland
+    readonly property bool autoHideTop: settingsStore.autoHideTop
+    readonly property bool autoHideApps: settingsStore.autoHideApps
+    readonly property bool autoHideWorkspaces: settingsStore.autoHideWorkspaces
+    readonly property bool autoHideStatus: settingsStore.autoHideStatus
+    readonly property int topReserved: settingsStore.topReserved
+    readonly property int bottomReserved: settingsStore.bottomReserved
     readonly property string userName: Quickshell.env("USER") || ""
 
     LazyLoader {
@@ -76,42 +86,21 @@ ShellRoot {
         }
     }
 
-    LazyLoader {
-        active: root.settingsOpened && root.currentOverlayScreen !== null
-        SettingsWindow {
-            screen: root.currentOverlayScreen
-            tokens: root.tokenSet
-            initialPage: root.settingsPage
-            animationsEnabled: settingsService.animationsEnabled
-            onAnimationsChangedRequested: enabled => settingsService.update({ animationsEnabled: enabled })
-            settingsMessage: settingsService.message
-            canRecover: settingsService.canRecover
-            canRetry: settingsService.canRetry
-            onRecoverRequested: settingsService.recover()
-            onRetryRequested: settingsService.flush(false)
-            wallpaperManager: wallpaperManager
-            hideSecondaryIsland: root.hideSecondaryIsland
-            onHideSecondaryIslandChangedRequested: function(hidden) { settingsService.update({ hideSecondaryIsland: hidden }) }
-            autoHideTop: root.autoHideTop
-            autoHideApps: root.autoHideApps
-            autoHideWorkspaces: root.autoHideWorkspaces
-            autoHideStatus: root.autoHideStatus
-            onAutoHideChangedRequested: function(top, apps, workspaces, status) {
-                settingsService.update({ autoHideTop: top, autoHideApps: apps,
-                    autoHideWorkspaces: workspaces, autoHideStatus: status })
-            }
-            weatherCity: root.weatherCity
-            onWeatherCityChangedRequested: function(city) { settingsService.update({ weatherCity: city }) }
-            userName: root.userName
-            avatarSource: root.userName !== ""
-                ? "file:///var/lib/AccountsService/icons/" + encodeURIComponent(root.userName) : ""
-            topReserved: root.topReserved
-            bottomReserved: root.bottomReserved
-            onReservationChanged: function(top, bottom) {
-                settingsService.update({ topReserved: top, bottomReserved: bottom })
-            }
-            onCloseRequested: root.settingsOpened = false
+    SettingsController {
+        id: settingsController
+        tokens: root.tokenSet
+        settingsService: settingsStore
+        wallpaperManager: wallpaperStore
+        niri: Niri
+    }
+    IpcHandler {
+        target: "settings"
+        function open(): bool {
+            root.launcherOpened = false
+            return settingsController.open()
         }
+        function openPage(page: string): bool { return root.openSettings(page) }
+        function close(): void { settingsController.close() }
     }
 
     // Each output owns independent panels. The first output is the primary screen; all outputs get their own panels.

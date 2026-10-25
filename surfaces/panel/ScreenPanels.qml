@@ -44,7 +44,7 @@ Scope {
         interval: 400
         onTriggered: {
             if (topHover.hovered && !capsule.menuOpened && !root.dashboardHoverBlocked
-                    && !root.shellState.launcherOpened && !root.shellState.settingsOpened)
+                    && !root.shellState.launcherOpened)
                 root.expandedOpened = true
         }
     }
@@ -255,6 +255,7 @@ Scope {
             id: capsule
             expanded: root.expandedOpened
             weatherCity: root.shellState.weatherCity
+            weatherService: root.shellState.weatherService
             onCloseRequested: {
                 root.expandedOpened = false
                 root.dashboardHoverBlocked = topHover.hovered
@@ -262,8 +263,7 @@ Scope {
             onWeatherSettingsRequested: {
                 root.shellState.overlayScreen = root.panelScreen
                 root.expandedOpened = false
-                root.shellState.settingsPage = 3
-                root.shellState.settingsOpened = true
+                root.shellState.openSettings("weather")
             }
             anchors.top: parent.top
             anchors.horizontalCenter: parent.horizontalCenter
@@ -277,21 +277,18 @@ Scope {
             }
             onDashboardRequested: {
                 root.shellState.launcherOpened = false
-                root.shellState.settingsOpened = false
                 root.expandedOpened = true
             }
             onLauncherRequested: {
                 root.shellState.overlayScreen = root.panelScreen
                 root.expandedOpened = false
-                root.shellState.settingsOpened = false
                 root.shellState.launcherOpened = true
             }
             onSettingsRequested: {
                 root.shellState.overlayScreen = root.panelScreen
                 root.expandedOpened = false
                 root.shellState.launcherOpened = false
-                root.shellState.settingsPage = 0
-                root.shellState.settingsOpened = true
+                root.shellState.openSettings("home")
             }
         }
     }

@@ -25,6 +25,7 @@ with tempfile.TemporaryDirectory(prefix="ns-") as directory:
     path = storage / "settings.json"
     saved = json.loads(path.read_text())
     assert saved["weatherCity"] == "Москва" and saved["autoHideApps"]
+    assert saved["weatherRefreshMinutes"] == 30
     before = path.read_bytes()
     run("restore", storage)
     assert path.read_bytes() == before

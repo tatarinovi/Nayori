@@ -4,6 +4,8 @@ import QtQuick
 // Графит с холодным фиолетовым подтоном, пыльная лаванда, пыльная роза,
 // тёплый почти-белый текст. Значения посчитаны в oklch и записаны как sRGB.
 QtObject {
+    id: root
+    property bool animationsEnabled: true
     readonly property QtObject color: QtObject {
         readonly property color background: "#121217"   // oklch(0.185 0.010 286) земля панели
         readonly property color surface: "#4F4F57"      // oklch(0.430 0.014 286) поднятые заглушки
@@ -61,9 +63,16 @@ QtObject {
         readonly property int gap: 4
     }
 
+    // Settings-only density: panel and island typography remains unchanged.
+    readonly property QtObject settings: QtObject {
+        readonly property int body: 16
+        readonly property int heading: 32
+        readonly property int control: 44
+    }
+
     readonly property QtObject motion: QtObject {
         // One switch for ornamental motion; state changes remain immediate.
-        property bool off: false
+        property bool off: !root.animationsEnabled
         readonly property int fast: 140
         readonly property int base: 220
     }
