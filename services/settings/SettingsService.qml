@@ -23,6 +23,7 @@ QtObject {
     readonly property string manualAccent: values.manualAccent
     readonly property bool companionEnabled: values.companionEnabled
     readonly property bool companionDesktopOnly: values.companionDesktopOnly
+    readonly property bool companionReactToPointer: values.companionReactToPointer
     readonly property bool animationsEnabled: values.animationsEnabled
     readonly property string weatherCity: values.weatherCity
     readonly property int weatherRefreshMinutes: values.weatherRefreshMinutes
@@ -140,6 +141,7 @@ QtObject {
             "animationsEnabled": true,
             "companionEnabled": false,
             "companionDesktopOnly": false,
+            "companionReactToPointer": true,
             "surfaceStyle": "solid",
             "accentMode": "default",
             "manualAccent": "#C0AFD1",

@@ -4,10 +4,15 @@ cd "$(dirname "$0")/.."
 python3 tests/island-audio.py
 node tests/island-controller.cjs
 node tests/start-routing.cjs
+node tests/naomi-companion.cjs
+python3 tests/naomi-layers.py
 # Quickshell qmltypes omit dynamic model values and Loader item members.
 /usr/lib/qt6/bin/qmllint --missing-property disable -I /usr/lib/qt6/qml \
     services/island/*.qml surfaces/island/*.qml \
     tests/smoke/IslandBehaviorSmoke.qml tests/smoke/AudioReactionSmoke.qml tests/smoke/NotificationBridgeSmoke.qml tests/smoke/IslandWheelSmoke.qml
+# Naomi: оконный CompanionWindow (PanelWindow) qmllint создать не может, остальное проверяем целиком.
+/usr/lib/qt6/bin/qmllint --missing-property disable -I /usr/lib/qt6/qml \
+    services/companion/*.qml surfaces/companion/Naomi*.qml tests/smoke/NaomiCompanionSmoke.qml
 runtime=$(mktemp -d /tmp/nayori-island-check.XXXXXX)
 trap 'rm -rf "$runtime"' EXIT
 chmod 700 "$runtime"
@@ -24,6 +29,10 @@ timeout 10s qs -p tests/smoke/IslandWheelSmoke.qml --no-color > "$runtime/wheel.
 cat "$runtime/wheel.log"
 rg -q ISLAND_WHEEL_PASS "$runtime/wheel.log"
 ! rg -q 'FAIL!|Error:|Unable to assign|ReferenceError|TypeError|Failed to load configuration' "$runtime/wheel.log"
+timeout 40s qs -p tests/smoke/NaomiCompanionSmoke.qml --no-color > "$runtime/naomi.log" 2>&1
+cat "$runtime/naomi.log"
+rg -q NAOMI_COMPANION_PASS "$runtime/naomi.log"
+! rg -q 'NAOMI_FAIL|FAIL!|Error:|Unable to assign|ReferenceError|TypeError|Failed to load configuration' "$runtime/naomi.log"
 dbus-run-session -- python3 tests/notification-host.py
 dbus-run-session -- python3 tests/notifications-bridge.py
 git diff --check

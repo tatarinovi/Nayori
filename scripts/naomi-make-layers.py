@@ -415,7 +415,7 @@ def build_emotions():
             arr = np.asarray(mask).astype(float) * 0.62
             out = np.dstack([np.full(arr.shape, 255.0)] * 3 + [arr]).astype("uint8")
             img.alpha_composite(Image.fromarray(out, "RGBA"))
-        r = int(max(bw, bh) / 2 + 6)
+        r = int(max(bw, bh) / 2 + 9)
         meta.append(emotion_layer(name, (int(centre[0]) - r, int(centre[1]) - r, int(centre[0]) + r, int(centre[1]) + r), blush))
     return meta
 

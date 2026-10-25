@@ -215,6 +215,19 @@ ShellRoot {
                     test.check(settings.companionDesktopOnly && desktopOnlyControl.checked, "desktop-only applies from settings")
                     input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
                     test.check(!settings.companionDesktopOnly, "desktop-only turns off from settings")
+                    const reactControl = test.findItem(view, "settingsCompanionReactToggle")
+                    settings.update({companionReactToPointer: true})
+                    test.check(settings.companionReactToPointer && reactControl.checked, "pointer reaction switch follows the service")
+                    reactControl.forceActiveFocus()
+                    input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                    test.check(!settings.companionReactToPointer && !reactControl.checked, "pointer reaction turns off from settings")
+                    input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                    test.check(settings.companionReactToPointer && reactControl.checked, "pointer reaction turns back on")
+                    const sayButton = test.findItem(view, "settingsNaomiSayButton")
+                    const preview = test.findItem(view, "naomiPreview")
+                    test.check(sayButton !== null && preview !== null, "Naomi preview and speech button exist")
+                    sayButton.clicked()
+                    test.check(preview.controller.bubbleVisible && preview.controller.bubbleText.length > 0, "speech button shows the cloud")
                     settings.update({startIconStyle: "current"})
                     openKey("start")
                     Qt.callLater(exerciseStart)
@@ -267,6 +280,8 @@ ShellRoot {
                 onCompanionChangedRequested: enabled => settings.update({companionEnabled: enabled})
                 companionDesktopOnly: settings.companionDesktopOnly
                 onCompanionDesktopOnlyChangedRequested: enabled => settings.update({companionDesktopOnly: enabled})
+                companionReactToPointer: settings.companionReactToPointer
+                onCompanionReactToPointerChangedRequested: enabled => settings.update({companionReactToPointer: enabled})
                 startIconStyle: settings.startIconStyle
                 onStartIconStyleChangedRequested: style => { test.iconRequests++; settings.update({startIconStyle: style}); }
                 surfaceStyle: settings.surfaceStyle
@@ -349,6 +364,12 @@ ShellRoot {
                     settings.update({companionDesktopOnly: false});
                     settings.update({companionEnabled: true});
                     test.check(settings.companionEnabled, "companion enables immediately");
+                    test.check(settings.companionReactToPointer, "pointer reaction defaults on");
+                    settings.update({companionReactToPointer: "no"});
+                    test.check(settings.companionReactToPointer, "invalid pointer reaction value defaults on");
+                    settings.update({companionReactToPointer: false});
+                    test.check(!settings.companionReactToPointer, "pointer reaction turns off immediately");
+                    settings.update({companionReactToPointer: true});
                     settings.update({companionEnabled: "yes"});
                     test.check(!settings.companionEnabled, "invalid companion value defaults off");
                     settings.update({companionEnabled: true});
@@ -432,6 +453,7 @@ ShellRoot {
                     test.check(settings.weatherCity === "Москва" && settings.topReserved === 200 && !settings.animationsEnabled && settings.weatherRefreshMinutes === 30 && settings.surfaceStyle === "frosted" && settings.startIconStyle === "fox", "restored values");
                     test.check(settings.companionEnabled, "companion restored after restart");
                     test.check(settings.companionDesktopOnly, "desktop-only restored after restart");
+                    test.check(!settings.companionReactToPointer, "pointer reaction restored after restart");
                     test.check(!settings.dirty && test.changes === 1, "no write loop on load");
                     test.finish();
                 } else if (test.scenario === "revert") {
@@ -546,6 +568,7 @@ ShellRoot {
                         "startIconStyle": "fox",
                         "companionEnabled": true,
                         "companionDesktopOnly": true,
+                        "companionReactToPointer": false,
                         "topReserved": 999,
                         "animationsEnabled": false,
                         "autoHideTop": true

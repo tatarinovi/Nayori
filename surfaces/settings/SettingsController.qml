@@ -152,6 +152,8 @@ QtObject {
             onCompanionChangedRequested: enabled => root.settingsService.update({companionEnabled: enabled})
             companionDesktopOnly: root.settingsService.companionDesktopOnly
             onCompanionDesktopOnlyChangedRequested: enabled => root.settingsService.update({companionDesktopOnly: enabled})
+            companionReactToPointer: root.settingsService.companionReactToPointer
+            onCompanionReactToPointerChangedRequested: enabled => root.settingsService.update({companionReactToPointer: enabled})
             animationsEnabled: root.settingsService.animationsEnabled
             settingsMessage: root.settingsService.message
             canRecover: root.settingsService.canRecover

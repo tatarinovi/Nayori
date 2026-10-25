@@ -32,6 +32,9 @@ const LONG_AFTER = 6
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, Number(v) || 0)) }
 function follow(a, b, dt, tau) { return b + (a - b) * Math.exp(-dt / tau) }
 
+// Копия зоны головы для QML: по ней иллюстрация считает область наведения и маску окна.
+function zone() { return { x: HEAD.x, y: HEAD.y, w: HEAD.w, h: HEAD.h } }
+
 function inHead(x, y) {
     const nx = (x - (HEAD.x + HEAD.w / 2)) / (HEAD.w / 2)
     const ny = (y - (HEAD.y + HEAD.h / 2)) / (HEAD.h / 2)

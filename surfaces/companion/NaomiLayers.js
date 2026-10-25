@@ -152,16 +152,16 @@ var layers = {
  },
  "blush_left": {
   "file": "blush_left.png",
-  "x": 391,
-  "y": 208,
-  "w": 38,
-  "h": 38
+  "x": 388,
+  "y": 205,
+  "w": 44,
+  "h": 44
  },
  "blush_right": {
   "file": "blush_right.png",
-  "x": 424,
-  "y": 198,
-  "w": 36,
-  "h": 36
+  "x": 421,
+  "y": 195,
+  "w": 42,
+  "h": 42
  }
 };

@@ -4,11 +4,15 @@ import QtQuick
 import QtQuick.Effects
 import QtQuick.Shapes
 import "NaomiLayers.js" as Atlas
+import "../../services/companion/NaomiBehavior.js" as Pet
 
 // Анимированная Naomi (вариант C) из слоёв assets/naomi/layers.
 // Слои вырезаны скриптом scripts/naomi-make-layers.py из оригинальной иллюстрации,
 // координаты слоёв — в системе источника 864 × 1152, она же система сцены stage.
 // Используется на рабочем столе (CompanionWindow) и в предпросмотре страницы Naomi.
+// Поза поглаживания: свойство pet (0…1) плавно закрывает глаза «довольной» дугой, добавляет румянец
+// и улыбку, наклоняет голову к руке (petLean), опускает ушки и усиливает покачивание волос.
+// Саму поглаживание распознаёт NaomiController по сигналу pointerMoved.
 Item {
     id: root
     required property var tokens
@@ -26,6 +30,16 @@ Item {
     property point look: Qt.point(0, 0)
     // Следить за курсором, пока он над компонентом.
     property bool followPointer: false
+    // Сообщать о движении курсора (pointerMoved) и слегка поворачивать голову к нему над головой.
+    property bool pointerTracking: false
+    // Поза поглаживания: 0 — обычная, 1 — полностью довольная. Задаёт NaomiController.
+    property real pet: 0
+    // К какой руке наклоняться: от -1 (слева) до 1 (справа).
+    property real petLean: 0
+    // Курсор сейчас над компонентом, и положение курсора в системе сцены (864 × 1152).
+    readonly property bool pointerInside: hover.hovered
+    property point pointerStage: Qt.point(0, 0)
+    signal pointerMoved(real x, real y)
 
     readonly property bool reduced: tokens.motion.off || !animationsEnabled
     readonly property bool moving: active && visible && !reduced
@@ -44,9 +58,15 @@ Item {
     property real lookX: 0
     property real lookY: 0
 
+    property real petPhase: 0
+
     readonly property real breath: activity * breathAmount * (1 - Math.cos(breathPhase)) / 2
-    readonly property real sway: activity * hairSway
-    readonly property real flutter: activity * scarfFlutter
+    // Поглаживание усиливает качание: волосы и шарф живее реагируют на руку.
+    readonly property real sway: activity * hairSway * (1 + 0.9 * pet)
+    readonly property real flutter: activity * scarfFlutter * (1 + 0.5 * pet)
+    // Ушки опускаются к голове (слева — против часовой, справа — по часовой) и слегка подрагивают.
+    readonly property real petEarLeft: pet * (-7 + 1.6 * activity * Math.sin(flutterPhase * 3))
+    readonly property real petEarRight: pet * (7 - 1.6 * activity * Math.sin(flutterPhase * 3 + 0.7))
 
     // Граница кадра в системе источника: от кончиков волос слева до кончика шарфа справа.
     readonly property real cropX: 205
@@ -54,17 +74,39 @@ Item {
     readonly property real cropWidth: 545
     readonly property real cropHeight: 1040
     readonly property real fit: Math.min(width / cropWidth, height / cropHeight)
+    // Зона головы и волос в координатах этого компонента: по ней окно строит маску наведения.
+    readonly property var headZone: Pet.zone()
+    readonly property rect headRect: Qt.rect(stage.x + headZone.x * fit, stage.y + headZone.y * fit,
+                                             headZone.w * fit, headZone.h * fit)
+    // Куда направлять хвост облачка с репликой: между ушами, на уровне их кончиков, сверху.
+    readonly property point bubbleAnchor: Qt.point(stage.x + 407 * fit, stage.y + 64 * fit)
     implicitWidth: 280
     implicitHeight: 534
 
     HoverHandler {
         id: hover
-        enabled: root.followPointer
+        enabled: root.followPointer || root.pointerTracking
+        onPointChanged: {
+            if (!hovered || root.fit <= 0)
+                return
+            const x = (point.position.x - stage.x) / root.fit
+            const y = (point.position.y - stage.y) / root.fit
+            root.pointerStage = Qt.point(x, y)
+            root.pointerMoved(x, y)
+        }
     }
-    readonly property point target: root.followPointer && hover.hovered
-        ? Qt.point(Math.max(-1, Math.min(1, (hover.point.position.x / Math.max(1, root.width) - 0.5) * 2)),
-                   Math.max(-1, Math.min(1, (hover.point.position.y / Math.max(1, root.height) - 0.5) * 2)))
-        : root.look
+    // Над головой при поглаживании голова идёт за рукой; иначе — за курсором или заданным look.
+    readonly property point target: {
+        if (root.pet > 0.3)
+            return Qt.point(0.9 * root.petLean, 0.25)
+        if (root.followPointer && hover.hovered)
+            return Qt.point(Math.max(-1, Math.min(1, (hover.point.position.x / Math.max(1, root.width) - 0.5) * 2)),
+                            Math.max(-1, Math.min(1, (hover.point.position.y / Math.max(1, root.height) - 0.5) * 2)))
+        if (root.pointerTracking && hover.hovered)
+            return Qt.point(0.8 * Math.max(-1, Math.min(1, (root.pointerStage.x - (headZone.x + headZone.w / 2)) / (headZone.w / 2))),
+                            0.8 * Math.max(-1, Math.min(1, (root.pointerStage.y - (headZone.y + headZone.h / 2)) / (headZone.h / 2))))
+        return root.look
+    }
     onTargetChanged: {
         lookX = target.x * activity
         lookY = target.y * activity
@@ -102,9 +144,16 @@ Item {
         PauseAnimation { duration: Math.round(root.tokens.motion.fast / 3) }
         NumberAnimation { target: root; property: "eyeOpen"; to: 1; duration: root.tokens.motion.fast; easing.type: Easing.OutQuad }
     }
+    // Фаза искорок поглаживания: 0…1 по кругу, идёт только пока поза включена.
+    NumberAnimation on petPhase {
+        running: root.moving && root.pet > 0.02
+        from: 0; to: 1
+        duration: root.tokens.motion.base * 9
+        loops: Animation.Infinite
+    }
     Timer {
         id: blinkTimer
-        running: root.moving && root.blinking
+        running: root.moving && root.blinking && root.pet < 0.05
         repeat: true
         interval: root.blinkMinMs + Math.random() * Math.max(0, root.blinkMaxMs - root.blinkMinMs)
         onTriggered: {
@@ -179,6 +228,25 @@ Item {
             colorizationColor: tinted.tint
         }
     }
+    // Искорка: четырёхлучевая звёздочка с вогнутыми гранями.
+    component Sparkle: Shape {
+        id: spark
+        required property real cx
+        required property real cy
+        required property real size
+        required property color tint
+        preferredRendererType: Shape.CurveRenderer
+        ShapePath {
+            fillColor: spark.tint
+            strokeColor: "transparent"
+            startX: spark.cx
+            startY: spark.cy - spark.size
+            PathQuad { x: spark.cx + spark.size; y: spark.cy; controlX: spark.cx + spark.size * 0.12; controlY: spark.cy - spark.size * 0.12 }
+            PathQuad { x: spark.cx; y: spark.cy + spark.size; controlX: spark.cx + spark.size * 0.12; controlY: spark.cy + spark.size * 0.12 }
+            PathQuad { x: spark.cx - spark.size; y: spark.cy; controlX: spark.cx - spark.size * 0.12; controlY: spark.cy + spark.size * 0.12 }
+            PathQuad { x: spark.cx; y: spark.cy - spark.size; controlX: spark.cx - spark.size * 0.12; controlY: spark.cy - spark.size * 0.12 }
+        }
+    }
     // Закрытое веко: тёмная дуга на месте глаза.
     component Lid: Shape {
         id: lid
@@ -216,7 +284,7 @@ Item {
         // Плечи и верх тела дышат вместе с волосами и шарфом, прикреплёнными к ним.
         Item {
             id: upper
-            y: -3 * root.breath
+            y: -3 * root.breath + 1.5 * root.pet
             Layer { atlasName: "body_torso" }
 
             // Волосы слева: цепочка из трёх звеньев, каждое качается вокруг верха своего звена.
@@ -260,22 +328,24 @@ Item {
         Item {
             id: headGroup
             x: 3 * root.lookX
-            y: -5 * root.breath + 1.5 * root.lookY
+            y: -5 * root.breath + 1.5 * root.lookY + 2.2 * root.pet
             transform: Rotation {
                 origin.x: 414
                 origin.y: 287
+                // Наклон к руке: чуть вправо всегда и сильнее в сторону, где курсор.
                 angle: 1.8 * root.lookX + 0.5 * root.sway * Math.sin(root.swayPhase + 1.2)
+                    + root.pet * (1.0 + 2.8 * root.petLean)
             }
             Layer { atlasName: "head" }
             TintedLayer { atlasName: "scarf_neck"; tint: root.tokens.color.secondary }
             TintedLayer { atlasName: "pin_moon"; tint: root.tokens.color.secondary }
 
             Item {
-                transform: Rotation { origin.x: 375; origin.y: 155; angle: root.earLeftAngle }
+                transform: Rotation { origin.x: 375; origin.y: 155; angle: root.earLeftAngle + root.petEarLeft }
                 Layer { atlasName: "ear_left" }
             }
             Item {
-                transform: Rotation { origin.x: 448; origin.y: 133; angle: root.earRightAngle }
+                transform: Rotation { origin.x: 448; origin.y: 133; angle: root.earRightAngle + root.petEarRight }
                 Layer { atlasName: "ear_right" }
             }
             // Подвеска заколки качается как маятник.
@@ -283,16 +353,55 @@ Item {
                 transform: Rotation { origin.x: 458; origin.y: 177; angle: 5 * root.sway * Math.sin(root.swayPhase * 2 + 0.5) + 2 * root.lookX }
                 TintedLayer { atlasName: "pin_dangle"; tint: root.tokens.color.secondary }
             }
-            // Моргание: поверх открытых глаз появляется кожа века и дуга ресниц.
+            // Моргание и довольный прищур: поверх открытых глаз появляется кожа века.
             Item {
                 x: 2.5 * root.lookX
                 y: 1.5 * root.lookY
-                opacity: 1 - root.eyeOpen
+                opacity: Math.max(1 - root.eyeOpen, root.pet)
                 Layer { atlasName: "lid_left" }
                 Layer { atlasName: "lid_right" }
             }
-            Lid { cx: 402; cy: 211; tilt: 1; opacity: 1 - root.eyeOpen; x: 2.5 * root.lookX; y: 1.5 * root.lookY }
-            Lid { cx: 443; cy: 200; tilt: 0.5; opacity: 1 - root.eyeOpen; x: 2.5 * root.lookX; y: 1.5 * root.lookY }
+            // Моргание: тёмная дуга ресниц на закрытом веке. При поглаживании её заменяют «довольные» глаза.
+            Lid { cx: 402; cy: 211; tilt: 1; opacity: (1 - root.eyeOpen) * (1 - root.pet); x: 2.5 * root.lookX; y: 1.5 * root.lookY }
+            Lid { cx: 443; cy: 200; tilt: 0.5; opacity: (1 - root.eyeOpen) * (1 - root.pet); x: 2.5 * root.lookX; y: 1.5 * root.lookY }
+            // Поза поглаживания: румянец цветом secondary, прикрытые улыбкой глаза и мягкая улыбка.
+            Item {
+                visible: root.pet > 0.001
+                opacity: root.pet
+                TintedLayer { atlasName: "blush_left"; tint: root.tokens.color.secondary }
+                TintedLayer { atlasName: "blush_right"; tint: root.tokens.color.secondary }
+                Item {
+                    x: 2.5 * root.lookX
+                    y: 1.5 * root.lookY
+                    Layer { atlasName: "eye_happy_left" }
+                    Layer { atlasName: "eye_happy_right" }
+                }
+                Item {
+                    x: 1.2 * root.lookX
+                    y: 0.8 * root.lookY
+                    Layer { atlasName: "mouth_smile" }
+                }
+            }
+        }
+
+        // Искорки над головой, пока гладят: плывут вверх и гаснут. Без анимаций их нет.
+        Repeater {
+            model: [
+                { sx: 316, sy: 150, size: 11, offset: 0.0, rise: 26 },
+                { sx: 566, sy: 168, size: 9, offset: 0.37, rise: 22 },
+                { sx: 509, sy: 78, size: 7, offset: 0.7, rise: 18 }
+            ]
+            delegate: Sparkle {
+                id: spark
+                required property var modelData
+                readonly property real progress: (root.petPhase + modelData.offset) % 1
+                cx: modelData.sx
+                cy: modelData.sy - modelData.rise * progress
+                size: modelData.size * (0.55 + 0.6 * Math.sin(Math.PI * progress))
+                tint: root.tokens.color.accent
+                opacity: root.moving ? root.pet * Math.max(0, Math.sin(Math.PI * progress)) * 0.9 : 0
+                visible: opacity > 0.01
+            }
         }
     }
 }

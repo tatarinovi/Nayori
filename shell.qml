@@ -186,6 +186,7 @@ ShellRoot {
             tokens: naomiTokens
             animationsEnabled: settingsStore.animationsEnabled
             desktopOnly: settingsStore.companionDesktopOnly
+            reactToPointer: settingsStore.companionReactToPointer
             screen: root.probeScreen
             bottomInset: Math.max(88, settingsStore.bottomReserved + 16)
         }

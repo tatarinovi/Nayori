@@ -61,6 +61,8 @@ FocusScope {
     signal companionChangedRequested(bool enabled)
     property bool companionDesktopOnly: false
     signal companionDesktopOnlyChangedRequested(bool enabled)
+    property bool companionReactToPointer: true
+    signal companionReactToPointerChangedRequested(bool enabled)
     property bool animationsEnabled: true
     signal animationsChangedRequested(bool enabled)
     property bool niriColorIntegration: true
@@ -721,6 +723,8 @@ FocusScope {
                     onCompanionChangedRequested: enabled => root.companionChangedRequested(enabled)
                     companionDesktopOnly: root.companionDesktopOnly
                     onCompanionDesktopOnlyChangedRequested: enabled => root.companionDesktopOnlyChangedRequested(enabled)
+                    companionReactToPointer: root.companionReactToPointer
+                    onCompanionReactToPointerChangedRequested: enabled => root.companionReactToPointerChangedRequested(enabled)
                     onRevealRequested: item => naomiScroll.reveal(item)
                 }
             }

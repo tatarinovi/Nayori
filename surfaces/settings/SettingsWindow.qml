@@ -48,6 +48,8 @@ FloatingWindow {
     signal companionChangedRequested(bool enabled)
     property bool companionDesktopOnly: false
     signal companionDesktopOnlyChangedRequested(bool enabled)
+    property bool companionReactToPointer: true
+    signal companionReactToPointerChangedRequested(bool enabled)
     property bool animationsEnabled: true
     signal animationsChangedRequested(bool enabled)
     signal islandRotationEnabledChangedRequested(bool enabled)
@@ -135,6 +137,8 @@ FloatingWindow {
         onCompanionChangedRequested: enabled => root.companionChangedRequested(enabled)
         companionDesktopOnly: root.companionDesktopOnly
         onCompanionDesktopOnlyChangedRequested: enabled => root.companionDesktopOnlyChangedRequested(enabled)
+        companionReactToPointer: root.companionReactToPointer
+        onCompanionReactToPointerChangedRequested: enabled => root.companionReactToPointerChangedRequested(enabled)
         animationsEnabled: root.animationsEnabled
         onAnimationsChangedRequested: enabled => root.animationsChangedRequested(enabled)
         onIslandRotationEnabledChangedRequested: enabled => root.islandRotationEnabledChangedRequested(enabled)
