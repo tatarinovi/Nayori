@@ -8,12 +8,28 @@ import subprocess
 import time
 
 
+# REL_X и REL_Y: сдвиг указателя. Шум сенсора мыши (4K-опрос, тряска стола от нажатия клавиши)
+# не должен гасить тап. Колесо и кнопки по-прежнему отменяют срабатывание.
+POINTER_AXES = (0, 1)
+
+
+def cancels_tap(event_type, code, ev_key=1, ev_rel=2):
+    if event_type == ev_key:
+        return True
+    return event_type == ev_rel and code not in POINTER_AXES
+
+
 class TapDetector:
-    def __init__(self, threshold=0.4):
+    # Одну и ту же клавишу клавиатура может присылать через несколько интерфейсов
+    # (провод и донгл, boot и NKRO). Ключ нажатия — только код клавиши, а повтор
+    # тапа в пределах debounce считается дублем того же нажатия.
+    def __init__(self, threshold=0.4, debounce=0.15):
         self.threshold = threshold
+        self.debounce = debounce
         self.started = None
         self.cancelled = False
         self.held = set()
+        self.last_tap = None
 
     def cancel(self):
         self.cancelled = True
@@ -37,6 +53,10 @@ class TapDetector:
         tapped = (self.started is not None and not self.cancelled
                   and 0 <= now - self.started <= self.threshold)
         self.started = None
+        if tapped:
+            if self.last_tap is not None and 0 <= now - self.last_tap < self.debounce:
+                return False
+            self.last_tap = now
         return tapped
 
     def reset(self):
@@ -103,12 +123,26 @@ def run():
         keyboard = any(meta & set(d.capabilities().get(e.EV_KEY, [])) for d in devices.values())
         report('ready' if keyboard else 'permission-denied' if denied else 'no-keyboard')
 
+    def meta_down():
+        for d in devices.values():
+            try:
+                if meta & set(d.active_keys()):
+                    return True
+            except OSError:
+                return True
+        return False
+
     next_scan = 0
     while True:
         if time.monotonic() >= next_scan:
             scan()
             next_scan = time.monotonic() + 3
-        for selected, _ in selector.select(timeout=1):
+        ready = selector.select(timeout=1)
+        if not ready and detector.held and not meta_down():
+            # Отпускание потерялось (смена соединения клавиатуры, SYN_DROPPED между опросами).
+            # Иначе устаревшее нажатие глушит каждое следующее.
+            detector.reset()
+        for selected, _ in ready:
             device = selected.fileobj
             try:
                 events = list(device.read())
@@ -119,7 +153,7 @@ def run():
                 if event.type == e.EV_SYN and event.code == e.SYN_DROPPED:
                     detector.reset()
                 elif event.type == e.EV_KEY and event.code in meta:
-                    key = (device.path, event.code)
+                    key = event.code
                     if event.value == 1:
                         try:
                             other = any(set(d.active_keys()) - meta for d in devices.values())
@@ -129,7 +163,7 @@ def run():
                     elif event.value == 0 and detector.release(key, time.monotonic()):
                         if session_unlocked():
                             print('tap', flush=True)
-                elif event.type == e.EV_KEY or event.type == e.EV_REL:
+                elif cancels_tap(event.type, event.code, e.EV_KEY, e.EV_REL):
                     detector.cancel()
 
 
