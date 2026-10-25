@@ -1,0 +1,187 @@
+{
+ "width": 864,
+ "height": 1152,
+ "layers": [
+  {
+   "name": "body_lower",
+   "file": "body_lower.png",
+   "x": 210,
+   "y": 402,
+   "w": 535,
+   "h": 687,
+   "z": 0
+  },
+  {
+   "name": "body_torso",
+   "file": "body_torso.png",
+   "x": 210,
+   "y": 239,
+   "w": 437,
+   "h": 185,
+   "z": 1
+  },
+  {
+   "name": "hair_left_1",
+   "file": "hair_left_1.png",
+   "x": 237,
+   "y": 206,
+   "w": 160,
+   "h": 160,
+   "z": 2
+  },
+  {
+   "name": "hair_left_2",
+   "file": "hair_left_2.png",
+   "x": 210,
+   "y": 344,
+   "w": 189,
+   "h": 100,
+   "z": 3
+  },
+  {
+   "name": "hair_left_3",
+   "file": "hair_left_3.png",
+   "x": 231,
+   "y": 423,
+   "w": 167,
+   "h": 102,
+   "z": 4
+  },
+  {
+   "name": "hair_right_1",
+   "file": "hair_right_1.png",
+   "x": 452,
+   "y": 206,
+   "w": 137,
+   "h": 180,
+   "z": 5
+  },
+  {
+   "name": "hair_right_2",
+   "file": "hair_right_2.png",
+   "x": 452,
+   "y": 364,
+   "w": 154,
+   "h": 140,
+   "z": 6
+  },
+  {
+   "name": "scarf_neck",
+   "file": "scarf_neck.png",
+   "x": 404,
+   "y": 251,
+   "w": 78,
+   "h": 53,
+   "z": 7
+  },
+  {
+   "name": "scarf_1",
+   "file": "scarf_1.png",
+   "x": 453,
+   "y": 279,
+   "w": 122,
+   "h": 162,
+   "z": 8
+  },
+  {
+   "name": "scarf_2",
+   "file": "scarf_2.png",
+   "x": 551,
+   "y": 394,
+   "w": 132,
+   "h": 167,
+   "z": 9
+  },
+  {
+   "name": "scarf_3",
+   "file": "scarf_3.png",
+   "x": 659,
+   "y": 431,
+   "w": 81,
+   "h": 90,
+   "z": 10
+  },
+  {
+   "name": "head",
+   "file": "head.png",
+   "x": 329,
+   "y": 65,
+   "w": 217,
+   "h": 240,
+   "z": 11
+  },
+  {
+   "name": "scarf_neck",
+   "file": "scarf_neck.png",
+   "x": 404,
+   "y": 251,
+   "w": 78,
+   "h": 53,
+   "z": 12
+  },
+  {
+   "name": "pin_moon",
+   "file": "pin_moon.png",
+   "x": 451,
+   "y": 148,
+   "w": 37,
+   "h": 30,
+   "z": 13
+  },
+  {
+   "name": "ear_left",
+   "file": "ear_left.png",
+   "x": 337,
+   "y": 86,
+   "w": 60,
+   "h": 89,
+   "z": 14
+  },
+  {
+   "name": "ear_right",
+   "file": "ear_right.png",
+   "x": 417,
+   "y": 64,
+   "w": 66,
+   "h": 93,
+   "z": 15
+  },
+  {
+   "name": "pin_dangle",
+   "file": "pin_dangle.png",
+   "x": 455,
+   "y": 175,
+   "w": 31,
+   "h": 39,
+   "z": 16
+  },
+  {
+   "name": "lid_left",
+   "file": "lid_left.png",
+   "x": 387,
+   "y": 199,
+   "w": 30,
+   "h": 23,
+   "z": 17
+  },
+  {
+   "name": "lid_right",
+   "file": "lid_right.png",
+   "x": 426,
+   "y": 188,
+   "w": 37,
+   "h": 25,
+   "z": 18
+  }
+ ],
+ "pivots": {
+  "ear_left": [
+   375,
+   155
+  ],
+  "ear_right": [
+   448,
+   133
+  ]
+ }
+}
