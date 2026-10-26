@@ -201,6 +201,14 @@ ShellRoot {
                         "compact appearance scroll reveals keyboard focus")
                     openKey("naomi")
                     test.check(currentPage === 25, "dedicated Naomi page opens")
+                    const styleControl = test.findItem(view, "settingsNaomiStyle")
+                    const naomiPreview = test.findItem(view, "naomiPreview")
+                    styleControl.activated("current")
+                    test.check(settings.companionStyle === "current" && naomiPreview.illustrationHeight === 534,
+                        "current artwork selected through settings")
+                    styleControl.activated("pixel-art")
+                    test.check(settings.companionStyle === "pixel-art" && naomiPreview.illustrationHeight === 400,
+                        "approved pixel artwork selected through settings")
                     const companionControl = test.findItem(view, "settingsCompanionToggle")
                     companionControl.forceActiveFocus()
                     input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
@@ -284,6 +292,8 @@ ShellRoot {
                     test.intervalRequests++;
                     settings.update({weatherRefreshMinutes: minutes});
                 }
+                companionStyle: settings.companionStyle
+                onCompanionStyleChangedRequested: style => settings.update({companionStyle: style})
                 companionEnabled: settings.companionEnabled
                 onCompanionChangedRequested: enabled => settings.update({companionEnabled: enabled})
                 companionDesktopOnly: settings.companionDesktopOnly
@@ -365,6 +375,11 @@ ShellRoot {
                     test.check(settings.topReserved === 4 && settings.bottomReserved === 0, "normalize loaded reservations");
                     test.check(settings.autoHideTop === false && settings.animationsEnabled === true && settings.weatherCity === "", "invalid and missing fields use defaults");
                     test.check(!settings.dirty, "load normalization does not write");
+                    test.check(settings.companionStyle === "current", "existing Naomi remains the default");
+                    settings.update({companionStyle: "pixel-art"});
+                    test.check(settings.companionStyle === "pixel-art", "pixel-art style applies immediately");
+                    settings.update({companionStyle: "unknown"});
+                    test.check(settings.companionStyle === "current", "invalid style uses the existing artwork");
                     test.check(!settings.companionEnabled, "companion defaults off");
                     test.check(!settings.companionDesktopOnly, "desktop-only defaults off");
                     settings.update({companionDesktopOnly: "yes"});
@@ -467,6 +482,7 @@ ShellRoot {
                     test.finish();
                 } else if (test.scenario === "restore") {
                     test.check(settings.weatherCity === "Москва" && settings.topReserved === 200 && !settings.animationsEnabled && settings.weatherRefreshMinutes === 30 && settings.surfaceStyle === "frosted" && settings.startIconStyle === "fox", "restored values");
+                    test.check(settings.companionStyle === "pixel-art", "selected artwork restored after restart");
                     test.check(settings.companionEnabled, "companion restored after restart");
                     test.check(settings.companionDesktopOnly, "desktop-only restored after restart");
                     test.check(!settings.companionReactToPointer, "pointer reaction restored after restart");
@@ -584,6 +600,7 @@ ShellRoot {
                         "surfaceStyle": "frosted",
                         "startIconStyle": "fox",
                         "companionEnabled": true,
+                        "companionStyle": "pixel-art",
                         "companionDesktopOnly": true,
                         "companionReactToPointer": false,
                         "companionSystemLines": false,

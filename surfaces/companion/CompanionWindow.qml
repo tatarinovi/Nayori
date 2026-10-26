@@ -6,6 +6,8 @@ import Quickshell.Wayland
 PanelWindow {
     id: root
     required property var tokens
+    property string companionStyle: "current"
+    readonly property int designHeight: companionStyle === "pixel-art" ? 400 : 534
     property int bottomInset: 88
     property bool animationsEnabled: true
     // true: за окнами, над обоями; false: поверх окон (но под меню, лаунчером и панелью)
@@ -20,9 +22,9 @@ PanelWindow {
     readonly property int bubbleSpace: 128
     readonly property real companionScale: Math.max(0.1, Math.min(1,
         (screen ? screen.width - 32 : 280) / 280,
-        (screen ? screen.height - bottomInset - 48 - bubbleSpace : 534) / 534))
+        (screen ? screen.height - bottomInset - 48 - bubbleSpace : designHeight) / designHeight))
     readonly property int illustrationWidth: Math.round(280 * companionScale)
-    readonly property int illustrationHeight: Math.round(534 * companionScale)
+    readonly property int illustrationHeight: Math.round(designHeight * companionScale)
 
     // Сама Naomi с облаком и поглаживанием; нужна тестам и снимкам.
     readonly property alias scene: companion
@@ -75,6 +77,7 @@ PanelWindow {
 
     NaomiCompanion {
         id: companion
+        companionStyle: root.companionStyle
         tokens: root.tokens
         anchors.fill: parent
         active: true

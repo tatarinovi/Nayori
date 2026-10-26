@@ -21,6 +21,7 @@ QtObject {
     readonly property string surfaceStyle: values.surfaceStyle
     readonly property string accentMode: values.accentMode
     readonly property string manualAccent: values.manualAccent
+    readonly property string companionStyle: values.companionStyle
     readonly property bool companionEnabled: values.companionEnabled
     readonly property bool companionDesktopOnly: values.companionDesktopOnly
     readonly property bool companionReactToPointer: values.companionReactToPointer
@@ -141,6 +142,7 @@ QtObject {
             "bottomReserved": 0,
             "animationsEnabled": true,
             "companionEnabled": false,
+            "companionStyle": "current",
             "companionDesktopOnly": false,
             "companionReactToPointer": true,
             "companionSystemLines": true,
@@ -175,6 +177,9 @@ QtObject {
 
         if (key === "startIconStyle")
             return value === "current" || value === "fox" ? value : fallback;
+
+        if (key === "companionStyle")
+            return value === "current" || value === "pixel-art" ? value : fallback;
 
         if (key === "surfaceStyle")
             return value === "solid" || value === "frosted" ? value : fallback;

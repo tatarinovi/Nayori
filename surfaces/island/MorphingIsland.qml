@@ -28,7 +28,7 @@ Rectangle {
     onActiveChanged: updateMusicConsumer()
     onVisibleChanged: updateMusicConsumer()
     onExpandedChanged: {
-        if (expanded) notificationPage = false
+        if (expanded) notificationPage = !!notifications && notifications.unreadCount > 0
         updateNotificationView()
         updateMusicConsumer()
     }
@@ -40,6 +40,7 @@ Rectangle {
     }
     property bool active: true
     property bool expanded: false
+    readonly property bool popupOpen: !!dashboard.item && dashboard.item.popupOpen
     property bool launcherOpen: false
     readonly property int launcherWidth: 640
     // One blend, retargeted. Rapid Alt+Space does not queue a second morph.
@@ -119,9 +120,11 @@ Rectangle {
     readonly property bool searchFocused: launcherLoader.item ? launcherLoader.item.inputFocused : false
     readonly property var listSource: launcherLoader.item
     readonly property bool listOpen: root.launcherOpen && root.listSource && root.listSource.listWanted
-    readonly property bool lyricsClock: compact.showingLyrics
+    readonly property var compactPlayer: compact.controlPlayer
+    readonly property bool compactControls: !!compact.controlPlayer && !expanded && progress === 0 && !launcherOpen && launcherBlend === 0
+    readonly property bool lyricsClock: !expanded && progress === 0
+        && (compact.showingLyrics || compact.showingNotification)
         && !compact.showingVolume
-        && !compact.showingNotification
         && !root.launcherOpen
         && root.launcherBlend === 0
     function focusSearch() {

@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import "../../services/island/IslandRow.js" as RowPlan
 import Quickshell.Services.Mpris
 import "../../services/status"
 
@@ -83,14 +84,52 @@ Rectangle {
     readonly property bool showingVolume: volumeTimeout.running
     property bool audioInitialized: false
 
+    property var heldPlayer: null
+    readonly property bool heldAlive: !!heldPlayer && (musicService ? musicService.player === heldPlayer : !testMode && Mpris.players.values.indexOf(heldPlayer) >= 0)
+    readonly property var controlPlayer: player || (heldAlive && pauseHold.running ? heldPlayer : null)
+    onPlayerChanged: {
+        if (player) { heldPlayer = player; pauseHold.stop() }
+        else if (heldPlayer) pauseHold.restart()
+    }
+    Timer { id: pauseHold; interval: 10000 }
+    readonly property var pending: notifications ? notifications.pending : []
+    readonly property var rowPlan: RowPlan.plan({
+        yielded: contentYielded || expansionProgress >= 0.01,
+        volume: showingVolume, notification: showingNotification,
+        lyrics: showingLyrics, title: playingTitle, controls: !!controlPlayer,
+        pending: pending.length
+    })
+    readonly property var rowMetrics: ({ pad: 6, right: 12, plus: 12, icon: 18, iconGap: 3, clock: 64, controls: 84 })
+    readonly property var rowTail: RowPlan.tail(rowPlan, rowMetrics)
+    readonly property var rowSize: RowPlan.size(notification ? Math.min(mainWidth, 520 - rowTail.width) : mainWidth, rowTail.width, notification ? 240 : 336)
+    readonly property real contentWidth: expansionProgress < 0.01 ? Math.max(0, width - rowTail.width) : width
     // Grow modestly for music; long titles still scroll within a bounded slot.
-    readonly property real compactWidth: playingTitle.length > 0
+    readonly property real compactWidth: rowSize.total
+    readonly property string notificationText: notification ? String(notification.body || "").replace(/\s+/g, " ").trim() : ""
+    readonly property real mainWidth: notification
+        ? Math.min(520, Math.max(240, notificationMetrics.advanceWidth + 68, notificationSourceMetrics.advanceWidth + 68))
+        : playingTitle.length > 0
         ? Math.min(448, Math.max(400, titleMetrics.advanceWidth * 2 + 140)) : 352
     TextMetrics {
         id: titleMetrics
         text: root.playingTitle
         font.family: root.tokens.type.body.family
         font.pixelSize: root.tokens.type.body.size
+        font.weight: root.tokens.type.body.weight
+    }
+
+    TextMetrics {
+        id: notificationMetrics
+        text: root.notificationText
+        font.family: root.tokens.type.body.family
+        font.pixelSize: root.tokens.type.body.size
+        font.weight: root.tokens.type.body.weight
+    }
+    TextMetrics {
+        id: notificationSourceMetrics
+        text: root.notification ? (root.notification.appName + " · " + root.notification.summary).replace(/\s+/g, " ").trim() : ""
+        font.family: root.tokens.type.body.family
+        font.pixelSize: 12
         font.weight: root.tokens.type.body.weight
     }
 
@@ -192,14 +231,14 @@ Rectangle {
 
     Item {
         id: restingContent
-        anchors.fill: parent
+        width: root.contentWidth; height: parent.height
         readonly property real sideWidth: Math.max(clockLabel.implicitWidth, dateLabel.implicitWidth)
         readonly property real elementGap: Math.max(0,
             (width - 44 - sideWidth * 2 - fox.width - 2) / 4)
         // Music uses more of the side slots while preserving equal fox gutters.
         readonly property real foxGap: root.playingTitle.length > 0
             ? Math.min(32, elementGap) : elementGap
-        opacity: root.contentYielded || root.showingVolume || root.showingNotification ? 0 : 1 - root.lyricProgress
+        opacity: root.contentYielded || root.rowPlan.main === "volume" || root.showingNotification ? 0 : 1 - root.lyricProgress
         visible: opacity > 0
         Behavior on opacity {
             NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast }
@@ -291,6 +330,7 @@ Rectangle {
             }
         }
         MarqueeText {
+            loop: false
             x: fox.x + fox.width + restingContent.foxGap + 16
             width: Math.max(0, parent.width - x - 16)
             height: parent.height
@@ -304,26 +344,25 @@ Rectangle {
 
     MarqueeText {
         id: compactLyricsText
+        loop: false
         animateLines: true
         objectName: "compactMusicLyrics"
-        anchors.fill: parent
-        anchors.leftMargin: 22
-        anchors.rightMargin: 22
+        x: 22; width: root.contentWidth - 44; height: parent.height
         tokens: root.tokens
         centered: true
         text: root.compactLyricText
         words: root.lyrics && root.lyrics.status === "synced" ? root.lyrics.currentWords || [] : []
         position: root.lyrics && typeof root.lyrics.position === "number" ? root.lyrics.position : 0
         lineEnd: root.lyricEnd
-        opacity: root.contentYielded || root.showingVolume || root.showingNotification ? 0 : root.lyricProgress
+        opacity: root.contentYielded || root.rowPlan.main === "volume" || root.showingNotification ? 0 : root.lyricProgress
         visible: opacity > 0
         active: root.active && root.showingLyrics && visible
         transform: Translate { x: root.tokens.motion.off ? 0 : 24 * (1 - root.lyricProgress) }
     }
 
     Item {
-        anchors.fill: parent
-        opacity: root.showingVolume && !root.showingNotification && !root.contentYielded ? 1 : 0
+        width: root.contentWidth; height: parent.height
+        opacity: root.showingVolume && !root.contentYielded ? 1 : 0
         visible: opacity > 0
         Behavior on opacity {
             NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast }
@@ -359,27 +398,33 @@ Rectangle {
     }
 
     Item {
-        anchors.fill: parent
-        opacity: root.showingNotification && !root.contentYielded ? 1 : 0
+        width: root.contentWidth; height: parent.height
+        opacity: root.showingNotification && !root.showingVolume && !root.contentYielded ? 1 : 0
         visible: opacity > 0
         Behavior on opacity { NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast } }
-        Image {
-            id: notificationIcon
+        NotificationIcon {
+            id: pinnedIcon
+            objectName: "compactNotificationIcon"
             x: 16; anchors.verticalCenter: parent.verticalCenter
-            width: 24; height: 24
-            source: root.notification && root.notification.appIcon ? Quickshell.iconPath(root.notification.appIcon) : ""
-            fillMode: Image.PreserveAspectFit
+            tokens: root.tokens; record: root.notification || ({}); size: 24
         }
         Column {
             x: 50; width: parent.width - 68; anchors.verticalCenter: parent.verticalCenter
             IslandText {
+                objectName: "compactNotificationSource"
+                wrapMode: Text.NoWrap
                 width: parent.width; elide: Text.ElideRight; font.pixelSize: 12
                 color: root.tokens.color.textMuted
-                text: root.notification ? root.notification.appName + " · " + root.notification.summary : ""
+                text: root.notification ? (root.notification.appName + " · " + root.notification.summary).replace(/\s+/g, " ").trim() : ""
             }
-            IslandText {
-                width: parent.width; elide: Text.ElideRight
-                text: root.notification ? root.notification.body : ""
+            MarqueeText {
+                objectName: "compactNotificationText"
+                visible: text !== ""
+                tokens: root.tokens
+                ink: root.tokens.color.text
+                width: parent.width; height: root.tokens.type.body.size + 4
+                text: root.notificationText
+                active: root.active && root.showingNotification && !root.showingVolume && !root.contentYielded
             }
         }
     }
@@ -402,6 +447,45 @@ Rectangle {
                 wheel.accepted = false
             }
         }
+    }
+    Item {
+        id: tail
+        objectName: "compactTail"
+        x: root.contentWidth; width: root.rowTail.width; height: parent.height
+        visible: !root.rowPlan.hidden
+        z: 2
+        Repeater {
+            model: root.rowTail.dividers
+            Rectangle {
+                required property real modelData
+                x: modelData; width: 1; height: 14
+                anchors.verticalCenter: parent.verticalCenter
+                color: root.tokens.color.accentSoft; opacity: 0.6
+            }
+        }
+        Row {
+            x: root.rowTail.x.icons || 0
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: root.rowMetrics.iconGap
+            visible: root.rowPlan.icons > 0
+            Item {
+                width: root.rowMetrics.plus; height: root.rowMetrics.icon
+                Glyph {
+                    anchors.centerIn: parent
+                    width: 12; height: 12
+                    name: "plus"
+                    ink: root.tokens.color.textMuted
+                }
+            }
+            Repeater {
+                model: root.rowPlan.icons
+                NotificationIcon {
+                    required property int index
+                    tokens: root.tokens; record: root.pending[index] || ({}); size: 18
+                }
+            }
+        }
+
     }
     IslandBeatBorder {
         anchors.fill: parent

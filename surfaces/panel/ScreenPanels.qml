@@ -25,6 +25,19 @@ Scope {
     readonly property string screenName: panelScreen ? panelScreen.name : ""
     property bool expandedOpened: false
     property bool dashboardHoverBlocked: false
+    readonly property bool dashboardPointerInside: topHover.hovered || capsule.popupOpen
+    onDashboardPointerInsideChanged: {
+        if (dashboardPointerInside) {
+            dashboardCloseDelay.stop()
+            if (!dashboardHoverBlocked && !expandedOpened)
+                dashboardOpenDelay.restart()
+        } else {
+            dashboardHoverBlocked = false
+            dashboardOpenDelay.stop()
+            if (expandedOpened)
+                dashboardCloseDelay.restart()
+        }
+    }
     readonly property bool launcherHere: shellState.launcherOpened
         && panelScreen !== null
         && panelScreen === shellState.currentOverlayScreen
@@ -98,7 +111,7 @@ Scope {
         id: dashboardOpenDelay
         interval: 400
         onTriggered: {
-            if (topHover.hovered && !root.dashboardHoverBlocked
+            if (root.dashboardPointerInside && !root.dashboardHoverBlocked
                     && !root.shellState.launcherOpened)
                 root.expandedOpened = true
         }
@@ -107,7 +120,7 @@ Scope {
         id: dashboardCloseDelay
         interval: 600
         onTriggered: {
-            if (!topHover.hovered)
+            if (!root.dashboardPointerInside)
                 root.expandedOpened = false
         }
     }
@@ -245,23 +258,12 @@ Scope {
                 height: capsule.implicitHeight
             })
             available: root.topEnabled
-            pointerInside: topHover.hovered || topTrigger.hovered
+            pointerInside: root.dashboardPointerInside || mediaHover.hovered || topTrigger.hovered
             heldOpen: root.expandedOpened || root.launcherHere
         }
         HoverHandler {
             id: topHover
-            onHoveredChanged: {
-                if (hovered) {
-                    dashboardCloseDelay.stop()
-                    if (!root.dashboardHoverBlocked)
-                        dashboardOpenDelay.restart()
-                } else {
-                    root.dashboardHoverBlocked = false
-                    dashboardOpenDelay.stop()
-                    if (root.expandedOpened)
-                        dashboardCloseDelay.restart()
-                }
-            }
+            parent: capsule
         }
         property bool animateReady: false
         property real revealOpacity: topVisibility.shown ? 1 : 0
@@ -289,7 +291,7 @@ Scope {
         anchors.left: false
         anchors.right: false
         margins.top: root.tokens.spacing.small
-        implicitWidth: 712
+        implicitWidth: Math.max(712, capsule.closedWidth + 2 * (Math.max(lyricClock.width, mediaControls.width) + root.tokens.spacing.small))
         implicitHeight: 522
         onVisibleChanged: {
             if (visible && root.launcherHere)
@@ -320,14 +322,37 @@ Scope {
             onActivated: root.shellState.launcherOpened = false
         }
 
-        Region { id: islandGlass; item: capsule; radius: Math.round(capsule.radius) }
+        Region {
+            id: islandGlass
+            Region { item: capsule; radius: Math.round(capsule.radius) }
+            // Explicit bounds: Region.item keeps the item's geometry even while it is hidden.
+            Region {
+                x: Math.round(lyricClock.x)
+                y: Math.round(lyricClock.y)
+                width: lyricClock.visible ? Math.round(lyricClock.width) : 0
+                height: lyricClock.visible ? Math.round(lyricClock.height) : 0
+                radius: 24
+            }
+            // Explicit bounds: Region.item keeps the item's geometry even while it is hidden.
+            Region {
+                x: Math.round(mediaControls.x)
+                y: Math.round(mediaControls.y)
+                width: mediaControls.visible ? Math.round(mediaControls.width) : 0
+                height: mediaControls.visible ? Math.round(mediaControls.height) : 0
+                radius: 24
+            }
+        }
         BackgroundEffect.blurRegion: root.tokens.frosted ? islandGlass : null
         mask: Region {
-            x: Math.round(capsule.x)
-            y: Math.round(capsule.y)
-            width: Math.max(0, Math.round(capsule.width))
-            height: Math.max(0, Math.round(capsule.height))
-            radius: Math.round(capsule.radius)
+            Region { item: capsule; radius: Math.round(capsule.radius) }
+            // Explicit bounds: Region.item keeps the item's geometry even while it is hidden.
+            Region {
+                x: Math.round(mediaControls.x)
+                y: Math.round(mediaControls.y)
+                width: mediaControls.visible ? Math.round(mediaControls.width) : 0
+                height: mediaControls.visible ? Math.round(mediaControls.height) : 0
+                radius: 24
+            }
         }
 
         RectangularShadow {
@@ -386,50 +411,29 @@ Scope {
             }
         }
 
-        // Lyrics push the clock out of the island. One reveal, retargeted.
-        Rectangle {
+        CompactMediaControls {
+            id: mediaControls
+            z: 2
+            tokens: root.tokens
+            player: capsule.compactPlayer
+            showing: capsule.compactControls
+            anchors.verticalCenter: capsule.verticalCenter
+            anchors.left: capsule.right
+            anchors.leftMargin: root.tokens.spacing.small
+            opacity: reveal * islandWindow.revealOpacity
+            HoverHandler { id: mediaHover }
+        }
+
+        CompactClock {
             id: lyricClock
             z: 2
-            visible: reveal > 0.001
-            height: 48
-            radius: height / 2
-            width: lyricClockText.implicitWidth + root.tokens.spacing.medium * 2
-            color: root.tokens.material.island
-            border.width: 1
-            border.color: root.tokens.color.border
-            antialiasing: true
+            tokens: root.tokens
+            showing: capsule.lyricsClock
+            active: islandWindow.visible
             anchors.verticalCenter: capsule.verticalCenter
             anchors.right: capsule.left
             anchors.rightMargin: root.tokens.spacing.small
-            property real reveal: capsule.lyricsClock ? 1 : 0
-            Behavior on reveal {
-                NumberAnimation {
-                    duration: root.tokens.motion.off ? 0 : root.tokens.motion.base
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
-                }
-            }
-            opacity: reveal
-            transform: Translate {
-                x: root.tokens.motion.off ? 0 : (1 - lyricClock.reveal) * root.tokens.spacing.small
-            }
-            SystemClock {
-                id: lyricClockTime
-                precision: SystemClock.Seconds
-                enabled: lyricClock.visible
-            }
-            Text {
-                id: lyricClockText
-                anchors.centerIn: parent
-                text: Qt.formatTime(lyricClockTime.date, "HH:mm:ss")
-                color: root.tokens.color.text
-                font.family: root.tokens.type.body.family
-                font.pixelSize: 16
-                font.weight: root.tokens.type.body.weight
-                font.letterSpacing: 0.4
-                renderType: Text.NativeRendering
-                textFormat: Text.PlainText
-            }
+            opacity: reveal * islandWindow.revealOpacity
         }
     }
 

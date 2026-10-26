@@ -9,6 +9,7 @@ import "../../services/companion"
 Item {
     id: root
     required property var tokens
+    property string companionStyle: "current"
     property bool active: true
     property bool animationsEnabled: true
     // Реагировать на курсор: поза поглаживания и реплики на неё.
@@ -19,7 +20,7 @@ Item {
     // Комментировать системные события (CPU, окна, батарея, сеть, обновление). Предпросмотр в настройках — нет.
     property bool systemLines: false
     property real illustrationWidth: 280
-    property real illustrationHeight: 534
+    property real illustrationHeight: companionStyle === "pixel-art" ? 400 : 534
 
     // Место сверху под облачко: всё, что выше иллюстрации.
     readonly property real bubbleSpace: Math.max(0, height - illustrationHeight)
@@ -49,8 +50,9 @@ Item {
         onSpoke: text => root.spoke(text)
     }
 
-    NaomiIllustration {
+    NaomiArtwork {
         id: art
+        style: root.companionStyle
         tokens: root.tokens
         x: (root.width - width) / 2
         y: root.height - height

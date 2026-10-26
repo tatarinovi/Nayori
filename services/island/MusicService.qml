@@ -174,8 +174,9 @@ QtObject {
     }
     property Timer settle: Timer { interval: 350; onTriggered: root.ensure() }
     property Timer positionClock: Timer {
-        interval: 80; repeat: true
-        running: root.wanted && root.status === "synced" && !!root.player && root.player.isPlaying && root.player.positionSupported !== false
+        interval: root.status === "synced" ? 80 : 250
+        repeat: true
+        running: root.wanted && !!root.player && root.player.isPlaying && root.player.positionSupported !== false
         onTriggered: root.syncPosition(true)
     }
     property Timer retryClock: Timer {

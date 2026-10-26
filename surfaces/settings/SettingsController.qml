@@ -148,6 +148,8 @@ QtObject {
             accentStatus: root.accentStatus
             accentPreview: root.tokens.color.accent
             accentCandidates: root.accentCandidates
+            companionStyle: root.settingsService.companionStyle
+            onCompanionStyleChangedRequested: style => root.settingsService.update({companionStyle: style})
             companionEnabled: root.settingsService.companionEnabled
             onCompanionChangedRequested: enabled => root.settingsService.update({companionEnabled: enabled})
             companionDesktopOnly: root.settingsService.companionDesktopOnly

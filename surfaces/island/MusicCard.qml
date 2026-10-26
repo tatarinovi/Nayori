@@ -9,17 +9,43 @@ IslandCard {
     property var player: null
     property var players: []
     property var lyrics: null
+    readonly property bool popupOpen: sourceMenu.visible
+    onVisibleChanged: if (!visible) sourceMenu.close()
     signal playerSelected(var selected)
     onPlayersChanged: { if (!players.length) sourceMenu.close() }
     property bool lyricsEnabled: !lyrics || typeof lyrics.lyricsEnabled !== "boolean" ? true : lyrics.lyricsEnabled
     readonly property bool hasLyrics: !!lyrics && ((lyrics.status === "synced" && lyrics.lines && lyrics.lines.length > 0) || (lyrics.status === "plain" && !!lyrics.plainText))
-    readonly property bool lyricMode: hasLyrics && lyricsEnabled
+    readonly property bool lyricPending: !!player && !!lyrics && (lyrics.status === "idle" || lyrics.status === "loading")
+    property bool lyricMode: false
+    // Lookup resets its data before fetching the next track. Keep the current
+    // layout during that interval instead of sliding out and immediately back.
+    function updateLyricMode() {
+        if (!player || !lyrics || !lyricsEnabled) lyricMode = false
+        else if (lyrics.status !== "idle" && lyrics.status !== "loading")
+            lyricMode = (lyrics.status === "synced" && !!lyrics.lines && lyrics.lines.length > 0) ||
+                (lyrics.status === "plain" && !!lyrics.plainText)
+    }
+    onHasLyricsChanged: updateLyricMode()
+    onLyricPendingChanged: updateLyricMode()
+    onLyricsEnabledChanged: updateLyricMode()
+    onPlayerChanged: updateLyricMode()
+    onLyricsChanged: updateLyricMode()
+    Component.onCompleted: updateLyricMode()
     readonly property bool metadataVisible: !lyricMode
     property real lyricProgress: lyricMode ? 1 : 0
     Behavior on lyricProgress { NumberAnimation { duration: root.tokens.motion.off ? 0 : 250; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.77, 0, 0.175, 1, 1, 1] } }
-    readonly property real trackProgress: player && player.length > 0 && lyrics && typeof lyrics.position === "number"
-        ? Math.max(0, Math.min(1, lyrics.position / player.length)) : 0
+    readonly property real trackDuration: player && player.lengthSupported !== false && isFinite(Number(player.length)) ? Math.max(0, Number(player.length) || 0) : 0
+    readonly property bool positionKnown: !!player && player.positionSupported !== false &&
+        ((!!lyrics && typeof lyrics.position === "number" && isFinite(lyrics.position)) ||
+         (typeof player.position === "number" && isFinite(player.position)))
+    readonly property real trackPosition: !positionKnown ? 0 : Math.max(0,
+        lyrics && typeof lyrics.position === "number" && isFinite(lyrics.position) ? lyrics.position : player.position)
+    readonly property real trackProgress: trackDuration > 0 && positionKnown ? Math.min(1, trackPosition / trackDuration) : 0
     readonly property real controlsBottom: controls.y + controls.height
+    function timeLabel(seconds) {
+        const value = Math.floor(Math.max(0, seconds))
+        return Math.floor(value / 60) + ":" + String(value % 60).padStart(2, "0")
+    }
     function canScrollLyrics(delta) {
         return lyricMode && lyrics.status === "plain" && lyricHover.hovered &&
                 ((delta < 0 && plainLyrics.contentY < plainLyrics.contentHeight - plainLyrics.height - 1) || (delta > 0 && plainLyrics.contentY > 1))
@@ -33,38 +59,82 @@ IslandCard {
         return ""
     }
     AlbumBackdrop { anchors.fill: parent; tokens: root.tokens; radius: root.radius; source: root.player ? root.player.trackArtUrl : "" }
-    ColumnLayout {
+    Item {
         anchors.fill: parent
-        anchors.margins: 12
-        spacing: 4
         RowLayout {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 16
-            IslandLabel { tokens: root.tokens; text: "Музыка"; font.pixelSize: 12; color: root.tokens.color.textMuted; Layout.fillWidth: true }
+            id: header
+            anchors { top: parent.top; left: parent.left; right: parent.right; margins: 12 }
+            height: 18
+            spacing: 8
+            IslandLabel {
+                objectName: "musicHeading"
+                tokens: root.tokens
+                text: root.lyricMode && root.player ? (root.player.trackTitle || "Без названия") + (root.player.trackArtist ? " · " + root.player.trackArtist : "") : "Музыка"
+                font.pixelSize: 12
+                color: root.tokens.color.textMuted
+                Layout.fillWidth: true
+                elide: Text.ElideRight
+                wrapMode: Text.NoWrap
+            }
             AbstractButton {
                 id: sourceButton
                 objectName: "musicSourceButton"
                 enabled: root.players.length > 0
                 visible: root.player !== null
                 text: root.player ? root.player.identity : ""
-                implicitWidth: Math.min(160, contentItem.implicitWidth + 12)
-                implicitHeight: 22
+                Layout.maximumWidth: root.width * 0.38
+                implicitWidth: Math.min(120, contentItem.implicitWidth)
+                implicitHeight: 18
                 focusPolicy: Qt.StrongFocus
                 hoverEnabled: true
                 Accessible.name: "Источник музыки: " + text
                 Accessible.description: "Выбрать активный плеер"
                 onClicked: sourceMenu.open()
-                background: Rectangle { radius: root.tokens.radius.small; color: sourceButton.hovered ? Qt.alpha(root.tokens.color.surfaceAlt, 0.6) : "transparent"; border.width: sourceButton.visualFocus ? 1 : 0; border.color: root.tokens.color.accent }
-                contentItem: IslandLabel { tokens: root.tokens; text: sourceButton.text + " ▾"; font.pixelSize: 12; color: root.tokens.color.textMuted; elide: Text.ElideRight; horizontalAlignment: Text.AlignRight; verticalAlignment: Text.AlignVCenter; maximumLineCount: 1 }
+                background: Rectangle {
+                    radius: root.tokens.radius.small
+                    color: sourceMenu.opened ? Qt.alpha(root.tokens.color.accent, 0.16)
+                        : sourceButton.hovered ? Qt.alpha(root.tokens.color.surfaceAlt, 0.6) : Qt.alpha(root.tokens.color.background, 0.2)
+                    border.width: 1
+                    border.color: sourceMenu.opened || sourceButton.visualFocus ? root.tokens.color.accent : Qt.alpha(root.tokens.color.border, 0.4)
+                }
+                contentItem: Item {
+                    implicitWidth: sourceLabel.implicitWidth + 30
+                    IslandLabel {
+                        id: sourceLabel
+                        tokens: root.tokens
+                        anchors { left: parent.left; right: sourceChevron.left; top: parent.top; bottom: parent.bottom; leftMargin: 6; rightMargin: 4 }
+                        text: sourceButton.text
+                        font.pixelSize: 12
+                        color: sourceMenu.opened ? root.tokens.color.accent : root.tokens.color.textMuted
+                        elide: Text.ElideRight
+                        wrapMode: Text.NoWrap
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    MusicTransportIcon {
+                        id: sourceChevron
+                        anchors { right: parent.right; verticalCenter: parent.verticalCenter; rightMargin: 6 }
+                        width: 12; height: 12; stroke: 1.7
+                        name: sourceMenu.opened ? "chevronUp" : "chevronDown"
+                        ink: sourceLabel.color
+                    }
+                }
                 Menu {
                     id: sourceMenu
                     objectName: "musicSourceMenu"
                     x: sourceButton.width - width
-                    y: sourceButton.height + 4
-                    width: 220
+                    y: sourceButton.height + 8
+                    width: Math.min(248, root.width - 24)
                     padding: 6
                     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-                    background: Rectangle { radius: root.tokens.radius.medium; color: root.tokens.color.surface; border.width: 1; border.color: root.tokens.color.border }
+                    onOpened: currentIndex = root.players.indexOf(root.player)
+                    background: Rectangle {
+                        radius: root.tokens.radius.medium
+                        color: root.tokens.material.menu
+                        border.width: 1
+                        border.color: Qt.alpha(root.tokens.color.border, 0.65)
+                    }
+                    enter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast } }
+                    exit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast } }
                     Instantiator {
                         model: root.players
                         delegate: MenuItem {
@@ -73,9 +143,51 @@ IslandCard {
                             text: modelData.identity || "Плеер"
                             checkable: true
                             checked: root.player === modelData
+                            implicitHeight: modelData.trackTitle ? 54 : 36
+                            leftPadding: 10; rightPadding: 10
+                            topPadding: 8; bottomPadding: 8
+                            hoverEnabled: true
+                            indicator: null
                             onTriggered: { root.playerSelected(modelData); sourceMenu.close() }
-                            background: Rectangle { radius: root.tokens.radius.small; color: sourceItem.highlighted ? root.tokens.color.surfaceAlt : "transparent" }
-                            contentItem: IslandLabel { tokens: root.tokens; text: (sourceItem.checked ? "●  " : "    ") + sourceItem.text; font.pixelSize: 13; elide: Text.ElideRight; verticalAlignment: Text.AlignVCenter }
+                            background: Rectangle {
+                                radius: root.tokens.radius.small
+                                color: sourceItem.checked ? Qt.alpha(root.tokens.color.accent, sourceItem.highlighted ? 0.24 : 0.14)
+                                    : sourceItem.highlighted ? Qt.alpha(root.tokens.color.text, 0.08) : "transparent"
+                                border.width: sourceItem.visualFocus ? 1 : 0
+                                border.color: root.tokens.color.accent
+                            }
+                            contentItem: RowLayout {
+                                spacing: 10
+                                MusicTransportIcon {
+                                    implicitWidth: 16; implicitHeight: 16
+                                    name: "music"; stroke: 1.7
+                                    ink: sourceItem.checked ? root.tokens.color.accent : root.tokens.color.textMuted
+                                }
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 2
+                                    IslandLabel {
+                                        tokens: root.tokens; Layout.fillWidth: true
+                                        text: sourceItem.text
+                                        font.pixelSize: 13; lineHeight: 1
+                                        color: sourceItem.checked ? root.tokens.color.accent : root.tokens.color.text
+                                        wrapMode: Text.NoWrap; elide: Text.ElideRight
+                                    }
+                                    IslandLabel {
+                                        tokens: root.tokens; Layout.fillWidth: true
+                                        visible: !!sourceItem.modelData.trackTitle
+                                        text: sourceItem.modelData.trackTitle || ""
+                                        font.pixelSize: 11; lineHeight: 1
+                                        color: root.tokens.color.textMuted
+                                        wrapMode: Text.NoWrap; elide: Text.ElideRight
+                                    }
+                                }
+                                MusicTransportIcon {
+                                    implicitWidth: 16; implicitHeight: 16
+                                    name: "check"; ink: root.tokens.color.accent
+                                    opacity: sourceItem.checked ? 1 : 0
+                                }
+                            }
                         }
                         onObjectAdded: (index, object) => sourceMenu.insertItem(index, object)
                         onObjectRemoved: (index, object) => sourceMenu.removeItem(object)
@@ -84,9 +196,8 @@ IslandCard {
             }
         }
         Item {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.minimumHeight: 50
+            id: content
+            anchors { top: header.bottom; bottom: timeline.top; left: parent.left; right: parent.right; leftMargin: 12; rightMargin: 12; topMargin: 8; bottomMargin: 8 }
             clip: true
             Item {
                 id: metadata
@@ -96,19 +207,34 @@ IslandCard {
                 transform: Translate { x: root.tokens.motion.off ? 0 : -32 * root.lyricProgress }
                 RowLayout {
                     anchors.fill: parent
-                    spacing: 10
+                    spacing: 12
                     Rectangle {
-                        implicitWidth: 50; implicitHeight: 50; radius: 6
+                        objectName: "musicCover"
+                        implicitWidth: Math.min(68, content.height); implicitHeight: implicitWidth
+                        radius: root.tokens.radius.small
                         color: root.tokens.color.surfaceAlt
                         clip: true
-                        Image { id: cover; anchors.fill: parent; source: root.player ? root.player.trackArtUrl : ""; fillMode: Image.PreserveAspectCrop; visible: status === Image.Ready }
-                        IslandLabel { tokens: root.tokens; anchors.centerIn: parent; text: "♪"; color: root.tokens.color.accent; font.pixelSize: 30; visible: cover.status !== Image.Ready }
+                        AlbumArt { id: cover; anchors.fill: parent; requestedSource: root.player ? root.player.trackArtUrl : ""; visible: ready }
+                        IslandLabel { tokens: root.tokens; anchors.centerIn: parent; text: "♪"; color: root.tokens.color.accent; font.pixelSize: 30; visible: !cover.ready }
                     }
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 4
-                        IslandLabel { tokens: root.tokens; Layout.fillWidth: true; text: root.player ? root.player.trackTitle || "Без названия" : "Тихая пауза"; font.family: root.tokens.type.display.family; font.weight: Font.Medium; font.pixelSize: 19; font.letterSpacing: -0.35; wrapMode: Text.NoWrap; maximumLineCount: 1; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter; Accessible.name: text }
-                        IslandLabel { tokens: root.tokens; Layout.fillWidth: true; text: root.player ? root.player.trackArtist : "Откройте музыку в любимом плеере"; color: root.tokens.color.textMuted; font.pixelSize: 12; wrapMode: Text.NoWrap; maximumLineCount: 1; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter }
+                        spacing: 2
+                        MarqueeText {
+                            objectName: "musicTrackTitle"
+                            tokens: root.tokens
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 28
+                            text: root.player ? root.player.trackTitle || "Без названия" : "Тихая пауза"
+                            ink: root.tokens.color.text
+                            font.family: root.tokens.type.display.family
+                            font.weight: Font.Medium
+                            font.pixelSize: 20
+                            font.letterSpacing: -0.35
+                            active: root.visible && root.metadataVisible
+                        }
+                        IslandLabel { tokens: root.tokens; Layout.fillWidth: true; text: root.player ? root.player.trackArtist || "" : "Откройте музыку в любимом плеере"; color: root.tokens.color.textMuted; font.pixelSize: 12; lineHeight: 1; wrapMode: Text.NoWrap; maximumLineCount: 1; elide: Text.ElideRight }
+                        IslandLabel { objectName: "musicAlbum"; tokens: root.tokens; Layout.fillWidth: true; visible: !!root.player && !!root.player.trackAlbum; text: root.player ? root.player.trackAlbum || "" : ""; color: root.tokens.color.textMuted; font.pixelSize: 11; lineHeight: 1; wrapMode: Text.NoWrap; maximumLineCount: 1; elide: Text.ElideRight }
                     }
                 }
             }
@@ -119,11 +245,24 @@ IslandCard {
                 opacity: root.lyricProgress
                 transform: Translate { x: root.tokens.motion.off ? 0 : 32 * (1 - root.lyricProgress) }
                 clip: true
+                IslandLabel {
+                    tokens: root.tokens
+                    anchors.centerIn: parent
+                    text: "Загружаем текст…"
+                    font.pixelSize: 12
+                    color: root.tokens.color.textMuted
+                    visible: root.lyricPending
+                }
                 SyncedLyrics {
                     objectName: "musicLyrics"
                     anchors.fill: parent
                     tokens: root.tokens
                     lyrics: root.lyrics
+                    lineEnd: {
+                        const next = root.lyrics && root.lyrics.lines && typeof root.lyrics.currentIndex === "number"
+                            ? root.lyrics.lines[root.lyrics.currentIndex + 1] : null
+                        return next ? next.t : root.trackDuration
+                    }
                     visible: !!root.lyrics && root.lyrics.status === "synced"
                 }
                 Flickable {
@@ -149,34 +288,66 @@ IslandCard {
                 }
             }
         }
-        Rectangle {
-            objectName: "musicTrackProgress"
-            Layout.fillWidth: true
-            Layout.preferredHeight: 3
-            Layout.topMargin: 2
-            Layout.bottomMargin: 3
-            radius: 1.5
-            visible: root.hasLyrics && !!root.player && root.player.length > 0
-            color: Qt.alpha(root.tokens.color.text, 0.14)
-            Accessible.role: Accessible.ProgressBar
-            Accessible.name: "Прогресс трека"
-            Accessible.description: Math.round(root.trackProgress * 100) + "%"
+        RowLayout {
+            id: timeline
+            anchors { left: parent.left; right: parent.right; bottom: controls.top; leftMargin: 12; rightMargin: 12; bottomMargin: 8 }
+            height: 14
+            spacing: 8
+            IslandLabel { tokens: root.tokens; text: root.positionKnown ? root.timeLabel(root.trackPosition) : "—:—"; font.pixelSize: 11; color: root.tokens.color.textMuted; font.features: { "tnum": 1 }; wrapMode: Text.NoWrap }
             Rectangle {
-                height: parent.height
-                width: parent.width * root.trackProgress
-                radius: parent.radius
-                color: root.tokens.color.accent
-                Behavior on width { NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast; easing.type: Easing.Linear } }
+                objectName: "musicTrackProgress"
+                Layout.fillWidth: true
+                implicitHeight: 3
+                radius: 1.5
+                color: Qt.alpha(root.tokens.color.text, 0.14)
+                Accessible.role: Accessible.ProgressBar
+                Accessible.name: "Прогресс трека"
+                Accessible.description: root.positionKnown && root.trackDuration > 0 ? Math.round(root.trackProgress * 100) + "%" : "Позиция недоступна"
+                Rectangle {
+                    height: parent.height
+                    width: parent.width * root.trackProgress
+                    radius: parent.radius
+                    color: root.tokens.color.accent
+                    Behavior on width { NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast; easing.type: Easing.Linear } }
+                }
             }
+            IslandLabel { tokens: root.tokens; text: root.trackDuration > 0 ? root.timeLabel(root.trackDuration) : "—:—"; font.pixelSize: 11; color: root.tokens.color.textMuted; font.features: { "tnum": 1 }; wrapMode: Text.NoWrap }
         }
         RowLayout {
             id: controls
-            visible: root.player !== null
-            Layout.alignment: Qt.AlignHCenter
+            objectName: "musicControls"
+            anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter; bottomMargin: 12 }
+            height: 32
             spacing: 8
-            IslandAction { tokens: root.tokens; implicitHeight: 32; text: "⏮"; Accessible.name: "Предыдущий трек"; enabled: !!root.player && root.player.canGoPrevious; onClicked: root.player.previous() }
-            IslandAction { tokens: root.tokens; implicitHeight: 32; text: root.player && root.player.isPlaying ? "Ⅱ" : "▶"; Accessible.name: root.player && root.player.isPlaying ? "Приостановить" : "Воспроизвести"; enabled: !!root.player && root.player.canTogglePlaying; onClicked: root.player.togglePlaying() }
-            IslandAction { tokens: root.tokens; implicitHeight: 32; text: "⏭"; Accessible.name: "Следующий трек"; enabled: !!root.player && root.player.canGoNext; onClicked: root.player.next() }
+            IslandAction {
+                tokens: root.tokens; implicitWidth: 32; implicitHeight: 32
+                Accessible.name: "Предыдущий трек"
+                enabled: !!root.player && root.player.canGoPrevious
+                onClicked: root.player.previous()
+                contentItem: Item { MusicTransportIcon { anchors.centerIn: parent; width: 16; height: 16; name: "prev"; ink: root.tokens.color.text; opacity: parent.enabled ? 1 : 0.35 } }
+            }
+            IslandAction {
+                id: playButton
+                tokens: root.tokens; implicitWidth: 32; implicitHeight: 32
+                Accessible.name: root.player && root.player.isPlaying ? "Приостановить" : "Воспроизвести"
+                enabled: !!root.player && root.player.canTogglePlaying
+                onClicked: root.player.togglePlaying()
+                contentItem: Item { MusicTransportIcon { anchors.centerIn: parent; width: 16; height: 16; name: root.player && root.player.isPlaying ? "pause" : "play"; ink: root.tokens.color.accentText; opacity: playButton.enabled ? 1 : 0.35 } }
+                background: Rectangle {
+                    radius: root.tokens.radius.small
+                    color: playButton.down || playButton.hovered ? root.tokens.color.accentHover : root.tokens.color.accent
+                    opacity: playButton.enabled ? 1 : 0.35
+                    border.width: playButton.visualFocus ? 2 : 0
+                    border.color: root.tokens.color.text
+                }
+            }
+            IslandAction {
+                tokens: root.tokens; implicitWidth: 32; implicitHeight: 32
+                Accessible.name: "Следующий трек"
+                enabled: !!root.player && root.player.canGoNext
+                onClicked: root.player.next()
+                contentItem: Item { MusicTransportIcon { anchors.centerIn: parent; width: 16; height: 16; name: "next"; ink: root.tokens.color.text; opacity: parent.enabled ? 1 : 0.35 } }
+            }
         }
     }
     IslandAction {
@@ -187,7 +358,8 @@ IslandCard {
         anchors.margins: 12
         tokens: root.tokens
         implicitHeight: 32
-        visible: root.hasLyrics
+        visible: root.hasLyrics || root.lyricMode
+        enabled: root.hasLyrics
         checkable: true
         checked: root.lyricsEnabled
         implicitWidth: 32

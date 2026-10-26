@@ -183,6 +183,7 @@ ShellRoot {
     LazyLoader {
         active: settingsStore.ready && settingsStore.companionEnabled && root.probeScreen !== null
         component: CompanionWindow {
+            companionStyle: settingsStore.companionStyle
             tokens: naomiTokens
             animationsEnabled: settingsStore.animationsEnabled
             desktopOnly: settingsStore.companionDesktopOnly

@@ -7,7 +7,7 @@ Item {
     required property var tokens
     property url source
     property real radius: tokens.radius.medium
-    readonly property bool ready: artwork.status === Image.Ready
+    readonly property bool ready: artwork.ready
 
     // Blur an oversized image first. Clip the complete dimmed composition once,
     // so blur sampling never reads transparent pixels along the card contour.
@@ -21,13 +21,11 @@ Item {
             maskSource: roundedMask
         }
         clip: true
-        Image {
+        AlbumArt {
             id: artwork
             anchors.fill: parent
             anchors.margins: -48
-            source: root.source
-            fillMode: Image.PreserveAspectCrop
-            asynchronous: true
+            requestedSource: root.source
             visible: false
         }
         MultiEffect {

@@ -5,6 +5,8 @@ Item {
     id: root
     required property var tokens
     property string text: ""
+    property alias font: label.font
+    property color ink: tokens.color.textMuted
     property bool animateLines: false
     property string shownText: text
     property string previousText: ""
@@ -12,6 +14,7 @@ Item {
     property real lineBlend: 1
     property bool active: true
     property bool centered: false
+    property bool loop: true
     property var words: []
     property real position: 0
     property real lineEnd: 0
@@ -31,6 +34,7 @@ Item {
     readonly property bool overflowing: label.implicitWidth > width && width > 0
     readonly property bool scrolling: active && visible && !tokens.motion.off && overflowing
     readonly property real stride: label.implicitWidth + 32
+    readonly property real scrollDistance: loop ? stride : Math.max(0, label.implicitWidth - width)
     property real offset: 0
     clip: true
     Accessible.role: Accessible.StaticText
@@ -60,6 +64,7 @@ Item {
         easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
     }
     onWidthChanged: Qt.callLater(reset)
+    onLoopChanged: Qt.callLater(reset)
     onScrollingChanged: reset()
 
     Text {
@@ -90,19 +95,19 @@ Item {
             textFormat: Text.PlainText
             wrapMode: Text.NoWrap
             elide: Text.ElideNone
-            color: root.wordProgress ? Qt.alpha(root.tokens.color.text, 0.32) : root.tokens.color.textMuted
+            color: root.wordProgress ? Qt.alpha(root.tokens.color.text, 0.32) : root.ink
             font.family: root.tokens.type.body.family
             font.pixelSize: root.tokens.type.body.size
             font.weight: root.tokens.type.body.weight
         }
         Repeater {
-            model: root.wordProgress ? 2 : 0
+            model: root.wordProgress ? (root.loop ? 2 : 1) : 0
             delegate: Item {
                 required property int index
                 x: index * root.stride
                 height: parent.height
                 width: root.sungWidth
-                visible: index === 0 || root.scrolling
+                visible: index === 0 || (root.loop && root.scrolling)
                 clip: true
                 Behavior on width { enabled: !root.tokens.motion.off; NumberAnimation { duration: root.tokens.motion.fast; easing.type: Easing.Linear } }
                 Text {
@@ -119,7 +124,7 @@ Item {
         Text {
             x: root.stride
             height: parent.height
-            visible: root.scrolling
+            visible: root.loop && root.scrolling
             verticalAlignment: Text.AlignVCenter
             text: root.shownText
             textFormat: Text.PlainText
@@ -129,16 +134,16 @@ Item {
     }
     SequentialAnimation {
         id: movement
-        loops: Animation.Infinite
+        loops: root.loop ? Animation.Infinite : 1
         PauseAnimation { duration: 1000 }
         NumberAnimation {
             target: root
             property: "offset"
             from: 0
-            to: root.stride
-            duration: Math.round(root.stride / 28 * 1000)
+            to: root.scrollDistance
+            duration: Math.round(root.scrollDistance / 28 * 1000)
             easing.type: Easing.Linear
         }
-        PropertyAction { target: root; property: "offset"; value: 0 }
+        PropertyAction { target: root; property: "offset"; value: root.loop ? 0 : root.scrollDistance }
     }
 }

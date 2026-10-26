@@ -23,8 +23,10 @@ with tempfile.TemporaryDirectory(prefix='nayori-bridge-test-') as directory:
         else: raise RuntimeError('bridge not ready: '+str(state()))
         nid=notify(); time.sleep(.1)
         assert state()['current']['id']==nid and state()['unread']==1
-        ipc('view','true'); ipc('view','false'); ipc('advance',10)
-        assert state()['current'] is None and state()['unread']==0
+        ipc('view','true'); ipc('view','false')
+        assert state()['current'] is None and state()['unread']==1
+        ipc('markRead',nid)
+        assert state()['unread']==0
         notify(nid,'Updated'); time.sleep(.1)
         assert state()['records'][0]['summary']=='Updated' and state()['current'] is None
         fresh=notify(title='Remove'); time.sleep(.1); ipc('remove',fresh); time.sleep(.1)

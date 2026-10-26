@@ -2,77 +2,82 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../../services/island/NotificationList.js" as List
+import "../../services/island/NotificationSources.js" as Sources
+
 FocusScope {
     id: root
+    objectName: "notificationPage"
     required property var tokens
     property var notifications: null
+    property string filterMode: "all"
+    property var expandedGroups: ({})
+    property double now: Date.now()
+    readonly property var groups: List.group(List.filter(notifications ? notifications.records : [], filterMode, Sources.systemSources()))
     signal closeRequested()
-    function canScroll(delta) { return list.contentHeight > list.height && (delta > 0 ? !list.atYBeginning : !list.atYEnd) }
     Keys.onEscapePressed: closeRequested()
+    Timer { interval: 30000; running: root.visible; repeat: true; onTriggered: root.now = Date.now() }
+    function toggleGroup(group) {
+        const next = Object.assign({}, expandedGroups)
+        next[group.key] = !next[group.key]
+        expandedGroups = next
+        if (next[group.key] && notifications) notifications.markAllRead(group.ids)
+    }
     ColumnLayout {
-        anchors.fill: parent; anchors.margins: 0; spacing: 12
+        anchors.fill: parent
+        spacing: 12
         RowLayout {
             Layout.fillWidth: true
+            spacing: 6
+            Repeater {
+                model: [{key: "all", label: "Все"}, {key: "unread", label: "Непрочитанные"}, {key: "system", label: "Системные"}]
+                delegate: IslandAction {
+                    required property var modelData
+                    tokens: root.tokens
+                    text: modelData.label
+                    checked: root.filterMode === modelData.key
+                    Accessible.selected: checked
+                    opacity: checked ? 1 : 0.6
+                    onClicked: root.filterMode = modelData.key
+                }
+            }
             Item { Layout.fillWidth: true }
             IslandAction {
-                tokens: root.tokens; text: "Очистить"; enabled: !!root.notifications && root.notifications.records.length > 0; onClicked: root.notifications.clear() }
+                tokens: root.tokens
+                text: "Очистить всё"
+                enabled: !!root.notifications && root.notifications.records.length > 0
+                onClicked: root.notifications.clear()
+            }
         }
-        IslandLabel {
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            IslandLabel {
+                anchors.centerIn: parent
                 tokens: root.tokens
-            visible: !root.notifications || root.notifications.records.length === 0
-            text: "Уведомлений пока нет"; color: root.tokens.color.textMuted
-            font.family: root.tokens.type.body.family; font.pixelSize: root.tokens.type.body.size
-        }
-        ListView {
-            id: list
-            objectName: "notificationList"
-            Layout.fillWidth: true; Layout.fillHeight: true
-            clip: true; spacing: 12
-            model: root.notifications ? root.notifications.records : []
-            ScrollBar.vertical: ScrollBar {}
-            delegate: IslandCard {
-                id: card
-                required property var modelData
-                tokens: root.tokens
-                width: list.width; height: content.implicitHeight + 32
-                ColumnLayout {
-                    id: content
-                    x: 16; y: 16; width: parent.width - 32; spacing: 8
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Image {
-                            source: card.modelData.appIcon ? (card.modelData.appIcon.indexOf("/") >= 0 ? card.modelData.appIcon : "image://icon/" + card.modelData.appIcon) : ""
-                            visible: source.toString() !== ""
-                            Layout.preferredWidth: 20; Layout.preferredHeight: 20; fillMode: Image.PreserveAspectFit
-                        }
-                        IslandLabel {
-                tokens: root.tokens; text: card.modelData.appName; textFormat: Text.PlainText; color: root.tokens.color.textMuted; font.pixelSize: 12; Layout.fillWidth: true; maximumLineCount: 1; elide: Text.ElideRight }
-                        IslandAction {
-                tokens: root.tokens; text: "Удалить"; onClicked: root.notifications.remove(card.modelData.id) }
-                    }
-                    IslandLabel {
-                tokens: root.tokens; text: card.modelData.summary; textFormat: Text.PlainText; color: root.tokens.color.text; wrapMode: Text.Wrap; Layout.fillWidth: true; font.family: root.tokens.type.display.family; font.pixelSize: 19; font.weight: Font.Medium }
-                    IslandLabel {
-                tokens: root.tokens; text: card.modelData.body; textFormat: Text.PlainText; color: root.tokens.color.text; wrapMode: Text.Wrap; Layout.fillWidth: true }
-                    IslandLabel {
-                tokens: root.tokens
-                        visible: card.modelData.closed
-                        text: "Закрыто"; color: root.tokens.color.textMuted; font.pixelSize: 12
-                    }
-                    Flow {
-                        Layout.fillWidth: true; Layout.preferredHeight: childrenRect.height; spacing: 6
-                        Repeater {
-                            model: card.modelData.actions || []
-                            delegate: IslandAction {
-                tokens: root.tokens
-                                required property var modelData
-                                text: modelData.text
-                                width: Math.min(implicitWidth, content.width)
-                                enabled: !card.modelData.closed
-                                onClicked: root.notifications.actionRequested(card.modelData.id, modelData.id)
-                            }
-                        }
-                    }
+                visible: root.groups.length === 0
+                text: root.filterMode === "unread" ? "Нет непрочитанных уведомлений" : root.filterMode === "system" ? "Нет системных уведомлений" : "Уведомлений пока нет"
+                color: root.tokens.color.textMuted
+            }
+            ListView {
+                id: list
+                objectName: "notificationList"
+                anchors.fill: parent
+                clip: true
+                spacing: 10
+                model: root.groups
+                boundsBehavior: Flickable.StopAtBounds
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                delegate: NotificationGroup {
+                    required property var modelData
+                    objectName: "notificationGroup_" + modelData.key
+                    width: list.width
+                    tokens: root.tokens
+                    notifications: root.notifications
+                    group: modelData
+                    expanded: !!root.expandedGroups[modelData.key]
+                    now: root.now
+                    onToggleRequested: root.toggleGroup(modelData)
                 }
             }
         }

@@ -1,0 +1,10 @@
+{
+  "note": "Small, hand-authored feature corrections on the 140x200 approval grid.",
+  "features": [
+    {"name": "nose shadow", "color": "#b48576", "pixels": [[60,56],[60,57]]},
+    {"name": "nose tip", "color": "#d29685", "pixels": [[61,57]]},
+    {"name": "smile", "color": "#b5796b", "pixels": [[65,60],[66,60],[67,59],[68,59]]},
+    {"name": "smile corner", "color": "#a9685a", "pixels": [[69,58]]},
+    {"name": "lower lip", "color": "#e9aa96", "pixels": [[67,60]]}
+  ]
+}

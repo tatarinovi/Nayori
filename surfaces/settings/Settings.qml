@@ -57,6 +57,8 @@ FocusScope {
     property color accentPreview: "#C0AFD1"
     property var accentCandidates: []
     signal accentResetRequested()
+    property string companionStyle: "current"
+    signal companionStyleChangedRequested(string style)
     property bool companionEnabled: false
     signal companionChangedRequested(bool enabled)
     property bool companionDesktopOnly: false
@@ -719,6 +721,8 @@ FocusScope {
                     companionTokens: root.companionTokens
                     width: parent.width
                     tokens: root.tokens
+                    companionStyle: root.companionStyle
+                    onCompanionStyleChangedRequested: style => root.companionStyleChangedRequested(style)
                     companionEnabled: root.companionEnabled
                     animationsEnabled: root.animationsEnabled
                     previewActive: root.currentPage === 25 && root.visible

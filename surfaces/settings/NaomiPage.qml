@@ -7,6 +7,8 @@ Column {
     id: root
     required property var tokens
     property var companionTokens: tokens
+    property string companionStyle: "current"
+    signal companionStyleChangedRequested(string style)
     property bool companionEnabled: false
     property bool companionDesktopOnly: false
     property bool companionReactToPointer: true
@@ -20,22 +22,32 @@ Column {
     signal revealRequested(var item)
     spacing: 16
 
+    SettingsLabel { tokens: root.tokens; text: "Облик Naomi" }
+    SettingsSegmented {
+        objectName: "settingsNaomiStyle"
+        tokens: root.tokens
+        width: Math.min(parent.width, 360)
+        model: [{key: "current", label: "Текущий"}, {key: "pixel-art", label: "Pixel art"}]
+        currentKey: root.companionStyle
+        onActivated: key => root.companionStyleChangedRequested(key)
+    }
     Rectangle {
         width: parent.width
-        height: 688
+        height: (root.companionStyle === "pixel-art" ? 400 : 534) + 154
         radius: root.tokens.radius.small
         color: root.tokens.color.background
         border.color: root.tokens.color.border
         // Над Naomi — место под облачко (128 пикселей), поэтому компонент выше иллюстрации.
         NaomiCompanion {
             id: previewNaomi
+            companionStyle: root.companionStyle
             objectName: "naomiPreview"
             tokens: root.companionTokens
             width: 280
-            height: 534 + 128
+            height: illustrationHeight + 128
             anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 16 }
             illustrationWidth: 280
-            illustrationHeight: 534
+            illustrationHeight: root.companionStyle === "pixel-art" ? 400 : 534
             active: root.previewActive
             animationsEnabled: root.animationsEnabled
             reactToPointer: root.companionReactToPointer
@@ -53,7 +65,9 @@ Column {
     SettingsLabel {
         width: parent.width
         tokens: root.tokens
-        text: "Шарф, повязка на шее и заколка берут цвет из палитры обоев основного монитора. Волосы, кожа, одежда и глаза остаются неизменными."
+        text: root.companionStyle === "pixel-art"
+            ? "Пиксельный рисунок без файлов изображений. Одежда, бант и глаза берут цвет из обоев основного монитора. Кожа и чёрные волосы сохраняют свой цвет."
+            : "Шарф, повязка на шее и заколка берут цвет из палитры обоев основного монитора. Волосы, кожа, одежда и глаза остаются неизменными."
         color: root.tokens.color.textMuted
         font.pixelSize: 13
         wrapMode: Text.WordWrap
@@ -108,7 +122,9 @@ Column {
         width: parent.width
         tokens: root.tokens
         text: root.animationsEnabled
-            ? "Naomi дышит, моргает, качает волосами и шарфом, ушки иногда вздрагивают. Если провести курсором по голове, она зажмурится и улыбнётся, а облачко скажет пару слов. Здесь, в предпросмотре, голова ещё поворачивается за курсором."
+            ? (root.companionStyle === "pixel-art"
+                ? "Naomi дышит и моргает. Хвост, пряди и бант двигаются отдельно от тела. Она реагирует на поглаживание и показывает реплики."
+                : "Naomi дышит, моргает, качает волосами и шарфом, ушки иногда вздрагивают. Если провести курсором по голове, она зажмурится и улыбнётся, а облачко скажет пару слов. Здесь, в предпросмотре, голова ещё поворачивается за курсором.")
             : "Анимации выключены в разделе «Внешний вид». Naomi отображается без движения, но по-прежнему говорит и реагирует на поглаживание."
         color: root.tokens.color.textMuted
         font.pixelSize: 13

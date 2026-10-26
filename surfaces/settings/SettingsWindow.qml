@@ -44,6 +44,8 @@ FloatingWindow {
     property color accentPreview: "#C0AFD1"
     property var accentCandidates: []
     signal accentResetRequested()
+    property string companionStyle: "current"
+    signal companionStyleChangedRequested(string style)
     property bool companionEnabled: false
     signal companionChangedRequested(bool enabled)
     property bool companionDesktopOnly: false
@@ -135,6 +137,8 @@ FloatingWindow {
         accentPreview: root.accentPreview
         accentCandidates: root.accentCandidates
         onAccentResetRequested: root.accentResetRequested()
+        companionStyle: root.companionStyle
+        onCompanionStyleChangedRequested: style => root.companionStyleChangedRequested(style)
         companionEnabled: root.companionEnabled
         onCompanionChangedRequested: enabled => root.companionChangedRequested(enabled)
         companionDesktopOnly: root.companionDesktopOnly

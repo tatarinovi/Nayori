@@ -11,6 +11,7 @@ FocusScope {
     property bool testMode: false
     property var testPlayers: []
     property var musicService: null
+    readonly property bool popupOpen: musicCard.popupOpen
     property var selectedPlayer: null
     property var notifications: null
     property int currentPage: 0
@@ -169,28 +170,6 @@ FocusScope {
         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Qt.alpha(root.tokens.color.border, 0.5) }
         Item {
             id: pageViewport
-            WheelHandler {
-                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                orientation: Qt.Horizontal
-                target: null
-                onWheel: event => {
-                    root.navigateWheel(event.angleDelta.x || event.pixelDelta.x * 3, Date.now())
-                    event.accepted = true
-                }
-            }
-            WheelHandler {
-                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                target: null
-                onWheel: event => {
-                    const delta = root.wheelAmount(event)
-                    if ((root.currentPage === 1 && notificationsView.canScroll(delta)) || (root.currentPage === 0 && musicCard.canScrollLyrics(delta))) {
-                        event.accepted = false
-                        return
-                    }
-                    root.navigateWheel(delta, Date.now())
-                    event.accepted = true
-                }
-            }
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true

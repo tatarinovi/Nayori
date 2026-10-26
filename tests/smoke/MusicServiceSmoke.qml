@@ -70,6 +70,13 @@ ShellRoot {
             first.trackTitle = "Broken"
             tryCompare(music, "status", "error")
             compare(music.retryClock.interval, 15000)
+            // Playback progress continues even when lyric lookup fails.
+            verify(music.positionClock.running)
+            compare(music.positionClock.interval, 250)
+            first.position = 4
+            compare(music.position, 4)
+            music.lyricsEnabled = false
+            verify(music.positionClock.running)
             first.trackTitle = "A"
             tryCompare(music, "source", "Fixture A")
             music.consumer("screen-b", true)

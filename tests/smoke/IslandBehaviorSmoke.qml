@@ -10,7 +10,7 @@ ShellRoot {
     id: root
     property int nextId: 0
     Tokens { id: theme }
-    NotificationModel { id: notifications; automatic: false }
+    NotificationModel { id: notifications }
     QtObject {
         id: fakeAudio
         property bool playing: false
@@ -39,7 +39,7 @@ ShellRoot {
             }
             RowLayout {
                 Button { text: "+ уведомление"; onClicked: notifications.receive({id:++root.nextId,appName:"Тест",summary:"Уведомление " + root.nextId,body:"Искусственное уведомление без D-Bus",actions:[]}) }
-                Button { text: "+5 секунд"; onClicked: notifications.advance(5) }
+                Button { text: "Прочитать всё"; onClicked: notifications.markAllRead() }
                 CheckBox { palette.windowText: theme.color.text; text: "Раскрыть"; onToggled: island.expanded = checked }
             }
             Item {
@@ -62,7 +62,7 @@ ShellRoot {
         id: compactScreenshot; interval: 500
         onTriggered: stage.grabToImage(function(result) {
             result.saveToFile("/tmp/nayori-island-compact.png")
-            island.notificationPage = false; island.expanded = true
+            notifications.markAllRead(); island.expanded = true; island.notificationPage = false
             homeScreenshot.start()
         })
     }
@@ -86,11 +86,12 @@ ShellRoot {
             root.check(fox.controller.pose.head > 0 && fox.controller.pose.x > 0, "independent channels")
             for (let id = 1; id <= 3; id++) notifications.receive({id:id,appName:"Test",summary:"Title",body:"Body",actions:[]})
             root.check(notifications.current.id === 1, "first notification")
-            notifications.advance(5); notifications.advance(0)
-            root.check(notifications.current.id === 2, "queue timing")
-            island.expanded = true; island.notificationPage = true
-            root.check(notifications.unreadCount === 0 && notifications.current === null, "page marks read")
-            island.expanded = false; notifications.advance(10)
+            root.check(notifications.pending.length === 0, "same application has no duplicate icons")
+            island.expanded = true
+            root.check(island.notificationPage, "unread opens notifications")
+            root.check(notifications.unreadCount === 3 && notifications.current === null, "page marks seen only")
+            notifications.markAllRead()
+            island.expanded = false
             root.check(notifications.current === null, "no replay")
             island.expanded = true
             const page = island.children.find(c => c.objectName === "islandDashboardLoader").item

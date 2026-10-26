@@ -1,6 +1,8 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "../niri"
+import "NotificationList.js" as List
 QtObject {
     id: root
     required property var model
@@ -13,11 +15,26 @@ QtObject {
         commands.push(["qs", "ipc", "--pid", String(host.processId), "call", "notifications", "invoke", String(id), action])
         nextCommand()
     }
+    // Нажатие на уведомление: окно приложения в niri, действие по умолчанию или закрытие.
+    function activate(record) {
+        const window = List.matchWindow(record, Niri.windows)
+        if (window) Niri.focusWindow(window.id)
+        const action = List.defaultAction(record)
+        if (action) invoke(record.id, action)
+        else if (!record.closed) invoke(record.id, "__dismiss")
+    }
+    function reply(id, text) {
+        if (!available) return
+        commands.push(["qs", "ipc", "--pid", String(host.processId), "call", "notifications", "reply", String(id), text])
+        nextCommand()
+    }
     function nextCommand() { if (!actionProcess.running && commands.length) { actionProcess.command = commands.shift(); actionProcess.running = true } }
     property Connections actions: Connections {
         target: root.model
         function onActionRequested(id, action) { root.invoke(id, action) }
         function onDismissRequested(id) { root.invoke(id, "__dismiss") }
+        function onReplyRequested(id, text) { root.reply(id, text) }
+        function onActivateRequested(record) { root.activate(record) }
     }
     property Process actionProcess: Process { onExited: Qt.callLater(root.nextCommand) }
     function consume(data) {
