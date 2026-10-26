@@ -12,7 +12,9 @@ QtObject {
     property real reveal: blocked ? 0 : 1
     Behavior on reveal {
         NumberAnimation {
-            duration: root.tokens.motion.off ? 0 : root.tokens.motion.base
+            // Native compositor blur cannot follow QML opacity. Unmap the whole
+            // surface immediately on entry; only returning to the desktop fades.
+            duration: root.blocked || root.tokens.motion.off ? 0 : root.tokens.motion.base
             easing.type: Easing.BezierSpline
             easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
         }

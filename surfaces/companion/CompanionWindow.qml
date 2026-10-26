@@ -20,7 +20,7 @@ PanelWindow {
     // false — источники отключаются, реплики не копятся. Приветствие и поглаживание не зависят.
     property bool systemLines: true
     FullscreenGuard { id: fullscreenGuard; screen: root.screen; tokens: root.tokens }
-    visible: fullscreenGuard.reveal > 0
+    visible: !fullscreenGuard.blocked && fullscreenGuard.reveal > 0
     // Над иллюстрацией — место под облачко с репликой (до пяти строк), оно прозрачно для ввода.
     readonly property int bubbleSpace: 128
     readonly property real companionScale: Math.max(0.1, Math.min(1,

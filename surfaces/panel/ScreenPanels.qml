@@ -35,7 +35,7 @@ Scope {
     onFullscreenChanged: if (panelsReady) dismissForFullscreen()
     function dismissForFullscreen() {
         if (!fullscreen) return
-        // Finish the fade before collapsing the dashboard under the surface.
+        // Collapse only after the entire surface has been hidden.
         if (fullscreenReveal === 0) expandedOpened = false
         dashboardOpenDelay.stop()
         dashboardCloseDelay.stop()
@@ -249,7 +249,7 @@ Scope {
             }
         }
         Component.onCompleted: Qt.callLater(function() { dock.animateReady = true })
-        visible: root.fullscreenReveal > 0 && (visibility.shown || revealOpacity > 0)
+        visible: !root.fullscreen && root.fullscreenReveal > 0 && (visibility.shown || revealOpacity > 0)
         color: "transparent"
         anchors.top: false
         anchors.bottom: true
@@ -268,7 +268,7 @@ Scope {
 
         property var materialRegion: dockGlass
         Region { id: dockGlass; item: dock.island; radius: dock.island ? Math.round(dock.island.radius) : 0 }
-        BackgroundEffect.blurRegion: root.tokens.frosted ? dock.materialRegion : null
+        BackgroundEffect.blurRegion: root.tokens.frosted && !root.fullscreen && root.fullscreenReveal === 1 ? dock.materialRegion : null
         mask: root.fullscreen ? emptyInputMask : dockMask
         Region {
             id: dockMask
@@ -314,7 +314,7 @@ Scope {
             capsule.focusSearch()
         }
         screen: root.panelScreen
-        visible: root.topEnabled && root.fullscreenReveal > 0 && (topVisibility.shown || revealOpacity > 0)
+        visible: !root.fullscreen && root.topEnabled && root.fullscreenReveal > 0 && (topVisibility.shown || revealOpacity > 0)
         color: "transparent"
         // Size stays the dashboard window. Opening does not restretch the
         // surface, and the result list is not part of this rectangle.
@@ -374,7 +374,7 @@ Scope {
                 radius: 24
             }
         }
-        BackgroundEffect.blurRegion: root.tokens.frosted ? islandGlass : null
+        BackgroundEffect.blurRegion: root.tokens.frosted && !root.fullscreen && root.fullscreenReveal === 1 ? islandGlass : null
         mask: root.fullscreen ? emptyInputMask : islandMask
         Region {
             id: islandMask
