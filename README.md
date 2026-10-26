@@ -38,6 +38,7 @@ Nayori — личная оболочка рабочего стола для Linu
 - **Настройки:** отдельное окно с поиском разделов. Среди страниц: «Внешний вид» (материал и акцент: стандартный, по обоям или свой цвет), «Обои» (папка с миниатюрами, монитор), «Панель задач» (автоскрытие, отступы, карточки мониторов), Naomi и «Интеграции». Доступность системных действий зависит от служб и утилит сессии.
 - **Материалы:** Solid и Frosted Glass с общими токенами поверхностей и переключателем анимаций. Размытие фона использует поддержку композитора; без неё остаются полупрозрачные заливки.
 - **Canvas:** статические обои на каждом мониторе, общий или индивидуальный выбор, предпросмотр и режимы Fill, Fit, Stretch и Center. Размытая копия обоев служит фоном обзора niri.
+- **Буфер обмена:** журнал возле курсора со списком, поиском, закреплением, превью картинок и файлов видео, разрешением и размером. Открытие: `qs ipc -p /absolute/path/to/nayori call clipboard toggle`. Подробнее и пример бинда niri — в [docs/CLIPBOARD.md](docs/CLIPBOARD.md).
 
 </details>
 
@@ -103,6 +104,7 @@ NAYORI_NOTIFICATIONS=1 qs -p /absolute/path/to/nayori
 
 - `cava`, `parec` (утилиты PulseAudio) и PulseAudio-совместимый сервер PipeWire — музыкальная реакция лисы. Анализируется монитор системного выхода, поэтому в сигнал могут попадать звуки других приложений. MPRIS определяет, воспроизводится ли музыка; без анализатора сохраняется реакция на CPU.
 - Шрифты **Inter** и **Literata** — предусмотренная типографика; без них Qt подбирает замену.
+- `wl-clipboard` — сбор истории и копирование из журнала буфера; `ffprobe` и `ffmpeg` — размеры медиафайлов и кадры видео.
 - `python-evdev` и доступ к устройствам ввода — распознавание отдельного нажатия Super. Для открытия «Пуска» кнопкой или IPC это не требуется.
 - `xdg-mime`, `loginctl`/`systemctl`, установленный терминал, файловый менеджер и другие приложения — для соответствующих системных действий. Nayori не устанавливает их автоматически.
 
@@ -137,6 +139,8 @@ python3 tests/super-tap.py
 node tests/start-routing.cjs
 node tests/naomi-companion.cjs
 python3 tests/launcher-focus.py
+python3 tests/clipboard-store.py
+node tests/clipboard-logic.cjs
 python3 tests/naomi-layers.py
 python3 tests/wallpaper-library.py
 python3 tests/overview-backdrop.py
@@ -160,6 +164,7 @@ qs -p /absolute/path/to/nayori/tests/smoke/IslandBehaviorSmoke.qml
 python3 tests/root-config.py
 python3 tests/materials.py
 NAYORI_NESTED_NIRI=1 python3 tests/launcher-focus.py  # вложенный niri: фокус лаунчера при открытии
+python3 tests/clipboard-window.py                   # вложенный niri: окно буфера, фокус и анимация
 python3 tests/settings-window.py --wayland
 ```
 

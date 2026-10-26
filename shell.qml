@@ -20,6 +20,8 @@ import "services/ui/StartRouting.js" as StartRouting
 import "services/island"
 import "surfaces/canvas"
 import "surfaces/companion"
+import "services/clipboard"
+import "surfaces/clipboard"
 
 ShellRoot {
     id: root
@@ -33,6 +35,7 @@ ShellRoot {
     Notifications { model: notificationModel }
 
     SettingsService { id: settingsStore }
+    ClipboardService { id: clipboardStore }
     WeatherService {
         id: weatherStore
         enabled: settingsStore.ready
@@ -204,6 +207,8 @@ ShellRoot {
         return StartRouting.target(root.startMenuOutput, names, Niri.focusedOutput)
     }
     function toggleStartMenu() {
+        clipboardStore.cancelPaste()
+        root.clipboardOpened = false
         const name = root.startMenuTarget()
         if (name !== "")
             root.startMenuToggleRequested(name)
@@ -223,6 +228,8 @@ ShellRoot {
     property bool launcherOpened: false
     readonly property bool settingsOpened: settingsController.opened
     function openSettings(page): bool {
+        clipboardStore.cancelPaste()
+        root.clipboardOpened = false
         root.launcherOpened = false
         return settingsController.openPage(page || "home")
     }
@@ -251,6 +258,8 @@ ShellRoot {
         return root.probeScreen
     }
     function toggleLauncher() {
+        clipboardStore.cancelPaste()
+        root.clipboardOpened = false
         if (root.launcherOpened) {
             root.launcherOpened = false
             return
@@ -270,6 +279,74 @@ ShellRoot {
         function close(): void { root.launcherOpened = false }
     }
 
+    property bool clipboardOpened: false
+    property bool clipboardPresenting: false
+    onClipboardOpenedChanged: {
+        if (root.clipboardOpened) root.clipboardPresenting = true
+        else if (root.clipboardOutput === "") root.clipboardPresenting = false
+    }
+    property string clipboardOutput: ""
+    property point clipboardAnchor: Qt.point(0, 0)
+    Connections {
+        target: Quickshell
+        function onScreensChanged() {
+            if (root.clipboardPresenting && root.clipboardOutput !== ""
+                    && !Quickshell.screens.some(output => output.name === root.clipboardOutput)) {
+                root.clipboardOpened = false
+                root.clipboardPresenting = false
+            }
+        }
+    }
+    function locateClipboard(output, x, y) {
+        if (!root.clipboardOpened || root.clipboardOutput !== "") return
+        root.clipboardAnchor = Qt.point(x, y)
+        root.clipboardOutput = output
+        clipboardAnchorTimeout.stop()
+    }
+    function toggleClipboard() {
+        if (root.clipboardOpened) { root.clipboardOpened = false; return }
+        clipboardStore.cancelPaste()
+        // Reverse an in-progress exit on the same surface and anchor.
+        if (root.clipboardPresenting) { root.clipboardOpened = true; return }
+        root.launcherOpened = false
+        if (root.startMenuOutput !== "") root.startMenuToggleRequested(root.startMenuOutput)
+        root.clipboardOutput = ""
+        root.clipboardOpened = true
+        clipboardAnchorTimeout.restart()
+    }
+    Timer {
+        id: clipboardAnchorTimeout
+        interval: 250
+        onTriggered: {
+            if (!root.clipboardOpened || root.clipboardOutput !== "") return
+            const output = root.screenNamed(Niri.focusedOutput)
+            if (output) root.locateClipboard(output.name,
+                Math.max(12, (output.width - 580) / 2 - 12), Math.max(12, (output.height - 520) / 2 - 12))
+            else root.clipboardOpened = false
+        }
+    }
+    IpcHandler {
+        target: "clipboard"
+        function toggle(): void { root.toggleClipboard() }
+        function close(): void { root.clipboardOpened = false }
+    }
+    Variants {
+        model: root.clipboardPresenting ? Quickshell.screens : []
+        ClipboardWindow {
+            required property var modelData
+            screen: modelData
+            tokens: root.tokenSet
+            store: clipboardStore
+            host: root
+            onCloseRequested: root.clipboardOpened = false
+            onCloseFinished: if (!root.clipboardOpened) {
+                root.clipboardPresenting = false
+                if (root.launcherOpened || root.settingsOpened || root.startMenuOutput !== "") clipboardStore.cancelPaste()
+                else clipboardStore.finishClose()
+            }
+        }
+    }
+
     SettingsController {
         id: settingsController
         companionTokens: naomiTokens
@@ -285,6 +362,7 @@ ShellRoot {
     IpcHandler {
         target: "settings"
         function open(): bool {
+            root.clipboardOpened = false
             root.launcherOpened = false
             return settingsController.open()
         }

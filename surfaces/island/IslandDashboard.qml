@@ -12,6 +12,7 @@ FocusScope {
     property var testPlayers: []
     property var musicService: null
     readonly property bool popupOpen: musicCard.popupOpen
+    function closePopups() { musicCard.closePopups() }
     property var selectedPlayer: null
     property var notifications: null
     property int currentPage: 0

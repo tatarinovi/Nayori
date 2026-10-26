@@ -10,6 +10,7 @@ IslandCard {
     property var players: []
     property var lyrics: null
     readonly property bool popupOpen: sourceMenu.visible
+    function closePopups() { sourceMenu.close() }
     onVisibleChanged: if (!visible) sourceMenu.close()
     signal playerSelected(var selected)
     onPlayersChanged: { if (!players.length) sourceMenu.close() }
@@ -222,6 +223,7 @@ IslandCard {
                         spacing: 2
                         MarqueeText {
                             objectName: "musicTrackTitle"
+                            loop: true
                             tokens: root.tokens
                             Layout.fillWidth: true
                             Layout.preferredHeight: 28

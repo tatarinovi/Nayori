@@ -7,6 +7,15 @@ Rectangle {
     objectName: "compactMediaIsland"
     required property var tokens
     property var player: null
+    property real position: player && typeof player.position === "number" ? player.position : 0
+    readonly property real trackProgress: player && player.lengthSupported !== false && player.positionSupported !== false
+        && isFinite(Number(player.length)) && player.length > 0 && isFinite(position)
+        ? Math.max(0, Math.min(1, position / player.length)) : 0
+    property real paintedProgress: trackProgress
+    Behavior on paintedProgress {
+        enabled: root.visible && !root.tokens.motion.off
+        NumberAnimation { duration: root.tokens.motion.fast; easing.type: Easing.Linear }
+    }
     property bool showing: false
     property real reveal: showing ? 1 : 0
     implicitWidth: 116
@@ -26,6 +35,40 @@ Rectangle {
             duration: root.tokens.motion.off ? 0 : root.tokens.motion.base
             easing.type: Easing.BezierSpline
             easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
+        }
+    }
+    Canvas {
+        id: progress
+        objectName: "compactMediaProgress"
+        anchors.fill: parent
+        property real amount: root.paintedProgress
+        property color wash: Qt.alpha(root.tokens.color.accent, 0.055)
+        property color ink: Qt.alpha(root.tokens.color.accent, 0.8)
+        onAmountChanged: requestPaint()
+        onWashChanged: requestPaint()
+        onInkChanged: requestPaint()
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
+        onPaint: {
+            const c = getContext("2d")
+            c.reset()
+            if (width <= 0 || height <= 0 || amount <= 0) return
+            const radius = Math.min(root.radius, width / 2, height / 2)
+            c.beginPath()
+            c.roundedRect(0, 0, width, height, radius, radius)
+            c.clip()
+            c.fillStyle = wash
+            c.fillRect(0, 0, width * amount, height)
+            // One clipping edge keeps the wash and both border strokes in sync.
+            c.beginPath()
+            c.rect(0, 0, width * amount, height)
+            c.clip()
+            c.strokeStyle = ink
+            c.lineWidth = 3
+            c.lineCap = "butt"
+            c.beginPath()
+            c.roundedRect(1.5, 1.5, width - 3, height - 3, radius - 1.5, radius - 1.5)
+            c.stroke()
         }
     }
     Row {

@@ -14,6 +14,8 @@ import "services/palette"
 import "services/island"
 import "surfaces/canvas"
 import "surfaces/companion"
+import "services/clipboard"
+import "surfaces/clipboard"
 // qmllint enable unused-imports
 
 // Compile the actual entrypoint without instantiating its desktop surfaces.

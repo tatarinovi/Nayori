@@ -41,6 +41,7 @@ Rectangle {
     property bool active: true
     property bool expanded: false
     readonly property bool popupOpen: !!dashboard.item && dashboard.item.popupOpen
+    function closePopups() { if (dashboard.item) dashboard.item.closePopups() }
     property bool launcherOpen: false
     readonly property int launcherWidth: 640
     // One blend, retargeted. Rapid Alt+Space does not queue a second morph.

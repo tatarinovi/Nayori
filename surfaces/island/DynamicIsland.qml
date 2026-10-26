@@ -330,7 +330,7 @@ Rectangle {
             }
         }
         MarqueeText {
-            loop: false
+            loop: true
             x: fox.x + fox.width + restingContent.foxGap + 16
             width: Math.max(0, parent.width - x - 16)
             height: parent.height

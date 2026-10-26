@@ -20,13 +20,37 @@ Scope {
     required property var shellState
     readonly property var tokenSet: shellState.tokenSet
     readonly property var tokens: tokenSet
+    FullscreenGuard { id: fullscreenGuard; screen: root.panelScreen; tokens: root.tokens }
+    Region { id: emptyInputMask }
+    readonly property bool fullscreen: fullscreenGuard.blocked
+    readonly property real fullscreenReveal: fullscreenGuard.reveal
+    property bool panelsReady: false
+    Component.onCompleted: { panelsReady = true; dismissForFullscreen() }
+    onFullscreenRevealChanged: if (panelsReady && fullscreen && fullscreenReveal === 0) expandedOpened = false
     readonly property bool topEnabled: panelScreen !== null
         && (panelScreen === shellState.probeScreen || !shellState.hideSecondaryIsland)
     readonly property string screenName: panelScreen ? panelScreen.name : ""
     property bool expandedOpened: false
     property bool dashboardHoverBlocked: false
+    onFullscreenChanged: if (panelsReady) dismissForFullscreen()
+    function dismissForFullscreen() {
+        if (!fullscreen) return
+        // Finish the fade before collapsing the dashboard under the surface.
+        if (fullscreenReveal === 0) expandedOpened = false
+        dashboardOpenDelay.stop()
+        dashboardCloseDelay.stop()
+        capsule.closePopups()
+        startMenu.opened = false
+        startMenu.visible = false
+        startContext.opened = false
+        startContext.visible = false
+        status.opened = ""
+        if (shellState.launcherOpened && shellState.currentOverlayScreen === panelScreen)
+            shellState.launcherOpened = false
+    }
     readonly property bool dashboardPointerInside: topHover.hovered || capsule.popupOpen
     onDashboardPointerInsideChanged: {
+        if (fullscreen) return
         if (dashboardPointerInside) {
             dashboardCloseDelay.stop()
             if (!dashboardHoverBlocked && !expandedOpened)
@@ -38,7 +62,7 @@ Scope {
                 dashboardCloseDelay.restart()
         }
     }
-    readonly property bool launcherHere: shellState.launcherOpened
+    readonly property bool launcherHere: !fullscreen && shellState.launcherOpened
         && panelScreen !== null
         && panelScreen === shellState.currentOverlayScreen
     function panelHoleX(win) {
@@ -91,7 +115,7 @@ Scope {
     Connections {
         target: root.shellState
         function onStartMenuToggleRequested(outputName) {
-            if (!root.panelScreen || root.panelScreen.name !== outputName) return
+            if (root.fullscreen || !root.panelScreen || root.panelScreen.name !== outputName) return
             root.shellState.launcherOpened = false
             startMenu.toggle()
         }
@@ -101,7 +125,11 @@ Scope {
                 startMenu.opened = false
         }
         function onLauncherOpenedChanged() {
-            if (root.shellState.launcherOpened) root.expandedOpened = false
+            if (root.shellState.launcherOpened) {
+                root.expandedOpened = false
+                if (root.fullscreen && root.shellState.currentOverlayScreen === root.panelScreen)
+                    root.shellState.launcherOpened = false
+            }
         }
         function onSettingsOpenedChanged() {
             if (root.shellState.settingsOpened) root.expandedOpened = false
@@ -111,7 +139,7 @@ Scope {
         id: dashboardOpenDelay
         interval: 400
         onTriggered: {
-            if (root.dashboardPointerInside && !root.dashboardHoverBlocked
+            if (!root.fullscreen && root.dashboardPointerInside && !root.dashboardHoverBlocked
                     && !root.shellState.launcherOpened)
                 root.expandedOpened = true
         }
@@ -126,12 +154,12 @@ Scope {
     }
     ReservedSpace {
         screen: root.panelScreen
-        amount: root.topEnabled ? root.shellState.topReserved : 0
+        amount: root.topEnabled && !root.fullscreen ? root.shellState.topReserved : 0
         topEdge: true
     }
     ReservedSpace {
         screen: root.panelScreen
-        amount: root.shellState.bottomReserved
+        amount: root.fullscreen ? 0 : root.shellState.bottomReserved
         topEdge: false
     }
 
@@ -140,7 +168,7 @@ Scope {
         id: topTrigger
         ns: "nayori-edge-top"
         screen: root.panelScreen
-        visible: root.topEnabled && root.shellState.autoHideTop
+        visible: !root.fullscreen && root.topEnabled && root.shellState.autoHideTop
         topEdge: true
         span: 400
     }
@@ -148,7 +176,7 @@ Scope {
         id: workspaceTrigger
         ns: "nayori-edge-workspaces"
         screen: root.panelScreen
-        visible: root.panelScreen !== null && root.shellState.autoHideWorkspaces
+        visible: !root.fullscreen && root.panelScreen !== null && root.shellState.autoHideWorkspaces
         side: -1
         span: dockCluster.implicitWidth
     }
@@ -156,14 +184,14 @@ Scope {
         id: appsTrigger
         ns: "nayori-edge-apps"
         screen: root.panelScreen
-        visible: root.panelScreen !== null && root.shellState.autoHideApps && apps.hasWindows
+        visible: !root.fullscreen && root.panelScreen !== null && root.shellState.autoHideApps && apps.hasWindows
         span: apps.implicitWidth
     }
     EdgeTrigger {
         id: statusTrigger
         ns: "nayori-edge-status"
         screen: root.panelScreen
-        visible: root.panelScreen !== null && root.shellState.autoHideStatus
+        visible: !root.fullscreen && root.panelScreen !== null && root.shellState.autoHideStatus
         side: 1
         span: status.implicitWidth
     }
@@ -211,6 +239,7 @@ Scope {
         screen: root.panelScreen
         property bool animateReady: false
         property real revealOpacity: visibility.shown ? 1 : 0
+        readonly property real contentOpacity: revealOpacity * root.fullscreenReveal
         Behavior on revealOpacity {
             enabled: dock.animateReady
             NumberAnimation {
@@ -220,7 +249,7 @@ Scope {
             }
         }
         Component.onCompleted: Qt.callLater(function() { dock.animateReady = true })
-        visible: visibility.shown || revealOpacity > 0
+        visible: root.fullscreenReveal > 0 && (visibility.shown || revealOpacity > 0)
         color: "transparent"
         anchors.top: false
         anchors.bottom: true
@@ -240,7 +269,9 @@ Scope {
         property var materialRegion: dockGlass
         Region { id: dockGlass; item: dock.island; radius: dock.island ? Math.round(dock.island.radius) : 0 }
         BackgroundEffect.blurRegion: root.tokens.frosted ? dock.materialRegion : null
-        mask: Region {
+        mask: root.fullscreen ? emptyInputMask : dockMask
+        Region {
+            id: dockMask
             item: dock.island
             radius: dock.island ? Math.round(dock.island.radius) : 0
         }
@@ -267,6 +298,7 @@ Scope {
         }
         property bool animateReady: false
         property real revealOpacity: topVisibility.shown ? 1 : 0
+        readonly property real contentOpacity: revealOpacity * root.fullscreenReveal
         Behavior on revealOpacity {
             enabled: islandWindow.animateReady
             NumberAnimation {
@@ -282,7 +314,7 @@ Scope {
             capsule.focusSearch()
         }
         screen: root.panelScreen
-        visible: root.topEnabled && (topVisibility.shown || revealOpacity > 0)
+        visible: root.topEnabled && root.fullscreenReveal > 0 && (topVisibility.shown || revealOpacity > 0)
         color: "transparent"
         // Size stays the dashboard window. Opening does not restretch the
         // surface, and the result list is not part of this rectangle.
@@ -313,7 +345,7 @@ Scope {
         WlrLayershell.namespace: "nayori-island"
         WlrLayershell.keyboardFocus: root.launcherHere
             ? WlrKeyboardFocus.Exclusive
-            : (root.expandedOpened ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None)
+            : (root.expandedOpened && !root.fullscreen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None)
         // У PanelWindow нет Keys: Escape ловит только Shortcut.
         Shortcut {
             enabled: root.launcherHere
@@ -343,7 +375,9 @@ Scope {
             }
         }
         BackgroundEffect.blurRegion: root.tokens.frosted ? islandGlass : null
-        mask: Region {
+        mask: root.fullscreen ? emptyInputMask : islandMask
+        Region {
+            id: islandMask
             Region { item: capsule; radius: Math.round(capsule.radius) }
             // Explicit bounds: Region.item keeps the item's geometry even while it is hidden.
             Region {
@@ -356,7 +390,7 @@ Scope {
         }
 
         RectangularShadow {
-            opacity: islandWindow.revealOpacity
+            opacity: islandWindow.contentOpacity
             anchors.fill: capsule
             radius: capsule.radius
             blur: 16
@@ -393,7 +427,7 @@ Scope {
             anchors.horizontalCenter: parent.horizontalCenter
             tokens: root.tokenSet
             active: islandWindow.visible
-            opacity: islandWindow.revealOpacity
+            opacity: islandWindow.contentOpacity
             onDashboardRequested: {
                 root.shellState.launcherOpened = false
                 root.expandedOpened = true
@@ -416,11 +450,12 @@ Scope {
             z: 2
             tokens: root.tokens
             player: capsule.compactPlayer
+            position: root.shellState.islandMusic ? root.shellState.islandMusic.position : 0
             showing: capsule.compactControls
             anchors.verticalCenter: capsule.verticalCenter
             anchors.left: capsule.right
             anchors.leftMargin: root.tokens.spacing.small
-            opacity: reveal * islandWindow.revealOpacity
+            opacity: reveal * islandWindow.contentOpacity
             HoverHandler { id: mediaHover }
         }
 
@@ -433,7 +468,7 @@ Scope {
             anchors.verticalCenter: capsule.verticalCenter
             anchors.right: capsule.left
             anchors.rightMargin: root.tokens.spacing.small
-            opacity: reveal * islandWindow.revealOpacity
+            opacity: reveal * islandWindow.contentOpacity
         }
     }
 
@@ -474,7 +509,7 @@ Scope {
                         anchors.centerIn: parent
                         tokens: root.tokenSet
                         menusOpen: startMenu.opened || startContext.opened
-                        opacity: workspacesWindow.revealOpacity
+                        opacity: workspacesWindow.contentOpacity
                         onClicked: startMenu.toggle()
                         onContextRequested: startContext.toggle()
                         onContextReleased: startContext.armGrab()
@@ -484,7 +519,7 @@ Scope {
                 WorkspacesIsland {
                     id: workspaces
                     outputName: root.panelScreen ? root.panelScreen.name : ""
-                    opacity: workspacesWindow.revealOpacity
+                    opacity: workspacesWindow.contentOpacity
                     tokens: root.tokenSet
                 }
             }
@@ -499,6 +534,11 @@ Scope {
         anchorItem: startButton
         anchorWindow: workspacesWindow
         onOpenedChanged: {
+            if (opened && root.fullscreen) {
+                opened = false
+                visible = false
+                return
+            }
             if (!opened) {
                 if (root.shellState.startMenuOutput === root.screenName)
                     root.shellState.startMenuOutput = ""
@@ -522,6 +562,11 @@ Scope {
         anchorItem: startButton
         anchorWindow: workspacesWindow
         onOpenedChanged: {
+            if (opened && root.fullscreen) {
+                opened = false
+                visible = false
+                return
+            }
             if (!opened)
                 return
             startMenu.opened = false
@@ -541,7 +586,7 @@ Scope {
         AppsIsland {
             id: apps
             outputName: root.panelScreen ? root.panelScreen.name : ""
-            opacity: appsWindow.revealOpacity
+            opacity: appsWindow.contentOpacity
             tokens: root.tokenSet
         }
     }
@@ -557,7 +602,7 @@ Scope {
 
         StatusIsland {
             id: status
-            opacity: statusWindow.revealOpacity
+            opacity: statusWindow.contentOpacity
             tokens: root.tokenSet
             menuWindow: statusWindow
         }
@@ -641,7 +686,7 @@ Scope {
                 easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
             }
         }
-        visible: reveal > 0.01
+        visible: !root.fullscreen && reveal > 0.01
         mask: Region {
             width: root.launcherHere && capsule.listOpen ? Math.max(0, Math.round(launcherList.width)) : 0
             height: root.launcherHere && capsule.listOpen ? Math.max(0, Math.round(launcherList.height)) : 0

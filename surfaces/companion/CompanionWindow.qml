@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import "../../services/ui"
 
 PanelWindow {
     id: root
@@ -18,6 +19,8 @@ PanelWindow {
     // Комментировать системные события (нагрузка, окна, батарея, сеть, обновление, бездействие, ночь).
     // false — источники отключаются, реплики не копятся. Приветствие и поглаживание не зависят.
     property bool systemLines: true
+    FullscreenGuard { id: fullscreenGuard; screen: root.screen; tokens: root.tokens }
+    visible: fullscreenGuard.reveal > 0
     // Над иллюстрацией — место под облачко с репликой (до пяти строк), оно прозрачно для ввода.
     readonly property int bubbleSpace: 128
     readonly property real companionScale: Math.max(0.1, Math.min(1,
@@ -41,7 +44,7 @@ PanelWindow {
     focusable: false
     // Весь ввод проходит сквозь окно, кроме эллипса головы, когда реакция на курсор включена.
     // Облачко, тело и пустое место над головой вход не принимают.
-    mask: root.reactToPointer ? headMask : emptyMask
+    mask: root.reactToPointer && !fullscreenGuard.blocked ? headMask : emptyMask
     WlrLayershell.layer: root.desktopOnly ? WlrLayer.Bottom : WlrLayer.Top
     WlrLayershell.namespace: "nayori-companion"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
@@ -61,7 +64,7 @@ PanelWindow {
     // Источники системных событий: CPU, niri, UPower, сеть, ввод, процессы обновления.
     NaomiSystemSources {
         controller: companion.controller
-        enabled: root.systemLines
+        enabled: root.systemLines && root.visible
     }
 
     Region { id: emptyMask }
@@ -80,7 +83,8 @@ PanelWindow {
         companionStyle: root.companionStyle
         tokens: root.tokens
         anchors.fill: parent
-        active: true
+        active: root.visible
+        opacity: fullscreenGuard.reveal
         animationsEnabled: root.animationsEnabled
         reactToPointer: root.reactToPointer
         systemLines: root.systemLines
