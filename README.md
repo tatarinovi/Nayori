@@ -124,6 +124,20 @@ NAYORI_CANVAS_DISABLED=1 qs -p /absolute/path/to/nayori
 
 ## Проверки
 
+GitHub Actions запускает CI при push, pull request и вручную через Actions → CI → Run workflow. Три задания в контейнере Arch Linux проверяют линтинг, логику и QML smoke-сценарии с offscreen-окнами и отдельной D-Bus-шиной.
+
+Те же проверки локально:
+
+```sh
+bash scripts/ci-lint.sh
+bash scripts/ci-tests.sh unit
+dbus-run-session -- bash scripts/ci-tests.sh smoke
+```
+
+Зависимости CI перечислены в [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Линтинг включает Qt 6 `qmllint`, Ruff, ShellCheck и проверку синтаксиса JavaScript и Bash. Ruff проверяет синтаксис и ошибки выполнения; ShellCheck блокирует диагностику уровня error. Для `qmllint` отключены проверки `missing-property` и `uncreatable-type`: описания типов Quickshell неполны. Образ Arch Linux обновляется при запуске, поэтому версии пакетов могут меняться.
+
+Проверки живых Wayland-поверхностей, физического ввода и GPU выполняются отдельно на рабочем стенде командами ниже.
+
 <details>
 <summary><strong>Проверки, smoke-сценарии и Wayland-стенды</strong></summary>
 

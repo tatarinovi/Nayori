@@ -1,0 +1,5 @@
+# Catch syntax errors and definite runtime mistakes without reformatting legacy code.
+target-version = "py313"
+
+[lint]
+select = ["E9", "F63", "F7", "F82"]

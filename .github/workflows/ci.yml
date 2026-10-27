@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: ${{ matrix.suite }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container: archlinux:base
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [lint, unit, smoke]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm --needed \
+            git nodejs python python-pillow python-numpy quickshell qt6-declarative \
+            qt6-imageformats qt6-multimedia qt6-5compat imagemagick \
+            dbus systemd ripgrep ffmpeg niri ruff shellcheck ttf-dejavu shadow util-linux
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Prepare unprivileged test user
+        # Permission-denied tests must not run as container root.
+        run: |
+          useradd --create-home ci
+          chown -R ci:ci "$GITHUB_WORKSPACE"
+      - name: Lint
+        if: matrix.suite == 'lint'
+        run: runuser -u ci -- bash scripts/ci-lint.sh
+      - name: Unit tests
+        if: matrix.suite == 'unit'
+        run: runuser -u ci -- bash scripts/ci-tests.sh unit
+      - name: Offscreen QML and D-Bus smoke tests
+        if: matrix.suite == 'smoke'
+        run: runuser -u ci -- dbus-run-session -- bash scripts/ci-tests.sh smoke

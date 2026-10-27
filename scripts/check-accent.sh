@@ -91,7 +91,5 @@ files=(
     tests/palette-pick.cjs
     scripts/check-accent.sh
 )
-git add -N -- "${files[@]}"
 git diff --check -- "${files[@]}"
-git reset -q -- "${files[@]}"
 printf 'Accent checks passed. Test data: %s\n' "$runtime"
