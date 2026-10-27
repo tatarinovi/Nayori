@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: ${{ matrix.suite }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container: archlinux:base
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [lint, unit, smoke]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm --needed \
+            git nodejs python python-pillow python-numpy quickshell qt6-declarative \
+            qt6-imageformats qt6-multimedia qt6-5compat imagemagick \
+            dbus systemd ripgrep ffmpeg niri ruff shellcheck
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Allow checkout mounted by runner
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Lint
+        if: matrix.suite == 'lint'
+        run: bash scripts/ci-lint.sh
+      - name: Unit tests
+        if: matrix.suite == 'unit'
+        run: bash scripts/ci-tests.sh unit
+      - name: Offscreen QML and D-Bus smoke tests
+        if: matrix.suite == 'smoke'
+        run: dbus-run-session -- bash scripts/ci-tests.sh smoke

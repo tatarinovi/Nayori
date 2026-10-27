@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
+import "../../tokens/AccentRoles.js" as AccentRoles
 
 // Haori Naomi. Every PNG keeps the shared 470x1024 canvas from assets/naomi/haori.
 // A blink covers the eyes with the closed eyes from the expression sheet. From midnight to 06:00 the sleepy eyes stay on. While a line is showing, the mouth opens and closes. While petted, the eyes close, a small blush from the laugh shows, and the head leans toward the cursor.
@@ -14,7 +15,7 @@ Item {
     property real petLean: 0
     // A line is on screen. The mouth opens and closes until it goes away.
     property bool speaking: false
-    property color accentColor: "#C0AFD1"
+    property color accentColor: AccentRoles.authoredRoles().accent
     // -1 follows the system clock. 0–5 is sleepy, matching Naomi's night lines (00:00–05:59).
     property int hourOverride: -1
     property int systemHour: new Date().getHours()

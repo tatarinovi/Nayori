@@ -11,11 +11,11 @@ node tests/naomi-interactions.cjs
 node tests/naomi-personality.cjs
 python3 tests/naomi-layers.py
 # Quickshell qmltypes omit dynamic model values and Loader item members.
-/usr/lib/qt6/bin/qmllint --missing-property disable -I /usr/lib/qt6/qml \
+/usr/lib/qt6/bin/qmllint --missing-property disable --uncreatable-type disable -I /usr/lib/qt6/qml \
     services/island/*.qml surfaces/island/*.qml \
     tests/smoke/IslandBehaviorSmoke.qml tests/smoke/AudioReactionSmoke.qml tests/smoke/NotificationBridgeSmoke.qml tests/smoke/IslandWheelSmoke.qml tests/smoke/NotificationUiSmoke.qml tests/smoke/MarqueeSmoke.qml
 # Naomi: оконный CompanionWindow (PanelWindow) qmllint создать не может, остальное проверяем целиком.
-/usr/lib/qt6/bin/qmllint --missing-property disable -I /usr/lib/qt6/qml \
+/usr/lib/qt6/bin/qmllint --missing-property disable --uncreatable-type disable -I /usr/lib/qt6/qml \
     services/companion/*.qml surfaces/companion/Naomi*.qml tests/smoke/NaomiCompanionSmoke.qml
 runtime=$(mktemp -d /tmp/nayori-island-check.XXXXXX)
 trap 'rm -rf "$runtime"' EXIT

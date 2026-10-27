@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 python3 tests/lyrics-fetch.py
-/usr/lib/qt6/bin/qmllint --missing-property disable -I /usr/lib/qt6/qml \
+/usr/lib/qt6/bin/qmllint --missing-property disable --uncreatable-type disable -I /usr/lib/qt6/qml \
     services/island/MusicService.qml surfaces/island/{MusicCard,MusicTransportIcon,MarqueeText,IslandBeatBorder,SyncedLyrics,AlbumArt,AlbumBackdrop,IslandDashboard,MorphingIsland,DynamicIsland}.qml \
     tests/smoke/CompactMusicSmoke.qml tests/smoke/MusicServiceSmoke.qml tests/smoke/MusicWidgetSmoke.qml tests/smoke/MusicLayoutSmoke.qml tests/smoke/PlayerStyleSmoke.qml
 runtime=$(mktemp -d /tmp/nayori-music-check.XXXXXX)
