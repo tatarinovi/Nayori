@@ -31,7 +31,7 @@ QtObject {
         bluetooth: 10, mouse: 11, keyboard: 12, shortcuts: 13, start: 14,
         island: 15, lockscreen: 16, windows: 17, alttab: 18, workspaces: 19,
         defaults: 20, autostart: 21, updates: 22, about: 23, integrations: 24, naomi: 25,
-        "naomi-look": 26, "naomi-place": 27
+        "naomi-look": 26, "naomi-place": 27, capture: 28
     })
 
     function open() { return show("") }
@@ -112,6 +112,8 @@ QtObject {
         SettingsWindow {
             id: surface
             settingsReady: root.settingsService.ready
+            captureSettings: root.settingsService.values
+            onCaptureSettingsChangedRequested: patch => root.settingsService.update(patch)
             companionTokens: root.companionTokens
             tokens: root.tokens
             wallpaperManager: root.wallpaperManager

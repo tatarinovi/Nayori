@@ -26,6 +26,8 @@ import "services/clipboard"
 import "services/lock"
 import "surfaces/lock"
 import "surfaces/clipboard"
+import "services/capture"
+import "surfaces/capture"
 
 ShellRoot {
     id: root
@@ -40,6 +42,54 @@ ShellRoot {
 
     SettingsService { id: settingsStore }
     ClipboardService { id: clipboardStore }
+    readonly property var captureService: captureStore
+    CaptureService { id: captureStore; settings: settingsStore; notifications: notificationModel }
+    function beginCapture(kind) {
+        if (lockService.locked) return
+        root.clipboardOpened = false
+        root.launcherOpened = false
+        if (root.startMenuOutput !== "") root.startMenuToggleRequested(root.startMenuOutput)
+        settingsController.close()
+        const output = root.screenNamed(Niri.focusedOutput)
+        if (output) captureStore.begin(kind, output.name)
+    }
+    IpcHandler {
+        target: "capture"
+        function screenshot(): void { root.beginCapture("shot") }
+        function record(): void { root.beginCapture("video") }
+        function stop(): void { captureStore.stop() }
+        function pause(): void { captureStore.pause() }
+        function cancel(): void { captureStore.cancel() }
+    }
+    Variants {
+        model: captureStore.editing ? Quickshell.screens : []
+        CaptureOverlay {
+            required property var modelData
+            screen: modelData
+            outputName: modelData.name
+            tokens: root.tokenSet
+            service: captureStore
+        }
+    }
+    Connections {
+        target: Quickshell
+        function onScreensChanged() {
+            if (captureStore.state !== "idle" && !Quickshell.screens.some(s => s.name === captureStore.output)) {
+                if (captureStore.recording) captureStore.stop()
+                else captureStore.cancel()
+            }
+        }
+    }
+    Variants {
+        model: captureStore.recording || captureStore.state === "starting" ? Quickshell.screens : []
+        CaptureFrame {
+            required property var modelData
+            screen: modelData
+            outputName: modelData.name
+            tokens: root.tokenSet
+            service: captureStore
+        }
+    }
     WeatherService {
         id: weatherStore
         enabled: settingsStore.ready

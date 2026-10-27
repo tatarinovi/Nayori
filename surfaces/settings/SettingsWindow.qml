@@ -11,6 +11,8 @@ FloatingWindow {
     property var wallpaperManager: null
     property var companionTokens: tokens
     required property var tokens
+    property var captureSettings: ({})
+    signal captureSettingsChangedRequested(var patch)
     property int topReserved: 0
     property int bottomReserved: 0
     property bool hideSecondaryIsland: false
@@ -108,6 +110,8 @@ FloatingWindow {
 
     Settings {
         id: settings
+        captureSettings: root.captureSettings
+        onCaptureSettingsChangedRequested: patch => root.captureSettingsChangedRequested(patch)
         enabled: root.settingsReady
         companionTokens: root.companionTokens
         tokens: root.tokens

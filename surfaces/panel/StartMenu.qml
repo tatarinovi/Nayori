@@ -6,7 +6,7 @@ import Quickshell.Wayland
 import "../../services"
 import "../../services/system"
 
-// Левое меню Пуска. Питание только через SessionActions и только после подтверждения.
+// Левое меню Пуска. Действия сеанса выполняются через SessionActions.
 PanelWindow {
     id: root
 
@@ -36,7 +36,6 @@ PanelWindow {
     }
     property bool keepFailure: false
     property string page: "main"
-    property string pendingAction: ""
     property string notice: ""
     property string failure: ""
 
@@ -66,7 +65,6 @@ PanelWindow {
     function dismissEscape() {
         if (page !== "main") {
             page = "main"
-            pendingAction = ""
             return
         }
         opened = false
@@ -74,57 +72,15 @@ PanelWindow {
 
     function resetTransient() {
         page = "main"
-        pendingAction = ""
         notice = ""
         failure = ""
     }
 
     function showPage(next) {
         notice = ""
-        if (next === "main")
-            pendingAction = ""
+        failure = ""
         page = next
         Qt.callLater(root.focusPage)
-    }
-
-    function ask(kind) {
-        failure = ""
-        pendingAction = kind
-        showPage("confirm")
-    }
-
-    function confirmTitle() {
-        if (pendingAction === "lock")
-            return "Заблокировать экран?"
-        if (pendingAction === "logout")
-            return "Выйти из сессии?"
-        if (pendingAction === "reboot")
-            return "Перезагрузить компьютер?"
-        if (pendingAction === "powerOff")
-            return "Выключить компьютер?"
-        return ""
-    }
-
-    function confirmBody() {
-        if (pendingAction === "lock")
-            return "Сессия останется открытой"
-        if (pendingAction === "logout")
-            return "Открытые приложения закроются"
-        if (pendingAction === "reboot" || pendingAction === "powerOff")
-            return "Несохраненная работа пропадет"
-        return ""
-    }
-
-    function confirmLabel() {
-        if (pendingAction === "lock")
-            return "Заблокировать"
-        if (pendingAction === "logout")
-            return "Выйти"
-        if (pendingAction === "reboot")
-            return "Перезагрузить"
-        if (pendingAction === "powerOff")
-            return "Выключить"
-        return ""
     }
 
     function applicationName(desktopId) {
@@ -154,11 +110,10 @@ PanelWindow {
         opened = false
     }
 
-    function runPending() {
-        if (session.busy || pendingAction === "")
+    function runAction(kind) {
+        if (session.busy || !opened || page !== "power")
             return
         failure = ""
-        const kind = pendingAction
         let ok = false
         if (kind === "lock")
             ok = session.lock()
@@ -179,8 +134,6 @@ PanelWindow {
             return
         if (page === "power")
             powerBack.forceActiveFocus()
-        else if (page === "confirm")
-            confirmAction.forceActiveFocus()
         else
             settingsAction.forceActiveFocus()
     }
@@ -250,8 +203,7 @@ PanelWindow {
         function onFailed(action, message) {
             const text = message ? String(message).trim() : ""
             root.failure = text || "Не получилось"
-            root.pendingAction = action || root.pendingAction
-            root.page = "confirm"
+            root.page = "power"
             root.keepFailure = true
             root.opened = true
             root.keepFailure = false
@@ -300,7 +252,6 @@ PanelWindow {
                 implicitWidth: width
                 implicitHeight: height
                 height: root.page === "power" ? powerPage.implicitHeight
-                      : root.page === "confirm" ? confirmPage.implicitHeight
                       : mainPage.implicitHeight
 
             Column {
@@ -458,7 +409,15 @@ PanelWindow {
                     height: 1
                     color: root.tokens.color.border
                 }
-                MenuRow {
+                Text {
+                    width: parent.width
+                    text: "Удерживайте кнопку 0,5 секунды"
+                    horizontalAlignment: Text.AlignHCenter
+                    color: root.tokens.color.textMuted
+                    font.family: root.tokens.type.small.family
+                    font.pixelSize: root.tokens.type.small.size
+                }
+                HoldMenuRow {
                     id: lockAction
                     width: parent.width
                     tokens: root.tokens
@@ -470,9 +429,10 @@ PanelWindow {
                     KeyNavigation.up: powerBack
                     KeyNavigation.down: logoutAction
                     onEscapePressed: root.dismissEscape()
-                    onClicked: root.ask("lock")
+                    holdEnabled: root.opened && root.page === "power"
+                    onHeld: root.runAction("lock")
                 }
-                MenuRow {
+                HoldMenuRow {
                     id: logoutAction
                     width: parent.width
                     tokens: root.tokens
@@ -484,9 +444,10 @@ PanelWindow {
                     KeyNavigation.up: lockAction
                     KeyNavigation.down: rebootAction
                     onEscapePressed: root.dismissEscape()
-                    onClicked: root.ask("logout")
+                    holdEnabled: root.opened && root.page === "power"
+                    onHeld: root.runAction("logout")
                 }
-                MenuRow {
+                HoldMenuRow {
                     id: rebootAction
                     width: parent.width
                     tokens: root.tokens
@@ -498,9 +459,10 @@ PanelWindow {
                     KeyNavigation.up: logoutAction
                     KeyNavigation.down: shutdownAction
                     onEscapePressed: root.dismissEscape()
-                    onClicked: root.ask("reboot")
+                    holdEnabled: root.opened && root.page === "power"
+                    onHeld: root.runAction("reboot")
                 }
-                MenuRow {
+                HoldMenuRow {
                     id: shutdownAction
                     width: parent.width
                     tokens: root.tokens
@@ -512,71 +474,11 @@ PanelWindow {
                     KeyNavigation.up: rebootAction
                     KeyNavigation.down: powerBack
                     onEscapePressed: root.dismissEscape()
-                    onClicked: root.ask("powerOff")
+                    holdEnabled: root.opened && root.page === "power"
+                    onHeld: root.runAction("powerOff")
                 }
             }
 
-            Column {
-                id: confirmPage
-                width: parent.width
-                spacing: root.tokens.spacing.small
-                visible: root.page === "confirm"
-
-                Text {
-                    width: parent.width
-                    text: root.confirmTitle()
-                    wrapMode: Text.Wrap
-                    textFormat: Text.PlainText
-                    color: root.tokens.color.text
-                    font.family: root.tokens.type.display.family
-                    font.pixelSize: root.tokens.type.display.size
-                    font.weight: root.tokens.type.display.weight
-                    font.letterSpacing: root.tokens.type.display.letterSpacing
-                    lineHeight: root.tokens.type.display.lineHeight
-                    lineHeightMode: Text.ProportionalHeight
-                    renderType: Text.NativeRendering
-                }
-                Text {
-                    width: parent.width
-                    text: root.confirmBody()
-                    wrapMode: Text.Wrap
-                    textFormat: Text.PlainText
-                    color: root.tokens.color.textMuted
-                    font.family: root.tokens.type.body.family
-                    font.pixelSize: root.tokens.type.body.size
-                    font.weight: root.tokens.type.body.weight
-                    lineHeight: root.tokens.type.body.lineHeight
-                    lineHeightMode: Text.ProportionalHeight
-                    renderType: Text.NativeRendering
-                }
-                MenuRow {
-                    id: confirmAction
-                    width: parent.width
-                    tokens: root.tokens
-                    text: root.confirmLabel()
-                    glyph: root.pendingAction === "powerOff" ? "power" : root.pendingAction
-                    KeyNavigation.down: cancelAction
-                    KeyNavigation.up: cancelAction
-                    enabled: root.pendingAction !== "" && !root.sessionBusy
-                    onEscapePressed: root.dismissEscape()
-                    onClicked: root.runPending()
-                }
-                MenuRow {
-                    width: parent.width
-                    tokens: root.tokens
-                    id: cancelAction
-                    text: "Отмена"
-                    glyph: "back"
-                    KeyNavigation.down: confirmAction
-                    KeyNavigation.up: confirmAction
-                    onEscapePressed: root.dismissEscape()
-                    onClicked: {
-                        root.pendingAction = ""
-                        root.failure = ""
-                        root.showPage("power")
-                    }
-                }
-            }
             }
 
             Text {

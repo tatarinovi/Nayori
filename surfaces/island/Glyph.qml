@@ -92,6 +92,8 @@ Canvas {
             c.moveTo(7.5, 4.5); c.lineTo(19, 12); c.lineTo(7.5, 19.5); c.closePath(); c.fill(); break
         case "pause":
             c.roundedRect(6, 5, 4, 14, 1, 1); c.roundedRect(14, 5, 4, 14, 1, 1); c.fill(); break
+        case "stop":
+            c.roundedRect(6, 6, 12, 12, 2, 2); c.stroke(); break
         case "list":
             c.moveTo(5, 7); c.lineTo(19, 7); c.moveTo(5, 12); c.lineTo(19, 12); c.moveTo(5, 17); c.lineTo(19, 17); c.stroke(); break
         }

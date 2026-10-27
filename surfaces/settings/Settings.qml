@@ -12,6 +12,8 @@ FocusScope {
     property var wallpaperManager: null
     property var companionTokens: tokens
     required property var tokens
+    property var captureSettings: ({})
+    signal captureSettingsChangedRequested(var patch)
     property int topReserved: 0
     property int bottomReserved: 0
     property bool hideSecondaryIsland: false
@@ -183,6 +185,7 @@ FocusScope {
         {key: "workspaces", page: 19, title: "Рабочие столы", group: "Окна и столы", description: "Столы, которые сейчас сообщает niri"},
         {key: "defaults", page: 20, title: "По умолчанию", group: "Приложения", description: "Приложения по умолчанию через xdg-mime"},
         {key: "autostart", page: 21, title: "Автозапуск", group: "Приложения", description: "Записи автозапуска пользователя и системы"},
+        {key: "capture", page: 28, title: "Запись экрана", group: "Приложения", description: "Скриншоты, скринкасты, папки сохранения, цвет разметки, звук и частота кадров"},
         {key: "naomi", page: 25, title: "Обзор", group: "Naomi", description: "Включение Naomi и предпросмотр"},
         {key: "naomi-look", page: 26, title: "Внешний вид", group: "Naomi", description: "Рисунок и цвет с обоев"},
         {key: "naomi-place", page: 27, title: "Отображение", group: "Naomi", description: "Монитор, угол и слой"},
@@ -194,7 +197,7 @@ FocusScope {
     readonly property var section: sections.find(item => item.page === currentPage) || sections[0]
     readonly property bool persistsSettings: {
         const key = section.key
-        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key.indexOf("naomi") === 0
+        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key === "capture" || key.indexOf("naomi") === 0
     }
     readonly property var categories: [
         {name: "Обзор", caption: "Обзор", glyph: "home"},
@@ -761,6 +764,14 @@ FocusScope {
             NaomiSection { section: "overview"; activePage: 25 }
             NaomiSection { section: "look"; activePage: 26 }
             NaomiSection { section: "place"; activePage: 27 }
+            SettingsScroll {
+                CapturePage {
+                    width: parent.width
+                    tokens: root.tokens
+                    values: root.captureSettings
+                    onChanged: patch => root.captureSettingsChangedRequested(patch)
+                }
+            }
         }
         Rectangle {
             id: footer

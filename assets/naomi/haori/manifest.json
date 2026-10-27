@@ -1,0 +1,169 @@
+{
+  "source": "Haori Naomi, standing, transparent PNG",
+  "canvas": {
+    "width": 470,
+    "height": 1024,
+    "origin_x": 148
+  },
+  "z_order_back_to_front": [
+    "legs",
+    "hair_back",
+    "body",
+    "clothing",
+    "coat",
+    "head",
+    "arm",
+    "hair_front",
+    "hand",
+    "ribbons",
+    "eyes",
+    "mouth",
+    "eyes_closed"
+  ],
+  "parts": {
+    "legs": {
+      "visible_pixels": 49811,
+      "bounds_xyxy": [
+        96,
+        450,
+        254,
+        1023
+      ],
+      "underpaint_radius": 14
+    },
+    "hair_back": {
+      "visible_pixels": 12889,
+      "bounds_xyxy": [
+        56,
+        0,
+        299,
+        220
+      ],
+      "underpaint_radius": 10
+    },
+    "body": {
+      "visible_pixels": 10979,
+      "bounds_xyxy": [
+        159,
+        186,
+        299,
+        289
+      ],
+      "underpaint_radius": 12
+    },
+    "clothing": {
+      "visible_pixels": 37408,
+      "bounds_xyxy": [
+        137,
+        215,
+        328,
+        536
+      ],
+      "underpaint_radius": 10
+    },
+    "coat": {
+      "visible_pixels": 79202,
+      "bounds_xyxy": [
+        11,
+        166,
+        428,
+        995
+      ],
+      "underpaint_radius": 8
+    },
+    "head": {
+      "visible_pixels": 4191,
+      "bounds_xyxy": [
+        121,
+        70,
+        267,
+        185
+      ],
+      "underpaint_radius": 12
+    },
+    "arm": {
+      "visible_pixels": 5617,
+      "bounds_xyxy": [
+        91,
+        136,
+        180,
+        285
+      ],
+      "underpaint_radius": 6
+    },
+    "hair_front": {
+      "visible_pixels": 11426,
+      "bounds_xyxy": [
+        107,
+        55,
+        277,
+        206
+      ],
+      "underpaint_radius": 6
+    },
+    "hand": {
+      "visible_pixels": 1465,
+      "bounds_xyxy": [
+        202,
+        507,
+        237,
+        579
+      ],
+      "underpaint_radius": 5
+    },
+    "ribbons": {
+      "visible_pixels": 17452,
+      "bounds_xyxy": [
+        322,
+        345,
+        458,
+        767
+      ],
+      "underpaint_radius": 8
+    },
+    "eyes": {
+      "visible_pixels": 492,
+      "bounds_xyxy": [
+        134,
+        93,
+        194,
+        135
+      ],
+      "underpaint_radius": 0
+    },
+    "mouth": {
+      "visible_pixels": 379,
+      "bounds_xyxy": [
+        164,
+        158,
+        190,
+        176
+      ],
+      "underpaint_radius": 0
+    },
+    "eyes_closed": {
+      "note": "Drawn lid. Hidden while the eyes are open."
+    }
+  },
+  "pivots": {
+    "head": [
+      194,
+      185
+    ],
+    "breath": [
+      231,
+      327
+    ],
+    "coat": [
+      170,
+      290
+    ],
+    "ribbons": [
+      342,
+      355
+    ]
+  },
+  "assembly_max_channel_delta": 0,
+  "assembly_mean_channel_delta": 0.0,
+  "assembly_changed_pixels": 0
+}

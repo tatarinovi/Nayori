@@ -48,7 +48,7 @@ QtObject {
 
     function logout(): bool {
         if (niriReady())
-            return begin("logout", ["niri", "msg", "action", "quit"])
+            return begin("logout", ["niri", "msg", "action", "quit", "--skip-confirmation"])
         if (!_niriFound && String(Quickshell.env("NIRI_SOCKET") || "").trim() !== "")
             return reject("logout", "Команда niri не найдена. Завершить сеанс через niri нельзя")
         const id = sessionId()

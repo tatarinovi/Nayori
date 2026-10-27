@@ -104,7 +104,7 @@ surfaces/clipboard/
 - `NiriAccent` при `niriColorIntegration` (по умолчанию включено) пишет уже посчитанный акцент во фрагмент `nayori-accent.kdl` рядом с `config.kdl` и подключает фрагмент из `config.kdl`. Путь: `NIRI_CONFIG`, иначе `$XDG_CONFIG_HOME/niri/config.kdl`, а если переменная пуста — `~/.config/niri/config.kdl`.
 - `OverviewRule` пишет `nayori-overview.kdl` с `layer-rule` для namespace `nayori-overview` (`place-within-backdrop`). Если строка include уже в файле, а правило ещё не загружено, один раз вызывается `Niri.reloadConfig()`.
 
-Оба скрипта после записи вызывают `niri validate` и при ошибке возвращают прежний текст. `services/system/niri_config_view.py` файл только читает и отдельно спрашивает раскладки командой `niri msg keyboard-layouts`. Выход из сеанса в `SessionActions` идёт командой `niri msg action quit`. Эти команды в очередь `Niri.qml` не входят. Клавиши оболочка не переписывает.
+Оба скрипта после записи вызывают `niri validate` и при ошибке возвращают прежний текст. `services/system/niri_config_view.py` файл только читает и отдельно спрашивает раскладки командой `niri msg keyboard-layouts`. Выход из сеанса в `SessionActions` идёт командой `niri msg action quit --skip-confirmation`. Эти команды в очередь `Niri.qml` не входят. Клавиши оболочка не переписывает.
 
 ## Токены и акцент
 

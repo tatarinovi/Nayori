@@ -10,6 +10,7 @@ import "../../islands/status"
 import "../island"
 import "../launcher"
 import "../settings"
+import "../capture"
 import "../../services/niri"
 import "../../services/ui"
 import "../../services/ui/IslandRouting.js" as IslandRouting
@@ -21,6 +22,9 @@ Scope {
     required property var shellState
     readonly property var tokenSet: shellState.tokenSet
     readonly property var tokens: tokenSet
+    readonly property var captureService: shellState.captureService || null
+    readonly property bool captureActive: !!captureService && (captureService.editing || captureService.controlsVisible)
+    readonly property bool captureBlocksDashboard: !!captureService && captureService.editing
     FullscreenGuard { id: fullscreenGuard; screen: root.panelScreen; tokens: root.tokens }
     Region { id: emptyInputMask }
     readonly property bool fullscreen: fullscreenGuard.blocked
@@ -56,6 +60,16 @@ Scope {
     }
     property bool expandedOpened: false
     property bool dashboardHoverBlocked: false
+    onCaptureBlocksDashboardChanged: {
+        if (root.captureBlocksDashboard) {
+            dashboardOpenDelay.stop()
+            dashboardCloseDelay.stop()
+            root.expandedOpened = false
+            capsule.closePopups()
+        } else if (!root.fullscreen && root.dashboardPointerInside && !root.dashboardHoverBlocked) {
+            dashboardOpenDelay.restart()
+        }
+    }
     onFullscreenChanged: if (panelsReady) dismissForFullscreen()
     function dismissForFullscreen() {
         if (!fullscreen) return
@@ -74,7 +88,7 @@ Scope {
     }
     readonly property bool dashboardPointerInside: topHover.hovered || capsule.popupOpen
     onDashboardPointerInsideChanged: {
-        if (fullscreen) return
+        if (fullscreen || root.captureBlocksDashboard) return
         if (dashboardPointerInside) {
             dashboardCloseDelay.stop()
             if (!dashboardHoverBlocked && !expandedOpened)
@@ -164,7 +178,7 @@ Scope {
         interval: 400
         onTriggered: {
             if (!root.fullscreen && root.dashboardPointerInside && !root.dashboardHoverBlocked
-                    && !root.shellState.launcherOpened)
+                    && !root.shellState.launcherOpened && !root.captureBlocksDashboard)
                 root.expandedOpened = true
         }
     }
@@ -316,7 +330,7 @@ Scope {
             })
             available: root.topEnabled
             pointerInside: root.dashboardPointerInside || mediaHover.hovered || topTrigger.hovered
-            heldOpen: root.expandedOpened || root.launcherHere
+            heldOpen: root.expandedOpened || root.launcherHere || root.captureActive
         }
         HoverHandler {
             id: topHover
@@ -352,7 +366,8 @@ Scope {
         anchors.left: false
         anchors.right: false
         margins.top: root.tokens.spacing.small
-        implicitWidth: Math.max(712, capsule.closedWidth + 2 * (Math.max(lyricClock.width, mediaControls.width) + root.tokens.spacing.small))
+        implicitWidth: Math.min(root.panelScreen ? root.panelScreen.width : 1200,
+            Math.max(712, capsule.closedWidth + 2 * (Math.max((lyricClock.visible ? lyricClock.width + root.tokens.spacing.small : 0) + (captureControls.visible ? captureControls.width + root.tokens.spacing.small : 0), mediaControls.width) + root.tokens.spacing.small)))
         implicitHeight: 522
         onVisibleChanged: {
             if (visible && root.launcherHere)
@@ -385,6 +400,7 @@ Scope {
 
         Region {
             id: islandGlass
+            Region { x: Math.round(captureControls.x); y: Math.round(captureControls.y); width: captureControls.visible ? Math.round(captureControls.width) : 0; height: captureControls.visible ? 48 : 0; radius: 24 }
             Region { item: capsule; radius: Math.round(capsule.radius) }
             // Explicit bounds: Region.item keeps the item's geometry even while it is hidden.
             Region {
@@ -407,6 +423,7 @@ Scope {
         mask: root.fullscreen ? emptyInputMask : islandMask
         Region {
             id: islandMask
+            Region { x: Math.round(captureControls.x); y: Math.round(captureControls.y); width: captureControls.visible ? Math.round(captureControls.width) : 0; height: captureControls.visible ? 48 : 0; radius: 24 }
             Region { item: capsule; radius: Math.round(capsule.radius) }
             // Explicit bounds: Region.item keeps the item's geometry even while it is hidden.
             Region {
@@ -502,6 +519,17 @@ Scope {
             anchors.rightMargin: root.tokens.spacing.small
             transform: Translate { y: islandWindow.arrivalShift }
             opacity: reveal * islandWindow.contentOpacity
+        }
+        CaptureCapsule {
+            id: captureControls
+            z: 2
+            tokens: root.tokens
+            service: root.captureService
+            anchors.verticalCenter: capsule.verticalCenter
+            anchors.right: lyricClock.visible ? lyricClock.left : capsule.left
+            anchors.rightMargin: root.tokens.spacing.small
+            transform: Translate { y: islandWindow.arrivalShift }
+            opacity: islandWindow.contentOpacity
         }
     }
 

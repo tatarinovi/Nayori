@@ -165,12 +165,28 @@ QtObject {
             "preferredTerminal": "kitty",
             "preferredFileManager": "io.github.lgse.Strata",
             "niriColorIntegration": true,
-            "strataThemeIntegration": true
+            "strataThemeIntegration": true,
+            "captureShotDir": "~/Pictures/Screenshots",
+            "captureVideoDir": "~/Videos/Screencasts",
+            "captureColor": "#CAA7AA",
+            "captureFps": 30,
+            "captureFormat": "mp4",
+            "captureQuality": "high",
+            "captureCountdown": 3,
+            "captureMic": false,
+            "captureSystemAudio": true,
+            "captureCursor": true
         };
     }
 
     function normalize(key, value) {
         const fallback = defaults()[key];
+        if (key === "captureShotDir" || key === "captureVideoDir")
+            return typeof value === "string" && /^(\/|~\/)/.test(value.trim()) && !/[\x00-\x1f]/.test(value) && value.length < 4096 ? value.trim() : fallback;
+        if (key === "captureFps") return value === 30 || value === 60 ? value : fallback;
+        if (key === "captureFormat") return value === "mp4" || value === "webm" ? value : fallback;
+        if (key === "captureQuality") return value === "high" || value === "very_high" ? value : fallback;
+        if (key === "captureCountdown") return value === 0 || value === 3 || value === 5 ? value : fallback;
         if (key === "topReserved" || key === "bottomReserved")
             return typeof value === "number" && isFinite(value) ? Math.max(0, Math.min(200, Math.round(value / 4) * 4)) : fallback;
 
@@ -221,7 +237,7 @@ QtObject {
         if (key === "niriColorIntegration" || key === "strataThemeIntegration")
             return typeof value === "boolean" ? value : fallback;
 
-        if (key === "manualAccent") {
+        if (key === "manualAccent" || key === "captureColor") {
             if (typeof value !== "string")
                 return fallback;
             const match = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.exec(value.trim());

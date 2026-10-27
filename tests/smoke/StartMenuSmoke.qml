@@ -86,11 +86,8 @@ ShellRoot {
         }
     }
     function finishChecks() {
-                menu.ask("logout")
-                if (menu.page !== "confirm" || menu.pendingAction !== "logout")
-                    throw new Error("Confirmation navigation failed")
                 menu.dismissEscape()
-                if (menu.page !== "main" || menu.pendingAction !== "")
+                if (menu.page !== "main")
                     throw new Error("Escape failed")
                 if (menu.menuContent.y + menu.menuContent.height > menu.height - theme.spacing.small - theme.panel.height)
                     throw new Error("Menu must clear the panel")
