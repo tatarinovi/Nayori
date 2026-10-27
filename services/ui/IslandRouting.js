@@ -51,13 +51,3 @@ function relocationReserve(active, topReserved, islandBand) {
     const band = typeof islandBand === "number" && isFinite(islandBand) ? Math.max(0, Math.round(islandBand)) : 0
     return Math.round(Math.max(configured, band))
 }
-
-function launcherOutput(screenNames, focusedOutput, hideSecondary, primaryFullscreen, fullscreenOutput) {
-    const names = screenList(screenNames)
-    if (!hideSecondary) {
-        if (typeof focusedOutput === "string" && names.indexOf(focusedOutput) >= 0)
-            return focusedOutput
-        return names.length > 0 ? names[0] : ""
-    }
-    return host(names, primaryFullscreen, fullscreenOutput)
-}

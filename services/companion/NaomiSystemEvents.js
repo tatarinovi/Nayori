@@ -56,9 +56,10 @@ function setOn(s, on) {
 // Предложить повод. Возвращает true, если он принят в очередь.
 function offer(s, kind, ctx) {
     if (!s.on || cooling(s, kind)) return false
+    const critical = kind === "battery" && Number(ctx && ctx.percent) <= 5
     const k = info(s, kind)
     s.queue = s.queue.filter(e => e.kind !== kind)
-    s.queue.push({ kind: kind, ctx: ctx || {}, at: s.time, priority: k.priority })
+    s.queue.push({ kind: kind, ctx: ctx || {}, at: s.time, priority: critical ? 4 : k.priority })
     // Срочные вперёд, внутри приоритета — по порядку появления.
     s.queue.sort((a, b) => b.priority - a.priority || a.at - b.at)
     if (s.queue.length > QUEUE_LIMIT) s.queue.length = QUEUE_LIMIT
@@ -253,11 +254,29 @@ function nightPhrase(lines, hour) {
     return list[h]
 }
 
-// Текст по виду и обстоятельствам: подставляет {percent} и {time}.
-function compose(s, kind, ctx) {
-    const set = s.lines.system || {}
-    const tpl = set[kind]
-    if (typeof tpl !== "string") return ""
+// Исходная реплика и варианты из systemVariants. Без rnd — всегда исходная строка.
+function chooseLine(s, kind, rnd) {
+    const base = s.lines.system && s.lines.system[kind]
+    if (typeof base !== "string" || base === "") return ""
+    const more = s.lines.systemVariants && s.lines.systemVariants[kind]
+    const all = [base]
+    if (Array.isArray(more)) {
+        for (let i = 0; i < more.length; i++) if (typeof more[i] === "string" && more[i] !== "") all.push(more[i])
+    }
+    if (typeof rnd !== "function" || all.length < 2) return all[0]
+    if (!s.recentSys) s.recentSys = {}
+    const prev = s.recentSys[kind]
+    const fresh = prev ? all.filter(t => t !== prev) : all
+    const pool = fresh.length ? fresh : all
+    const tpl = pool[Math.min(pool.length - 1, Math.floor(rnd() * pool.length))]
+    s.recentSys[kind] = tpl
+    return tpl
+}
+
+// Текст по виду и обстоятельствам: подставляет {percent} и {time}. rnd выбирает вариант.
+function compose(s, kind, ctx, rnd) {
+    const tpl = chooseLine(s, kind, rnd)
+    if (tpl === "") return ""
     const c = ctx || {}
     return tpl.replace("{percent}", String(Math.round(Number(c.percent))))
               .replace("{time}", nightPhrase(s.lines, c.hour))
@@ -265,6 +284,9 @@ function compose(s, kind, ctx) {
 
 // Повод устарел, если обстоятельства изменились, пока он ждал очереди.
 function stale(s, e) {
+    if (e.kind === "musicStart") return s.musicPlaying === false
+    if (e.kind === "musicStop") return s.musicPlaying === true
+    if (e.kind === "hoverStill") return s.pointerInside === false
     if (e.kind === "offline") return s.net.cur === "online"
     if (e.kind === "battery") return !!(s.bat.info && s.bat.info.charging)
     return false
@@ -289,19 +311,22 @@ function tick(s, dt, env) {
         offer(s, "night", { hour: env.hour, dayKey: env.dayKey })
 
     s.queue = s.queue.filter(e => s.time - e.at <= info(s, e.kind).expire && !cooling(s, e.kind) && !stale(s, e))
-    if (s.queue.length === 0 || env.quiet || s.time < (s.data.startupQuiet || 0)) return null
-    const cloud = env.cloud || "free"
-    if (cloud === "busy") return null
+    if (s.queue.length === 0) return null
     for (let i = 0; i < s.queue.length; i++) {
         const e = s.queue[i]
+        const interactive = info(s, e.kind).interaction === true
+        const cloud = (interactive ? env.interactionCloud : env.cloud) || env.cloud || "free"
+        const critical = e.priority >= 4
         const urgent = e.priority >= 3
+        if (!critical && ((env.quiet && !(e.kind === "hoverStill" && !env.petting)) || env.optionalQuiet || s.time < (s.data.startupQuiet || 0))) continue
+        if (cloud === "busy" && !critical || env.criticalVisible) continue
         if (cloud === "replaceable" && !urgent) continue
-        if (s.time - s.lastAny < (urgent ? s.data.urgentGap : s.data.globalGap)) continue
+        if (!critical && s.time - s.lastAny < (interactive ? (s.data.interactionGap || 15) : urgent ? s.data.urgentGap : s.data.globalGap)) continue
         s.queue.splice(i, 1)
         s.last[e.kind] = s.time
         s.lastAny = s.time
         if (e.kind === "night") s.nightKey = e.ctx.dayKey
-        const text = compose(s, e.kind, e.ctx)
+        const text = compose(s, e.kind, e.ctx, env.rnd)
         if (text === "") return null
         return { kind: e.kind, text: text, priority: e.priority }
     }
@@ -311,13 +336,13 @@ function tick(s, dt, env) {
 // Вид реплики из набора и подходящий текст вручную (проверка без реальных событий). Кулдауны и очередь
 // не трогает. value: заряд для battery, час 0–5 для night; без значения — 15 % и текущий час в ночное
 // время (иначе три часа ночи). Возвращает текст или "" для неизвестного вида.
-function preview(s, kind, value, hour) {
+function preview(s, kind, value, hour, rnd) {
     if (!s.lines.system || typeof s.lines.system[kind] !== "string") return ""
     const v = Number(value)
     const ctx = {}
     if (kind === "battery") ctx.percent = value !== undefined && value !== "" && isFinite(v) ? Math.max(0, Math.min(100, v)) : 15
     if (kind === "night") ctx.hour = value !== undefined && value !== "" && isFinite(v) ? v : (inNight(s, hour) ? hour : 3)
-    return compose(s, kind, ctx)
+    return compose(s, kind, ctx, rnd)
 }
 
 // Все виды реплик (для справки и IPC).

@@ -15,6 +15,7 @@ QtObject {
     property var accentCandidates: []
     property string strataError: ""
     property string strataNotice: ""
+    property var remindCompanion: null
     property SettingsUsage usage: SettingsUsage { }
 
     property string userName: Quickshell.env("USER") || ""
@@ -31,7 +32,7 @@ QtObject {
         bluetooth: 10, mouse: 11, keyboard: 12, shortcuts: 13, start: 14,
         island: 15, lockscreen: 16, windows: 17, alttab: 18, workspaces: 19,
         defaults: 20, autostart: 21, updates: 22, about: 23, integrations: 24, naomi: 25,
-        "naomi-look": 26, "naomi-place": 27, capture: 28
+        "naomi-look": 26, "naomi-place": 27, capture: 28, "naomi-remind": 29
     })
 
     function open() { return show("") }
@@ -114,6 +115,8 @@ QtObject {
             settingsReady: root.settingsService.ready
             captureSettings: root.settingsService.values
             onCaptureSettingsChangedRequested: patch => root.settingsService.update(patch)
+            mixerSources: root.settingsService.mixerSources
+            onMixerSourcesChangedRequested: sources => root.settingsService.update({mixerSources: sources})
             companionTokens: root.companionTokens
             tokens: root.tokens
             wallpaperManager: root.wallpaperManager
@@ -168,6 +171,7 @@ QtObject {
             onCompanionScreenChangedRequested: screen => root.settingsService.update({companionScreen: screen})
             companionSide: root.settingsService.companionSide
             onCompanionSideChangedRequested: side => root.settingsService.update({companionSide: side})
+            remindCompanion: root.remindCompanion
             animationsEnabled: root.settingsService.animationsEnabled
             settingsMessage: root.settingsService.message
             canRecover: root.settingsService.canRecover

@@ -18,15 +18,18 @@
     "ribbons",
     "eyes",
     "mouth",
-    "eyes_closed"
+    "eyes_closed",
+    "eyes_happy",
+    "mouth_smile",
+    "blush"
   ],
   "parts": {
     "legs": {
-      "visible_pixels": 49811,
+      "visible_pixels": 50586,
       "bounds_xyxy": [
         96,
         450,
-        254,
+        255,
         1023
       ],
       "underpaint_radius": 14
@@ -42,9 +45,9 @@
       "underpaint_radius": 10
     },
     "body": {
-      "visible_pixels": 10979,
+      "visible_pixels": 12360,
       "bounds_xyxy": [
-        159,
+        92,
         186,
         299,
         289
@@ -62,7 +65,7 @@
       "underpaint_radius": 10
     },
     "coat": {
-      "visible_pixels": 79202,
+      "visible_pixels": 78427,
       "bounds_xyxy": [
         11,
         166,
@@ -72,7 +75,7 @@
       "underpaint_radius": 8
     },
     "head": {
-      "visible_pixels": 4191,
+      "visible_pixels": 4831,
       "bounds_xyxy": [
         121,
         70,
@@ -82,17 +85,17 @@
       "underpaint_radius": 12
     },
     "arm": {
-      "visible_pixels": 5617,
+      "visible_pixels": 3577,
       "bounds_xyxy": [
         91,
-        136,
-        180,
-        285
+        140,
+        160,
+        263
       ],
       "underpaint_radius": 6
     },
     "hair_front": {
-      "visible_pixels": 11426,
+      "visible_pixels": 11081,
       "bounds_xyxy": [
         107,
         55,
@@ -119,30 +122,39 @@
         458,
         767
       ],
-      "underpaint_radius": 8
+      "underpaint_radius": 12
     },
     "eyes": {
-      "visible_pixels": 492,
+      "visible_pixels": 1216,
       "bounds_xyxy": [
-        134,
-        93,
-        194,
-        135
+        120,
+        88,
+        202,
+        150
       ],
       "underpaint_radius": 0
     },
     "mouth": {
-      "visible_pixels": 379,
+      "visible_pixels": 19,
       "bounds_xyxy": [
-        164,
-        158,
-        190,
-        176
+        163,
+        146,
+        186,
+        156
       ],
       "underpaint_radius": 0
     },
     "eyes_closed": {
-      "note": "Drawn lid. Hidden while the eyes are open."
+      "note": "A short eyelid-coloured strip across the iris. Lashes stay. Hidden while the eyes are open."
+    },
+    "eyes_happy": {
+      "note": "Closed eyes with a pleased arc. Shown while Naomi is petted."
+    },
+    "mouth_smile": {
+      "note": "Small smile. Shown while Naomi is petted."
+    },
+    "blush": {
+      "note": "White mask, tinted in QML. Shown while Naomi is petted."
     }
   },
   "pivots": {

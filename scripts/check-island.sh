@@ -7,6 +7,8 @@ node tests/notifications.cjs
 node tests/start-routing.cjs
 node tests/island-routing.cjs
 node tests/naomi-companion.cjs
+node tests/naomi-interactions.cjs
+node tests/naomi-personality.cjs
 python3 tests/naomi-layers.py
 # Quickshell qmltypes omit dynamic model values and Loader item members.
 /usr/lib/qt6/bin/qmllint --missing-property disable -I /usr/lib/qt6/qml \

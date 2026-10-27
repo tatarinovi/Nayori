@@ -209,7 +209,13 @@ PanelWindow {
                         Layout.fillWidth: true
                         elide: Text.ElideRight
                         text: root.editing || root.service.state === "saving" ? "Разметка скриншота" : "Подготовка записи"
-                        color: root.tokens.color.textMuted; font.family: root.tokens.type.body.family; font.pixelSize: 12
+                        color: root.tokens.color.text
+                        font.family: root.tokens.type.display.family
+                        font.pixelSize: root.tokens.type.display.size
+                        font.weight: root.tokens.type.display.weight
+                        font.letterSpacing: root.tokens.type.display.letterSpacing
+                        lineHeight: root.tokens.type.display.lineHeight
+                        lineHeightMode: Text.ProportionalHeight
                     }
                     SettingsButton { tokens: root.tokens; text: "×"; implicitHeight: 26; implicitWidth: 28; enabled: root.service.state !== "saving"; Accessible.name: "Отменить захват"; onClicked: root.service.cancel() }
                 }

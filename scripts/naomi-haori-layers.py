@@ -45,7 +45,7 @@ UNDERPAINT = {
     "arm": 6,
     "hair_front": 6,
     "hand": 5,
-    "ribbons": 8,
+    "ribbons": 12,
     "eyes": 0,
     "mouth": 0,
 }
@@ -78,6 +78,47 @@ def grow(mask, radius):
             if dx * dx + dy * dy <= radius * radius:
                 out |= shift(mask, dy, dx)
     return out
+
+
+def iris_band(eyes):
+    """The iris and its highlight, plus the pixels between them. Lashes stay out."""
+    rgb = eyes[:, :, :3].astype(np.int16)
+    red, green, blue = rgb[:, :, 0], rgb[:, :, 1], rgb[:, :, 2]
+    alpha = eyes[:, :, 3]
+    luma = 0.2126 * red + 0.7152 * green + 0.0722 * blue
+    present = alpha > 40
+    purple = present & (blue > red + 15) & (blue > 60) & (green < blue + 10)
+    white = present & (luma > 160) & (red > 140)
+    core = purple | white
+    band = np.zeros(core.shape, np.bool_)
+    for x0, x1 in ((0, 156), (156, eyes.shape[1])):
+        for y in range(eyes.shape[0]):
+            xs = np.nonzero(core[y, x0:x1])[0]
+            if xs.size == 0:
+                continue
+            band[y, x0 + int(xs.min()):x0 + int(xs.max()) + 1] = present[y, x0 + int(xs.min()):x0 + int(xs.max()) + 1]
+    return band
+
+
+def paint_closed_eyes(eyes, background):
+    """A short eyelid-coloured strip across the iris. Lashes are unchanged."""
+    band = iris_band(eyes)
+    closed = eyes.copy()
+    for x0, x1 in ((0, 156), (156, eyes.shape[1])):
+        cover = band.copy()
+        cover[:, :x0] = False
+        cover[:, x1:] = False
+        ys, xs = np.nonzero(cover)
+        if ys.size == 0:
+            continue
+        sample = background[max(0, int(ys.min()) - 16):max(0, int(ys.min()) - 2), int(xs.min()):int(xs.max()) + 1]
+        sample_red, sample_green, sample_blue, sample_alpha = [sample[:, :, i] for i in range(4)]
+        skin = ((sample_alpha > 200) & (sample_red > 165) & (sample_green > 110) & (sample_blue > 90)
+                & (sample_red.astype(np.int16) > sample_blue.astype(np.int16) + 18) & (sample_red < 242))
+        color = np.median(sample[skin][:, :3].astype(np.float32), 0)
+        closed[cover, :3] = np.clip(np.round(color), 0, 255)
+        closed[cover, 3] = 255
+    return closed, band
 
 
 def composite(layers, order):
@@ -126,8 +167,9 @@ def main():
     bangs = polygon(shape, moved([
         (265, 55), (415, 70), (425, 195), (370, 215), (300, 185), (255, 150),
     ]))
+    # Hand and forearm only. The cheek and the neck stay with the head and the chest.
     arm_region = polygon(shape, moved([
-        (225, 130), (315, 125), (330, 175), (315, 230), (285, 295), (230, 285), (210, 190),
+        (218, 145), (302, 140), (308, 195), (278, 245), (230, 268), (208, 200),
     ]))
     cloth_region = polygon(shape, moved([
         (305, 215), (455, 225), (450, 345), (490, 385), (445, 400),
@@ -142,11 +184,11 @@ def main():
     sash_band = polygon(shape, moved([
         (300, 345), (470, 345), (475, 430), (300, 430),
     ]))
-    eye_boxes = ((282 - X0, 118, 308 - X0, 146), (312 - X0, 92, 342 - X0, 122))
+    eye_boxes = ((268 - X0, 114, 312 - X0, 150), (306 - X0, 88, 350 - X0, 128))
     eye_region = np.zeros(shape, bool)
     for box in eye_boxes:
         eye_region |= ellipse(shape, box)
-    mouth_box = (312, 158, 338, 176)
+    mouth_box = (318, 160, 350, 173)
 
     labels = np.zeros(shape, np.uint8)
     names = {index + 1: name for index, name in enumerate(Z_ORDER)}
@@ -155,17 +197,15 @@ def main():
     def claim(mask, name):
         labels[(labels == 0) & mask & visible] = index_of[name]
 
-    # Eyes: iris, pupil and sclera inside each socket, without the surrounding skin.
-    pupil = luma < 70
-    sclera = (luma > 150) & (blue > 110) & (red < blue + 50)
-    iris = (blue > green + 8) & (blue > 70) & (luma < 210) & (red < 210)
-    claim(eye_region & (iris | sclera | pupil) & ~skin, "eyes")
-    # Mouth is the short dark mark on the face, not the hair line beside it.
-    claim((~skin) & visible & (luma < 100)
-          & (np.arange(width)[None, :] >= mouth_box[0] - X0)
-          & (np.arange(width)[None, :] <= mouth_box[2] - X0)
-          & (np.arange(height)[:, None] >= mouth_box[1])
-          & (np.arange(height)[:, None] <= mouth_box[3]), "mouth")
+    # Everything inside the socket that is not skin: iris, white, pupil, lid line.
+    claim(eye_region & visible & ~skin, "eyes")
+    # The mouth is a soft shadow on the skin, just under the eyes. The black
+    # shape below it is hair and the hand, not the mouth.
+    mouth_zone = ((np.arange(width)[None, :] >= 160)
+                  & (np.arange(width)[None, :] <= 186)
+                  & (np.arange(height)[:, None] >= 145)
+                  & (np.arange(height)[:, None] <= 156))
+    claim(mouth_zone & visible & (luma < 212) & (luma > 100), "mouth")
 
     claim(skin & arm_region & (np.arange(height)[:, None] > 135), "arm")
     # Fingers at the hip sit in front of the coat. The blob is detached from the legs.
@@ -192,6 +232,8 @@ def main():
     claim(visible & cloth_region & ~purple & ~ribbon_region, "clothing")
     claim(visible & ribbon_region & (purple | (np.arange(width)[None, :] > 520 - X0)), "ribbons")
     claim(skin & (np.arange(height)[:, None] <= 210), "head")
+    # Boot-edge specks below the coat hem belong to the legs.
+    claim(visible & leg_region & (np.arange(height)[:, None] > 780), "legs")
     # Whatever is still visible is the haori: sleeves, bow, lining, front panels.
     claim(visible, "coat")
 
@@ -233,19 +275,40 @@ def main():
     for name in Z_ORDER:
         Image.fromarray(paints[name]).save(OUT / f"{name}.png")
 
-    closed = np.zeros_like(full)
-    draw = ImageDraw.Draw(Image.fromarray(closed))
-    # Rebuilt below on a real image; ImageDraw needs the PIL image.
-    lid = Image.fromarray(closed)
-    pen = ImageDraw.Draw(lid)
-    for box in eye_boxes:
-        left, top, right, bottom = box
-        pen.arc((left - 1, top + 2, right + 1, bottom + 6), 200, 340, fill=(46, 36, 58, 255), width=3)
-        pen.arc((left + 1, top + 4, right - 1, bottom + 4), 205, 335, fill=(28, 22, 34, 255), width=2)
-    closed = np.asarray(lid)
+    rest = composite({name: paints[name] for name in Z_ORDER}, Z_ORDER)
+    without_eyes = composite({name: paints[name] for name in Z_ORDER if name != "eyes"},
+                             [name for name in Z_ORDER if name != "eyes"])
+    closed, opening = paint_closed_eyes(paints["eyes"], without_eyes)
     Image.fromarray(closed).save(OUT / "eyes_closed.png")
 
-    rest = composite({name: paints[name] for name in Z_ORDER}, Z_ORDER)
+    happy_image = Image.fromarray(closed.copy())
+    pen = ImageDraw.Draw(happy_image)
+    for x0, x1 in ((0, 156), (156, WIDTH)):
+        part = opening.copy()
+        part[:, :x0] = False
+        part[:, x1:] = False
+        if part.sum() < 20:
+            continue
+        ys, xs = np.nonzero(part)
+        top = int(ys.min() + (ys.max() - ys.min()) * 0.2)
+        pen.arc((int(xs.min()) - 1, top, int(xs.max()) + 1, int(ys.max()) + 2),
+                200, 340, fill=(62, 40, 68, 255), width=2)
+    happy = np.asarray(happy_image)
+    Image.fromarray(happy).save(OUT / "eyes_happy.png")
+
+    smile = np.zeros_like(full)
+    smile_image = Image.fromarray(smile)
+    ImageDraw.Draw(smile_image).arc((158, 149, 192, 164), 10, 170, fill=(96, 52, 64, 255), width=2)
+    Image.fromarray(np.asarray(smile_image)).save(OUT / "mouth_smile.png")
+
+    blush = np.zeros((HEIGHT, WIDTH), np.float32)
+    yy, xx = np.ogrid[:HEIGHT, :WIDTH]
+    for cx, cy, rx, ry in ((132, 148, 16, 10), (198, 128, 18, 11)):
+        blush += np.exp(-(((xx - cx) / rx) ** 2 + ((yy - cy) / ry) ** 2) * 1.4)
+    blush_image = np.zeros_like(full)
+    blush_image[:, :, :3] = 255
+    blush_image[:, :, 3] = np.clip(np.round(np.clip(blush, 0, 1) * 150), 0, 255)
+    Image.fromarray(blush_image).save(OUT / "blush.png")
     # Compare against the crop. Underpaint must stay hidden.
     delta = np.abs(rest.astype(np.int16) - full.astype(np.int16))
     visible_delta = delta[visible]
@@ -256,7 +319,7 @@ def main():
     manifest = {
         "source": "Haori Naomi, standing, transparent PNG",
         "canvas": {"width": WIDTH, "height": HEIGHT, "origin_x": X0},
-        "z_order_back_to_front": Z_ORDER + ["eyes_closed"],
+        "z_order_back_to_front": Z_ORDER + ["eyes_closed", "eyes_happy", "mouth_smile", "blush"],
         "parts": {},
         "pivots": {},
         "assembly_max_channel_delta": max_delta,
@@ -286,7 +349,10 @@ def main():
         "ribbons": [manifest["parts"]["ribbons"]["bounds_xyxy"][0] + 20,
                     manifest["parts"]["ribbons"]["bounds_xyxy"][1] + 10],
     }
-    manifest["parts"]["eyes_closed"] = {"note": "Drawn lid. Hidden while the eyes are open."}
+    manifest["parts"]["eyes_closed"] = {"note": "A short eyelid-coloured strip across the iris. Lashes stay. Hidden while the eyes are open."}
+    manifest["parts"]["eyes_happy"] = {"note": "Closed eyes with a pleased arc. Shown while Naomi is petted."}
+    manifest["parts"]["mouth_smile"] = {"note": "Small smile. Shown while Naomi is petted."}
+    manifest["parts"]["blush"] = {"note": "White mask, tinted in QML. Shown while Naomi is petted."}
     (OUT / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
 
     # Contact sheet for review: each layer on grey, then the composite and the source.

@@ -28,6 +28,8 @@ const STEP_CAP = 90
 const MIN_STEP = 1.2
 // Через сколько секунд непрерывного поглаживания даётся «долгое» событие.
 const LONG_AFTER = 6
+// Курсор лежит на голове и не двигается столько секунд — реплика «что на лице». Это не поглаживание.
+const DWELL_AFTER = 5
 
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, Number(v) || 0)) }
 function follow(a, b, dt, tau) { return b + (a - b) * Math.exp(-dt / tau) }
@@ -43,31 +45,36 @@ function inHead(x, y) {
 
 function create() {
     return { x: 0, y: 0, has: false, inside: false, energy: 0, petting: false, petTime: 0, longFired: false,
-        pet: 0, lean: 0, intensity: 0 }
+        dwell: 0, dwellFired: false, pet: 0, lean: 0, intensity: 0 }
 }
 
 // Курсор сдвинулся в точку (x, y) сцены. Вызывать на каждое событие мыши внутри компонента.
 function move(s, x, y) {
     x = Number(x) || 0; y = Number(y) || 0
     const inside = inHead(x, y)
-    if (s.has && s.inside && inside) {
+    let shifted = false
+    if (s.has) {
         const d = Math.hypot(x - s.x, y - s.y)
-        if (d >= MIN_STEP && d <= JUMP) s.energy += Math.min(d, STEP_CAP)
+        // Дрожь меньше MIN_STEP не считается движением: отсчёт взгляда не сбрасывается.
+        if (d >= MIN_STEP) shifted = true
+        if (s.inside && inside && d >= MIN_STEP && d <= JUMP) s.energy += Math.min(d, STEP_CAP)
     }
+    if (shifted || !inside) { s.dwell = 0; s.dwellFired = false }
     s.x = x; s.y = y; s.has = true; s.inside = inside
 }
 
 // Курсор ушёл из компонента.
-function leave(s) { s.has = false; s.inside = false }
+function leave(s) { s.has = false; s.inside = false; s.dwell = 0; s.dwellFired = false }
 
 // Шаг времени. input: { enabled, reduced }. Возвращает позу и события этого шага.
 function step(s, input, dt) {
     dt = clamp(dt, 0, 1)
-    const out = { started: false, ended: false, long: false, duration: 0 }
+    const out = { started: false, ended: false, long: false, duration: 0, dwell: false }
     if (!input.enabled) {
         // Реакция выключена: сразу гасим позу, событие конца отдаём один раз.
         if (s.petting) { out.ended = true; out.duration = s.petTime }
         s.energy = 0; s.petting = false; s.petTime = 0; s.longFired = false; s.has = false; s.inside = false
+        s.dwell = 0; s.dwellFired = false
         s.pet = 0; s.lean = 0; s.intensity = 0
         return finish(s, out)
     }
@@ -80,6 +87,14 @@ function step(s, input, dt) {
     if (s.petting) {
         s.petTime += dt
         if (!s.longFired && s.petTime >= LONG_AFTER) { s.longFired = true; out.long = true }
+    }
+    // Взгляд без движения. Поглаживание этот отсчёт гасит, чтобы не сказать обе реплики на один жест.
+    if (!s.inside || s.petting) {
+        s.dwell = 0
+        s.dwellFired = false
+    } else if (!s.dwellFired) {
+        s.dwell += dt
+        if (s.dwell >= DWELL_AFTER) { s.dwellFired = true; out.dwell = true }
     }
     s.intensity = s.petting ? clamp(0.6 + 0.4 * (s.energy - OFF) / (ON * 1.6), 0.6, 1) : 0
     const target = s.petting ? s.intensity : 0

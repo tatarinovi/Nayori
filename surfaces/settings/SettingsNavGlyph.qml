@@ -158,7 +158,7 @@ Canvas {
         } else if (name === "autostart") {
             c.beginPath(); c.moveTo(7, 3); c.lineTo(21, 12); c.lineTo(7, 21); c.closePath(); c.fill()
             line(3, 4, 3, 20)
-        } else if (name === "naomi") {
+        } else if (name === "naomi" || name === "naomi-remind") {
             // Ears, head, and a short body.
             c.beginPath(); c.moveTo(6.2, 9); c.lineTo(4.2, 2.2); c.lineTo(10.2, 7.2); c.closePath(); c.fill()
             c.beginPath(); c.moveTo(17.8, 9); c.lineTo(19.8, 2.2); c.lineTo(13.8, 7.2); c.closePath(); c.fill()

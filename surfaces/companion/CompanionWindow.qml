@@ -35,6 +35,8 @@ PanelWindow {
     readonly property alias scene: companion
     // Показать облако с репликой. holdSeconds <= 0 — по длине текста. Для системных событий.
     function say(text: string, holdSeconds: real): bool { return companion.say(text, holdSeconds || 0) }
+    // Напоминание сразу: water, eyes, move. Расписание не сдвигается.
+    function remind(kind: string): bool { return companion.remind(kind) }
 
     // Сначала ставится новый край, потом снимается старый. Иначе на один
     // проход привязки окно остаётся без левого и правого края, и Quickshell падает.
@@ -64,9 +66,9 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     exclusiveZone: 0
     focusable: false
-    // Весь ввод проходит сквозь окно, кроме эллипса головы, когда реакция на курсор включена.
-    // Облачко, тело и пустое место над головой вход не принимают.
-    mask: root.reactToPointer && !fullscreenGuard.blocked ? headMask : emptyMask
+    // Весь ввод проходит сквозь окно, кроме эллипса головы и кнопок напоминания в облаке.
+    readonly property bool bubbleHit: companion.bubble.interactive
+    mask: fullscreenGuard.blocked || (!reactToPointer && !bubbleHit) ? emptyMask : liveMask
     WlrLayershell.layer: root.desktopOnly ? WlrLayer.Bottom : WlrLayer.Top
     WlrLayershell.namespace: "nayori-companion"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
@@ -81,6 +83,8 @@ PanelWindow {
         function triggerValue(kind: string, value: string): bool { return companion.trigger(kind, value) }
         // qs ipc call naomi triggers — список видов.
         function triggers(): string { return companion.controller.triggerKinds().join(" ") }
+        // qs ipc call naomi remind water — то же напоминание, что у таймера, без ожидания. eyes, move — так же.
+        function remind(kind: string): bool { return companion.remind(kind) }
     }
 
     // Источники системных событий: CPU, niri, UPower, сеть, ввод, процессы обновления.
@@ -90,7 +94,22 @@ PanelWindow {
     }
 
     Region { id: emptyMask }
-    Region { id: headMask; item: headZone; shape: RegionShape.Ellipse }
+    Region {
+        id: liveMask
+        Region {
+            x: root.reactToPointer ? Math.round(headZone.x) : 0
+            y: root.reactToPointer ? Math.round(headZone.y) : 0
+            width: root.reactToPointer ? Math.max(0, Math.round(headZone.width)) : 0
+            height: root.reactToPointer ? Math.max(0, Math.round(headZone.height)) : 0
+            shape: RegionShape.Ellipse
+        }
+        Region {
+            x: root.bubbleHit ? Math.round(companion.bubble.x) : 0
+            y: root.bubbleHit ? Math.round(companion.bubble.y) : 0
+            width: root.bubbleHit ? Math.max(0, Math.round(companion.bubble.width)) : 0
+            height: root.bubbleHit ? Math.max(0, Math.round(companion.bubble.height)) : 0
+        }
+    }
     // Область наведения: зона головы из иллюстрации в координатах окна.
     Item {
         id: headZone

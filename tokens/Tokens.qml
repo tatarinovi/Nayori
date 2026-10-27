@@ -50,6 +50,7 @@ QtObject {
         readonly property color accentText: root.accentDerived ? root.accentRoles.accentText : "#121217"
         // Чернила на accentSoft. Без расчёта это тот же text: #F0E9DB на #80758C.
         readonly property color accentSoftText: root.accentDerived ? root.accentRoles.accentSoftText : "#F0E9DB"
+        readonly property color menuIcon: AccentRoles.accentOnSurface(accent, surfaceAlt)
         readonly property color accentBorder: root.accentDerived ? root.accentRoles.accentBorder : "#C0AFD1"
         readonly property color secondary: "#CAA7AA"    // oklch(0.760 0.042 12) пыльная роза
         readonly property color border: "#57F0E9DB"     // тёплый текст на 34%

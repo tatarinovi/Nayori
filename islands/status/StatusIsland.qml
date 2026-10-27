@@ -18,6 +18,8 @@ Rectangle {
 
     required property var tokens
     property var menuWindow: null
+    property var mixerSources: []
+    signal mixerSourcesSeen(var sources)
 
     readonly property int pad: tokens.spacing.small
 
@@ -33,7 +35,24 @@ Rectangle {
 
     Audio {
         id: audio
+        mixerSources: root.mixerSources
     }
+
+    readonly property var noticedSources: {
+        const apps = audio.applications || []
+        const seen = []
+        for (let i = 0; i < apps.length; i++) {
+            const group = apps[i]
+            if (!group)
+                continue
+            seen.push({
+                key: group.key,
+                title: audio.applicationTitle(group.nodes, group.title)
+            })
+        }
+        return seen
+    }
+    onNoticedSourcesChanged: mixerSourcesSeen(noticedSources)
 
     Network {
         id: network
@@ -128,6 +147,74 @@ Rectangle {
         lineHeightMode: Text.ProportionalHeight
         renderType: Text.NativeRendering
         textFormat: Text.PlainText
+    }
+
+    component MixerSlider: Slider {
+        id: mixerSlider
+        property real source: 0
+        implicitHeight: 32
+        width: parent.width
+        from: 0
+        to: 1
+        value: source
+        background: Rectangle {
+            x: mixerSlider.leftPadding
+            y: mixerSlider.topPadding + (mixerSlider.availableHeight - height) / 2
+            width: mixerSlider.availableWidth
+            height: 4
+            radius: 2
+            color: root.tokens.color.surface
+            Rectangle {
+                width: mixerSlider.visualPosition * parent.width
+                height: parent.height
+                radius: 2
+                color: root.tokens.color.accent
+            }
+        }
+        handle: Rectangle {
+            x: mixerSlider.leftPadding + mixerSlider.visualPosition * (mixerSlider.availableWidth - width)
+            y: mixerSlider.topPadding + (mixerSlider.availableHeight - height) / 2
+            width: 16
+            height: 16
+            radius: 8
+            color: root.tokens.color.text
+            border.width: mixerSlider.visualFocus ? 2 : 0
+            border.color: root.tokens.color.accent
+        }
+    }
+
+    function iconUrl(name) {
+        const icon = String(name || "").trim()
+        if (icon === "")
+            return ""
+        if (icon.charAt(0) === "/")
+            return "file://" + icon
+        if (icon.startsWith("file:"))
+            return icon
+        try {
+            if (!Quickshell.hasThemeIcon(icon))
+                return ""
+            const path = Quickshell.iconPath(icon)
+            return path ? String(path) : ""
+        } catch (error) {
+            return ""
+        }
+    }
+
+    function playbackIcon(nodes) {
+        const fromDesktop = root.iconUrl(audio.applicationIcon(nodes))
+        if (fromDesktop !== "")
+            return fromDesktop
+        if (!nodes)
+            return ""
+        for (let i = 0; i < nodes.length; i++) {
+            const props = nodes[i] && nodes[i].properties
+            const name = props ? String(props["application.icon-name"] || "") : ""
+            const fromStream = root.iconUrl(name)
+            if (fromStream !== "")
+                return fromStream
+        }
+        return ""
     }
 
     Row {
@@ -447,40 +534,11 @@ Rectangle {
                     }
                         }
                     }
-                    Slider {
-                        id: volumeSlider
-                        implicitHeight: 32
-                        width: parent.width
-                        from: 0
-                        to: 1
-                        value: audio.level
+                    MixerSlider {
+                        source: audio.level
                         enabled: audio.available
                         Accessible.name: "Output volume"
                         onMoved: audio.setVolume(value)
-                        background: Rectangle {
-                            x: volumeSlider.leftPadding
-                            y: volumeSlider.topPadding + (volumeSlider.availableHeight - height) / 2
-                            width: volumeSlider.availableWidth
-                            height: 4
-                            radius: 2
-                            color: root.tokens.color.surface
-                            Rectangle {
-                                width: volumeSlider.visualPosition * parent.width
-                                height: parent.height
-                                radius: 2
-                                color: root.tokens.color.accent
-                            }
-                        }
-                        handle: Rectangle {
-                            x: volumeSlider.leftPadding + volumeSlider.visualPosition * (volumeSlider.availableWidth - width)
-                            y: volumeSlider.topPadding + (volumeSlider.availableHeight - height) / 2
-                            width: 16
-                            height: 16
-                            radius: 8
-                            color: root.tokens.color.text
-                            border.width: volumeSlider.visualFocus ? 2 : 0
-                            border.color: root.tokens.color.accent
-                        }
                     }
                     Row {
                         spacing: 8
@@ -496,6 +554,115 @@ Rectangle {
                             verticalAlignment: Text.AlignVCenter
                             text: audio.available ? audio.label : "Unavailable"
                             font.features: ({ "tnum": 1 })
+                        }
+                    }
+                    StatusText {
+                        width: parent.width
+                        visible: audio.available
+                        text: "Applications"
+                        color: root.tokens.color.textMuted
+                        font.pixelSize: root.tokens.type.small.size
+                    }
+                    StatusText {
+                        width: parent.width
+                        visible: audio.available && audio.applications.length === 0
+                        text: "Nothing is playing"
+                        color: root.tokens.color.textMuted
+                        wrapMode: Text.Wrap
+                    }
+                    Flickable {
+                        width: parent.width
+                        height: visible ? Math.min(240, appsColumn.implicitHeight) : 0
+                        contentHeight: appsColumn.implicitHeight
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+                        visible: audio.visibleApplications.length > 0
+                        Column {
+                            id: appsColumn
+                            width: parent.width
+                            spacing: 12
+                            Repeater {
+                                model: audio.visibleApplications
+                                delegate: Column {
+                                    id: appRow
+                                    required property var modelData
+                                    readonly property string title: audio.applicationTitle(modelData.nodes, modelData.title)
+                                    readonly property string detail: audio.applicationDetail(modelData.nodes)
+                                    readonly property string iconSource: root.playbackIcon(modelData.nodes)
+                                    readonly property string mark: {
+                                        const text = title.trim()
+                                        return text.length > 0 ? text.charAt(0).toUpperCase() : ""
+                                    }
+                                    width: appsColumn.width
+                                    spacing: 2
+
+                                    Row {
+                                        width: parent.width
+                                        spacing: 8
+                                        Item {
+                                            width: 20
+                                            height: 32
+                                            IconImage {
+                                                id: appIcon
+                                                anchors.centerIn: parent
+                                                implicitSize: 18
+                                                width: implicitSize
+                                                height: implicitSize
+                                                visible: appRow.iconSource !== "" && status !== Image.Error
+                                                source: appRow.iconSource
+                                                asynchronous: true
+                                                mipmap: true
+                                            }
+                                            StatusText {
+                                                visible: !appIcon.visible && appRow.mark !== ""
+                                                anchors.centerIn: parent
+                                                text: appRow.mark
+                                                color: root.tokens.color.textMuted
+                                            }
+                                        }
+                                        Column {
+                                            width: parent.width - 20 - 48 - 32 - 24
+                                            spacing: 0
+                                            StatusText {
+                                                width: parent.width
+                                                height: 32
+                                                verticalAlignment: Text.AlignVCenter
+                                                elide: Text.ElideRight
+                                                text: appRow.title
+                                            }
+                                            StatusText {
+                                                width: parent.width
+                                                visible: appRow.detail !== ""
+                                                elide: Text.ElideRight
+                                                text: appRow.detail
+                                                color: root.tokens.color.textMuted
+                                                font.pixelSize: root.tokens.type.small.size
+                                            }
+                                        }
+                                        StatusText {
+                                            width: 48
+                                            height: 32
+                                            horizontalAlignment: Text.AlignRight
+                                            verticalAlignment: Text.AlignVCenter
+                                            text: audio.nodesLabel(appRow.modelData.nodes)
+                                            font.features: ({ "tnum": 1 })
+                                        }
+                                        StatusButton {
+                                            tokens: root.tokens
+                                            iconName: audio.nodesMuted(appRow.modelData.nodes)
+                                                      ? "audio-volume-muted-symbolic"
+                                                      : "audio-volume-high-symbolic"
+                                            hint: (audio.nodesMuted(appRow.modelData.nodes) ? "Unmute " : "Mute ") + appRow.title
+                                            onClicked: audio.setNodesMuted(appRow.modelData.nodes, !audio.nodesMuted(appRow.modelData.nodes))
+                                        }
+                                    }
+                                    MixerSlider {
+                                        source: audio.nodesLevel(appRow.modelData.nodes)
+                                        Accessible.name: appRow.title + " volume"
+                                        onMoved: audio.setNodesVolume(appRow.modelData.nodes, value)
+                                    }
+                                }
+                            }
                         }
                     }
                 }

@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import "../companion"
+import "../../services/companion/NaomiLines.js" as Lines
 
 Column {
     id: root
@@ -29,6 +30,8 @@ Column {
     signal companionScreenChangedRequested(string screen)
     signal companionSideChangedRequested(string side)
     signal revealRequested(var item)
+    // Живая Naomi на столе. null — её окно не создано, облако только в предпросмотре.
+    property var remindCompanion: null
     readonly property var screens: Quickshell.screens
     readonly property var companionMonitorChoices: {
         const items = [{ key: "", label: "Не показывать" }]
@@ -65,6 +68,9 @@ Column {
     component PreviewFrame: Rectangle {
         id: frame
         property bool named: false
+        property bool greet: true
+        property bool sampleLine: true
+        function remind(kind) { return previewNaomi.remind(kind) }
         width: root.width
         height: (root.companionStyle === "pixel-art" ? 400 : 534) + 154
         radius: root.tokens.radius.small
@@ -81,6 +87,7 @@ Column {
             anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 16 }
             illustrationWidth: 280
             illustrationHeight: root.companionStyle === "pixel-art" ? 400 : 534
+            greet: frame.greet
             active: root.previewActive
             animationsEnabled: root.animationsEnabled
             reactToPointer: root.companionReactToPointer
@@ -88,10 +95,11 @@ Column {
         }
         SettingsButton {
             objectName: frame.named ? "settingsNaomiSayButton" : ""
+            visible: frame.sampleLine
             tokens: root.tokens
             text: "Сказать реплику"
             anchors { left: parent.left; bottom: parent.bottom; margins: 16 }
-            onClicked: previewNaomi.say("Вот так я говорю. Тихо и коротко.", 0)
+            onClicked: previewNaomi.say(Lines.lines.idle[Math.floor(Math.random() * Lines.lines.idle.length)], 0)
             onActiveFocusChanged: if (activeFocus) root.revealRequested(this)
         }
     }
@@ -139,8 +147,8 @@ Column {
             SettingsSegmented {
                 objectName: "settingsNaomiStyle"
                 tokens: root.tokens
-                width: Math.min(parent.width, 360)
-                model: [{key: "current", label: "Текущий"}, {key: "pixel-art", label: "Pixel art"}, {key: "layered", label: "Naomi v3"}]
+                width: Math.min(parent.width, 520)
+                model: [{key: "current", label: "Текущий"}, {key: "pixel-art", label: "Pixel art"}, {key: "layered", label: "Naomi v3"}, {key: "haori", label: "Хаори"}]
                 currentKey: root.companionStyle
                 onActivated: key => root.companionStyleChangedRequested(key)
             }
@@ -150,6 +158,8 @@ Column {
                 tokens: root.tokens
                 text: root.companionStyle === "layered"
                     ? "Naomi дышит, слегка покачивает головой и волосами и моргает. Цвета исходного рисунка."
+                    : root.companionStyle === "haori"
+                    ? "Naomi дышит, слегка покачивает головой, волосами и лентами хаори и моргает. С полуночи до шести утра лицо сонное. На реплику приоткрывает рот. Пока её гладят, закрывает глаза, на щеках появляется румянец, и она мягко кивает. Волосы и ленты отвечают с опозданием. Цвета исходного рисунка."
                     : root.companionStyle === "pixel-art"
                     ? "Пиксельный рисунок без файлов изображений. Одежда, бант и глаза берут цвет из обоев основного монитора. Кожа и чёрные волосы сохраняют свой цвет."
                     : "Шарф, повязка на шее и заколка берут цвет из палитры обоев основного монитора. Волосы, кожа, одежда и глаза остаются неизменными."
@@ -263,7 +273,7 @@ Column {
                 tokens: root.tokens
                 text: "Комментировать системные события"
                 description: root.companionSystemLines
-                    ? "Naomi замечает высокую нагрузку, долгое бездействие и возвращение, новые терминалы и игры, множество окон, низкий заряд, ночную работу, обновление системы и потерю интернета. Реплики редкие, у каждой своя пауза."
+                    ? "Naomi замечает высокую нагрузку, долгое бездействие и возвращение, новые терминалы и игры, множество окон, низкий заряд, ночную работу, обновление системы, потерю интернета и воспроизведение Яндекс Музыки. Может отозваться на неподвижный курсор. Реплики редкие, у каждой своя пауза."
                     : "Naomi молчит о событиях системы. Приветствие, редкие реплики и реплики на поглаживание остаются."
                 checked: root.companionSystemLines
                 enabled: root.companionEnabled
@@ -311,6 +321,57 @@ Column {
                     wrapMode: Text.WordWrap
                 }
             }
+        }
+    }
+    Loader {
+        active: root.section === "remind"
+        visible: active
+        width: parent.width
+        height: item ? item.implicitHeight : 0
+        sourceComponent: Column {
+            id: remindColumn
+            width: root.width
+            spacing: 16
+            function fire(kind) {
+                const live = root.remindCompanion
+                if (typeof live === "function")
+                    live(kind)
+                remindFrame.remind(kind)
+            }
+            SettingsLabel {
+                width: parent.width
+                tokens: root.tokens
+                text: "Облако появляется здесь, если оно свободно. Если Naomi включена, тот же запрос уходит и\u00A0к\u00A0ней"
+                color: root.tokens.color.textMuted
+                font.pixelSize: 13
+                wrapMode: Text.WordWrap
+            }
+            Flow {
+                width: parent.width
+                spacing: 8
+                SettingsButton {
+                    objectName: "settingsNaomiRemindWater"
+                    tokens: root.tokens
+                    text: "Напомнить про воду"
+                    onClicked: remindColumn.fire("water")
+                    onActiveFocusChanged: if (activeFocus) root.revealRequested(this)
+                }
+                SettingsButton {
+                    objectName: "settingsNaomiRemindEyes"
+                    tokens: root.tokens
+                    text: "Напомнить про глаза"
+                    onClicked: remindColumn.fire("eyes")
+                    onActiveFocusChanged: if (activeFocus) root.revealRequested(this)
+                }
+                SettingsButton {
+                    objectName: "settingsNaomiRemindMove"
+                    tokens: root.tokens
+                    text: "Напомнить про разминку"
+                    onClicked: remindColumn.fire("move")
+                    onActiveFocusChanged: if (activeFocus) root.revealRequested(this)
+                }
+            }
+            PreviewFrame { id: remindFrame; greet: false; sampleLine: false }
         }
     }
 }

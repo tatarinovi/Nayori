@@ -37,6 +37,8 @@ Item {
     function react(kind) { return brain.react(kind) }
     // Показать системную реплику вручную: cpu, idle, terminal, game, battery, windows, night, update, offline, return.
     function trigger(kind, value) { return brain.trigger(kind, value) }
+    // Напоминание сразу: water, eyes, move. Та же очередь, что у таймера, срок не сдвигается.
+    function remind(kind) { return brain.remind(kind) }
     signal spoke(string text)
 
     NaomiController {
@@ -64,15 +66,19 @@ Item {
         pointerTracking: root.reactToPointer
         pet: brain.pet
         petLean: brain.petLean
+        // Пока облако на экране — в том числе напоминание и отсчёт — рот говорит тем же флагом.
+        speaking: cloud.shown
         onPointerMoved: (x, y) => brain.pointerMoved(x, y)
     }
 
-    // Облачко над головой: хвост смотрит вниз, между ушей. Не принимает события мыши.
+    // Облачко над головой: хвост смотрит вниз, к голове. Не принимает события мыши.
     NaomiBubble {
         id: cloud
         tokens: root.tokens
         animationsEnabled: root.animationsEnabled
         text: brain.bubbleText
+        actionsOn: brain.bubbleActions
+        onActionChosen: id => brain.reminderChoice(id)
         // Если над головой не хватает места под облачко, оно не показывается, а не обрезается.
         shown: brain.bubbleVisible && root.active && fits
         readonly property real anchorX: art.x + art.bubbleAnchor.x

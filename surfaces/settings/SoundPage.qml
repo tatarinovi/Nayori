@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import "../../services/status"
+import "../../services/status/MixerSources.js" as MixerSources
 import "../../services/system"
 
 Column {
@@ -13,6 +14,9 @@ Column {
 
     Audio { id: audio }
     AudioDevices { id: devices }
+    property var mixerSources: []
+    property bool mixerListOpen: false
+    signal mixerSourcesChangedRequested(var sources)
 
     Label {
         width: parent.width
@@ -148,6 +152,33 @@ Column {
                 text: "Сделать устройством по умолчанию"
                 onClicked: devices.preferSource(inputRow.modelData)
             }
+        }
+    }
+
+    Action {
+        width: parent.width
+        text: "Источники микшера"
+        detail: MixerSources.summary(root.mixerSources)
+        glyph: "sound"
+        selected: root.mixerListOpen
+        onClicked: root.mixerListOpen = !root.mixerListOpen
+    }
+    Label {
+        width: parent.width
+        visible: root.mixerListOpen
+        color: root.tokens.color.textMuted
+        font.pixelSize: 13
+        wrapMode: Text.Wrap
+        text: "Галочка оставляет источник в микшере панели. Новый источник добавляется, когда приложение начинает воспроизведение."
+    }
+    Repeater {
+        model: root.mixerListOpen ? root.mixerSources : []
+        delegate: SettingsToggle {
+            required property var modelData
+            tokens: root.tokens
+            text: modelData.title || modelData.key
+            checked: modelData.hidden !== true
+            onToggled: root.mixerSourcesChangedRequested(MixerSources.setHidden(root.mixerSources, modelData.key, !checked))
         }
     }
 }

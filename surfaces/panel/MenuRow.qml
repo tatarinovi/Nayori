@@ -50,7 +50,7 @@ Button {
                 anchors.centerIn: parent
                 width: 23; height: 23
                 kind: root.glyph
-                ink: root.tokens.color.accent
+                ink: root.tokens.color.menuIcon
             }
         }
         Column {

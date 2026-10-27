@@ -309,7 +309,7 @@ PanelWindow {
                             MenuGlyph {
                                 anchors.centerIn: parent
                                 kind: "settings"
-                                ink: settingsAction.down ? root.tokens.color.accentSoftText : root.tokens.color.text
+                                ink: root.tokens.color.menuIcon
                                 width: 24; height: 24
                             }
                         }
@@ -409,21 +409,12 @@ PanelWindow {
                     height: 1
                     color: root.tokens.color.border
                 }
-                Text {
-                    width: parent.width
-                    text: "Удерживайте кнопку 0,5 секунды"
-                    horizontalAlignment: Text.AlignHCenter
-                    color: root.tokens.color.textMuted
-                    font.family: root.tokens.type.small.family
-                    font.pixelSize: root.tokens.type.small.size
-                }
                 HoldMenuRow {
                     id: lockAction
                     width: parent.width
                     tokens: root.tokens
                     showChevron: false
                     text: "Заблокировать"
-                    subtitle: "Сохранить сессию открытой"
                     glyph: "lock"
                     enabled: !root.sessionBusy
                     KeyNavigation.up: powerBack
@@ -438,7 +429,6 @@ PanelWindow {
                     tokens: root.tokens
                     showChevron: false
                     text: "Выйти из сессии"
-                    subtitle: "Закрыть открытые приложения"
                     glyph: "logout"
                     enabled: !root.sessionBusy
                     KeyNavigation.up: lockAction
@@ -453,7 +443,6 @@ PanelWindow {
                     tokens: root.tokens
                     showChevron: false
                     text: "Перезагрузить"
-                    subtitle: "Запустить компьютер заново"
                     glyph: "reboot"
                     enabled: !root.sessionBusy
                     KeyNavigation.up: logoutAction
@@ -468,7 +457,6 @@ PanelWindow {
                     tokens: root.tokens
                     showChevron: false
                     text: "Выключить"
-                    subtitle: "Завершить работу компьютера"
                     glyph: "power"
                     enabled: !root.sessionBusy
                     KeyNavigation.up: rebootAction

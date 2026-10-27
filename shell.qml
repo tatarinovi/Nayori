@@ -18,6 +18,7 @@ import "services/canvas"
 import "services/palette"
 import "services/ui"
 import "services/ui/StartRouting.js" as StartRouting
+import "services/status/MixerSources.js" as MixerSources
 import "services/ui/IslandRouting.js" as IslandRouting
 import "services/island"
 import "surfaces/canvas"
@@ -41,6 +42,23 @@ ShellRoot {
     Notifications { model: notificationModel }
 
     SettingsService { id: settingsStore }
+    readonly property var mixerSources: settingsStore.mixerSources
+    property var pendingMixerSources: []
+    function noteMixerSources(seen) {
+        pendingMixerSources = Array.isArray(seen) ? seen : []
+        if (!settingsStore.ready)
+            return
+        const merged = MixerSources.merge(settingsStore.mixerSources, pendingMixerSources)
+        if (merged.changed)
+            settingsStore.update({ mixerSources: merged.list })
+    }
+    Connections {
+        target: settingsStore
+        function onReadyChanged() {
+            if (settingsStore.ready)
+                root.noteMixerSources(root.pendingMixerSources)
+        }
+    }
     ClipboardService { id: clipboardStore }
     readonly property var captureService: captureStore
     CaptureService { id: captureStore; settings: settingsStore; notifications: notificationModel }
@@ -238,6 +256,7 @@ ShellRoot {
     }
 
     LazyLoader {
+        id: companionHost
         active: settingsStore.ready && settingsStore.companionEnabled && root.probeScreen !== null
         component: CompanionWindow {
             companionStyle: settingsStore.companionStyle
@@ -332,25 +351,50 @@ ShellRoot {
         }
         return root.probeScreen
     }
+    property bool locatingLauncher: false
+    function finishLauncherLocation(screen) {
+        if (!root.locatingLauncher) return
+        root.locatingLauncher = false
+        launcherLocationTimeout.stop()
+        if (!lockService.locked && screen && Quickshell.screens.indexOf(screen) >= 0) {
+            root.overlayScreen = screen
+            root.launcherOpened = true
+        }
+    }
     function toggleLauncher() {
+        if (lockService.locked) return
         clipboardStore.cancelPaste()
         root.clipboardOpened = false
-        if (root.launcherOpened) {
+        if (root.launcherOpened || root.locatingLauncher) {
             root.launcherOpened = false
+            root.locatingLauncher = false
+            launcherLocationTimeout.stop()
             return
         }
-        // Верхний остров один, когда он скрыт на других мониторах: лаунчер открывается там, где остров сейчас есть.
-        const output = IslandRouting.launcherOutput(root.outputNames, Niri.focusedOutput || "",
-            root.hideSecondaryIsland, root.primaryFullscreen, root.fullscreenIslandOutput)
-        const screen = root.screenNamed(output)
-        if (screen)
-            root.overlayScreen = screen
-        root.launcherOpened = true
+        root.locatingLauncher = true
+        launcherLocationTimeout.restart()
+    }
+    Timer {
+        id: launcherLocationTimeout
+        interval: 250
+        onTriggered: root.finishLauncherLocation(root.screenNamed(Niri.focusedOutput))
+    }
+    Variants {
+        model: root.locatingLauncher ? Quickshell.screens : []
+        LauncherPointerProbe {
+            required property var modelData
+            screen: modelData
+            onLocated: output => root.finishLauncherLocation(output)
+        }
     }
     IpcHandler {
         target: "launcher"
         function toggle(): void { root.toggleLauncher() }
-        function close(): void { root.launcherOpened = false }
+        function close(): void {
+            root.locatingLauncher = false
+            launcherLocationTimeout.stop()
+            root.launcherOpened = false
+        }
     }
 
     property bool clipboardOpened: false
@@ -424,6 +468,7 @@ ShellRoot {
     SettingsController {
         id: settingsController
         companionTokens: naomiTokens
+        remindCompanion: kind => companionHost.item ? companionHost.item.remind(kind) : false
         tokens: root.tokenSet
         settingsService: settingsStore
         wallpaperManager: wallpaperStore

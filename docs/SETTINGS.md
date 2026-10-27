@@ -35,11 +35,12 @@
   "preferredTerminal": "kitty",
   "preferredFileManager": "io.github.lgse.Strata",
   "niriColorIntegration": true,
-  "strataThemeIntegration": true
+  "strataThemeIntegration": true,
+  "mixerSources": []
 }
 ```
 
-`topReserved` и `bottomReserved` ограничиваются 0–200 и округляются до шага 4. `weatherRefreshMinutes` — целое от 1 до 180. `islandRotationSeconds` округляется и зажимается в 5–120. `weatherCity` обрезает пробелы по краям. `fullscreenIslandOutput` и `fullscreenCompanionOutput` обрезаются и не длиннее 256 символов. `surfaceStyle` — `solid` или `frosted`. `accentMode` — `default`, `automatic` или `manual`. `startIconStyle` — `current` или `fox`. `companionStyle` — `current`, `pixel-art` или `layered`. `companionScreen` — `primary` или `secondary`. `companionSide` — `left` или `right`. Пустые `preferredTerminal` и `preferredFileManager` возвращаются к значениям по умолчанию.
+`topReserved` и `bottomReserved` ограничиваются 0–200 и округляются до шага 4. `weatherRefreshMinutes` — целое от 1 до 180. `islandRotationSeconds` округляется и зажимается в 5–120. `weatherCity` обрезает пробелы по краям. `fullscreenIslandOutput` и `fullscreenCompanionOutput` обрезаются и не длиннее 256 символов. `surfaceStyle` — `solid` или `frosted`. `accentMode` — `default`, `automatic` или `manual`. `startIconStyle` — `current` или `fox`. `companionStyle` — `current`, `pixel-art`, `layered` или `haori`. `companionScreen` — `primary` или `secondary`. `companionSide` — `left` или `right`. Пустые `preferredTerminal` и `preferredFileManager` возвращаются к значениям по умолчанию.
 
 `manualAccent` принимает `#RGB`, `#RRGGBB` и `#AARRGGBB`. В файл пишется `#RRGGBB` в верхнем регистре, альфа отбрасывается. Иная строка становится `#C0AFD1`.
 
@@ -114,6 +115,10 @@
 
 Обои по-прежнему пишет `WallpaperManager` в `canvas.json`. Имя пользователя — `USER`. Аватар читается из `/var/lib/AccountsService/icons/<имя>`. Навигация и id окна на диск не сохраняются.
 
+### Звук
+
+`mixerSources` хранит источники микшера панели. По умолчанию список пустой. Запись добавляется, когда оболочка впервые видит поток воспроизведения. Ключ — `node.name`. `title` — последнее имя из desktop-файла или имя потока. `hidden: true` убирает источник из микшера, запись остаётся. На странице «Звук» список закрыт: строка «Источники микшера» показывает число источников и сколько из них скрыто. В открытом списке галочка оставляет источник в микшере.
+
 ### Панель задач
 
 Страница `panels` — две карточки. «Общие параметры»: переключатель «Автоскрытие при пересечении с окном» пишет все четыре `autoHide*` разом. Чипы «Верхний остров», «Док приложений», «Рабочие столы» и «Системный остров» пишут их по отдельности. Слайдеры «Сверху» и «Снизу» — `topReserved` и `bottomReserved`. «По размеру панелей» ставит 64 и 72. «Сбросить» ставит 0 и 0. Строка «Показывать при наведении к краю» без переключателя: показ с края входит в автоскрытие. Статус этой строки в коде — «Всегда». На карточке монитора строки островов показывают «Автоскрытие» или «Всегда» по своим `autoHide*`.
@@ -150,7 +155,7 @@
 
 Три раздела: `naomi`, `naomi-look`, `naomi-place`. Поведение окна — в [NAOMI.md](NAOMI.md). Ключи здесь такие.
 
-`companionEnabled` по умолчанию выключен. Подпись: «Показывать Naomi на рабочем столе». `companionStyle`: «Текущий» (`current`), «Pixel art» (`pixel-art`), «Naomi v3» (`layered`). `companionDesktopOnly` по умолчанию выключен, подпись «Только на рабочем столе». `companionReactToPointer` по умолчанию включён, подпись «Реагировать на курсор». `companionSystemLines` по умолчанию включён, подпись «Комментировать системные события». Приветствие и поглаживание от этого переключателя не зависят.
+`companionEnabled` по умолчанию выключен. Подпись: «Показывать Naomi на рабочем столе». `companionStyle`: «Текущий» (`current`), «Pixel art» (`pixel-art`), «Naomi v3» (`layered`), «Хаори» (`haori`). `companionDesktopOnly` по умолчанию выключен, подпись «Только на рабочем столе». `companionReactToPointer` по умолчанию включён, подпись «Реагировать на курсор». `companionSystemLines` по умолчанию включён, подпись «Комментировать системные события». Приветствие и поглаживание от этого переключателя не зависят.
 
 `companionScreen` — `primary` или `secondary`. Иное значение становится `primary`. `companionSide` — `right` или `left`, нижний угол. Иное значение становится `right`. Пока выбран второй монитор, «Монитор при полном экране» скрыт. Если экранов больше одного и выбран основной, выбор пишет `fullscreenCompanionOutput`. Пустая строка — пункт «Не показывать». Нестроковое или слишком длинное значение этого поля становится пустой строкой.
 

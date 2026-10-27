@@ -3,8 +3,10 @@
 // Тексты реплик — в NaomiLines.js (раздел system).
 var data = {
     // Минимальный интервал между любыми двумя системными репликами, секунды. Для срочных (priority 3) — меньше.
-    globalGap: 45,
+    globalGap: 180,
     urgentGap: 10,
+    // Музыка и курсор — непосредственные взаимодействия, с короткой общей паузой.
+    interactionGap: 15,
     // Сколько секунд после (пере)подключения к niri окна считаются «уже были»: приложения, открытые
     // до запуска оболочки, не вызывают реплик.
     windowGrace: 3,
@@ -16,15 +18,18 @@ var data = {
     // Свойства каждого вида: priority (3 срочно, 2 важно, 1 болтовня), cooldown (секунды между репликами
     // этого вида), expire (сколько секунд повод ждёт своей очереди, потом он устаревает).
     kinds: {
+        musicStart: { priority: 1, cooldown: 1200, expire: 90, interaction: true },
+        musicStop:  { priority: 1, cooldown: 1200, expire: 90, interaction: true },
+        hoverStill: { priority: 1, cooldown: 600, expire: 30, interaction: true },
         battery:  { priority: 3, cooldown: 0,     expire: 120 },
         offline:  { priority: 3, cooldown: 600,   expire: 120 },
         update:   { priority: 2, cooldown: 1800,  expire: 90 },
         cpu:      { priority: 2, cooldown: 1200,  expire: 60 },
         game:     { priority: 2, cooldown: 1800,  expire: 30 },
-        terminal: { priority: 1, cooldown: 900,   expire: 30 },
+        terminal: { priority: 1, cooldown: 3600,   expire: 30 },
         windows:  { priority: 1, cooldown: 1800,  expire: 60 },
         idle:     { priority: 1, cooldown: 1800,  expire: 30 },
-        return:   { priority: 1, cooldown: 600,   expire: 20 },
+        return:   { priority: 1, cooldown: 1800,   expire: 20 },
         // Раз за ночь: кулдаун здесь — страховка, главное правило — ключ ночи (nightKey).
         night:    { priority: 1, cooldown: 21600, expire: 300 }
     },
@@ -32,7 +37,7 @@ var data = {
     // Высокая нагрузка CPU: среднее за окно не меньше enter — повод; снова взводится, когда среднее упало до exit.
     cpu: { window: 30, enter: 0.85, exit: 0.6 },
 
-    // Бездействие: через idleLong секунд без ввода — реплика «смотришь в экран»;
+    // Бездействие: через idleLong секунд без ввода — реплика о паузе ввода;
     // первое действие после idleAway секунд без ввода — реплика «вернулся».
     idleLong: 600,
     idleAway: 60,

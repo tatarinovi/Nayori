@@ -2,7 +2,7 @@ const fs = require('fs'), vm = require('vm'), assert = require('assert')
 const context = {}
 vm.createContext(context)
 vm.runInContext(fs.readFileSync('services/ui/IslandRouting.js', 'utf8').replace(/^\.pragma.*$/m, ''), context)
-const { topEnabled, launcherOutput, relocationReserve, companionOutput } = context
+const { topEnabled, relocationReserve, companionOutput } = context
 const screens = ['DP-1', 'DP-2', 'HDMI-A-1']
 
 assert.equal(topEnabled('', screens, false, false, ''), false)
@@ -18,20 +18,8 @@ assert.equal(topEnabled('HDMI-A-1', screens, true, true, 'DP-2'), false)
 assert.equal(topEnabled('HDMI-A-1', screens, true, true, 'HDMI-A-1'), true)
 assert.equal(topEnabled('DP-1', screens, true, true, 'HDMI-A-1'), true)
 
-assert.equal(launcherOutput(screens, 'DP-2', false, true, 'HDMI-A-1'), 'DP-2')
-assert.equal(launcherOutput(screens, 'HDMI-A-9', false, false, ''), 'DP-1')
-assert.equal(launcherOutput(screens, '', false, false, ''), 'DP-1')
-assert.equal(launcherOutput(screens, 'DP-2', true, false, 'DP-2'), 'DP-1')
-assert.equal(launcherOutput(screens, 'DP-1', true, true, 'DP-2'), 'DP-2')
-assert.equal(launcherOutput(screens, 'HDMI-A-1', true, true, 'DP-2'), 'DP-2')
-assert.equal(launcherOutput(screens, 'DP-2', true, true, 'HDMI-A-1'), 'HDMI-A-1')
-assert.equal(launcherOutput(screens, 'DP-2', true, true, 'GONE'), 'DP-1')
-assert.equal(launcherOutput(screens, 'DP-2', true, true, 'DP-1'), 'DP-1')
 assert.equal(topEnabled('', ['', 'DP-2'], true, true, 'DP-2'), false)
 assert.equal(topEnabled('DP-2', ['', 'DP-2'], true, true, 'DP-2'), true)
-assert.equal(launcherOutput(['', 'DP-2'], 'DP-2', true, false, 'DP-2'), '')
-assert.equal(launcherOutput([], 'DP-1', true, true, 'DP-2'), '')
-assert.equal(launcherOutput(undefined, 'DP-2', false, false, ''), '')
 assert.equal(relocationReserve(false, 64, 64), 0)
 assert.equal(relocationReserve(true, 0, 64), 64)
 assert.equal(relocationReserve(true, 100, 64), 100)

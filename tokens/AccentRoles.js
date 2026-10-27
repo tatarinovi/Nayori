@@ -202,6 +202,23 @@ function mixHex(from, to, t) {
     )
 }
 
+// Keep the accent hue where possible, while ensuring it is legible on a surface.
+function accentOnSurface(accent, surface) {
+    if (contrast(accent, surface) >= TEXT_CONTRAST)
+        return normalizeHex(accent)
+    var target = contrast(WHITE, surface) >= contrast(BLACK, surface) ? WHITE : BLACK
+    var lo = 0
+    var hi = 1
+    for (var i = 0; i < 24; i++) {
+        var mid = (lo + hi) / 2
+        if (contrast(mixHex(accent, target, mid), surface) >= TEXT_CONTRAST)
+            hi = mid
+        else
+            lo = mid
+    }
+    return mixHex(accent, target, hi)
+}
+
 function accentInk(accent) {
     var dark = contrast(accent, BACKGROUND)
     var light = contrast(accent, TEXT)

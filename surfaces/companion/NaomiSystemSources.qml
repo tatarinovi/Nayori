@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell.Io
 import Quickshell.Networking as QsNet
 import Quickshell.Services.UPower
+import Quickshell.Services.Mpris
 import Quickshell.Wayland
 import "../../services/niri"
 import "../../services/status"
@@ -35,6 +36,29 @@ QtObject {
         function onAvailableChanged() { root.pushWindows() }
     }
     function pushWindows() { root.controller.systemWindows(Niri.windows, Niri.available) }
+
+    // --- Яндекс Музыка: настоящее воспроизведение, включая браузерные вкладки ---
+    // Читаем все плееры, независимо от выбранного в острове. Binding наблюдает
+    // isPlaying/metadata каждого плеера, а не только изменение самого списка.
+    readonly property var musicSnapshot: Mpris.players.values.map(p => ({
+        identity: p.identity || "",
+        desktopEntry: p.desktopEntry || "",
+        dbusName: p.dbusName || "",
+        trackUrl: p.metadata ? String(p.metadata["xesam:url"] || "") : "",
+        isPlaying: p.isPlaying
+    }))
+    property bool musicReady: false
+    onMusicSnapshotChanged: if (musicReady) root.controller.systemMusic(musicSnapshot)
+    // MPRIS discovers players asynchronously on shell startup. Establish a silent
+    // baseline after discovery instead of reacting to already playing music.
+    property Timer musicBaseline: Timer {
+        interval: 3000
+        running: true
+        onTriggered: {
+            root.controller.systemMusic(root.musicSnapshot)
+            root.musicReady = true
+        }
+    }
 
     // --- батарея ---
     readonly property var battery: UPower.displayDevice

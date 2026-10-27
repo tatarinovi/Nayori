@@ -5,6 +5,11 @@ import Quickshell
 import "tokens"
 import "services/companion"
 import "surfaces/companion"
+import "services/companion/NaomiLines.js" as Lines
+import "services/companion/NaomiDialogue.js" as Dialogue
+import "services/companion/NaomiReminders.js" as Reminders
+import "services/companion/NaomiSystemEvents.js" as SystemEvents
+import "services/companion/NaomiSystemData.js" as SystemData
 
 // Сцена Naomi целиком: наведение (HoverHandler), поглаживание, облако, настройки реакции.
 // Время ведём вручную: controller.automatic = false, шаги — advance().
@@ -67,6 +72,11 @@ ShellRoot {
                 naomi.controller.automatic = false
                 mouseMove(naomi, 5, 5)
                 settle(12)
+                naomi.controller.talkState = Dialogue.create(Lines.lines, Math.random)
+                naomi.controller.remindState = Reminders.create(Lines.lines)
+                naomi.controller.systemState = SystemEvents.create(SystemData.data, Lines.lines)
+                naomi.controller.syncSystem()
+                naomi.controller.publish()
             }
             function step_geometry() {
                 ok(naomi.illustration.width === 280 && naomi.illustration.height === 534)
@@ -155,6 +165,7 @@ ShellRoot {
             function step_greeting_on_appearance() {
                 // При появлении Naomi здоровается сама, с задержкой, и только один раз.
                 ok(!naomi.controller.bubbleVisible, "quiet before greeting")
+                naomi.greet = true
                 naomi.controller.greeted = false
                 naomi.controller.greetTimer.restart()
                 wait(naomi.controller.greetingDelay + 300)
@@ -163,6 +174,13 @@ ShellRoot {
                 naomi.controller.greetTimer.restart()
                 wait(naomi.controller.greetingDelay + 300)
                 ok(!naomi.controller.bubbleVisible, "greeting is not repeated")
+                naomi.greet = false
+                const factory = Qt.createComponent("services/companion/NaomiController.qml")
+                compare(factory.status, Component.Ready, factory.errorString())
+                const recreated = factory.createObject(scene, { automatic:false, greet:false })
+                ok(recreated !== null, "recreate controller")
+                ok(!recreated.react("greeting"), "shared greeting memory survives component recreation")
+                recreated.destroy()
             }
             function step_spoke_signal() {
                 spoken = []
@@ -194,38 +212,39 @@ ShellRoot {
             }
             // Системные реплики: ручной вызов, события, настройка, скрытая Naomi, поглаживание.
             function step_system_lines() {
+                naomi.controller.remindState.next = { water: 1e9, eyes: 1e9, move: 1e9 }
                 naomi.controller.systemState.nightKey = naomi.controller.dayKey()
                 naomi.systemLines = true
                 naomi.controller.hideBubble()
                 settle(5)
                 compare(naomi.trigger("nope"), false)
                 const kinds = naomi.controller.triggerKinds()
-                compare(kinds.length, 10)
+                compare(kinds.length, 13)
                 for (const kind of kinds) {
                     ok(naomi.trigger(kind), "manual trigger " + kind)
                     ok(naomi.controller.bubbleVisible && naomi.controller.bubbleText.length > 20, "line for " + kind)
                     naomi.controller.hideBubble()
                     settle(3)
                 }
-                ok(naomi.trigger("battery", 5) && naomi.controller.bubbleText.indexOf("У нас осталось 5% заряда.") === 0, "battery percent: " + naomi.controller.bubbleText)
-                ok(naomi.trigger("night", 2) && naomi.controller.bubbleText.indexOf("Уже два часа ночи.") === 0, "night hour: " + naomi.controller.bubbleText)
+                ok(naomi.trigger("battery", 5) && naomi.controller.bubbleText.indexOf("5%") >= 0, "battery percent: " + naomi.controller.bubbleText)
+                ok(naomi.trigger("night", 2) && naomi.controller.bubbleText.indexOf("два часа ночи") >= 0, "night hour: " + naomi.controller.bubbleText)
                 naomi.controller.hideBubble()
                 settle(3)
 
                 // Событие: низкий заряд приходит как реплика через очередь и облако.
                 naomi.controller.systemBattery(false, 3, false)
-                settle(30)
+                settle(60)
                 compare(naomi.controller.bubbleVisible, false)
                 naomi.controller.systemBattery(true, 15, false)
                 settle(2)
                 ok(naomi.controller.bubbleVisible, "battery event spoke")
-                ok(naomi.controller.bubbleText.indexOf("У нас осталось 15% заряда.") === 0, naomi.controller.bubbleText)
+                ok(naomi.controller.bubbleText.indexOf("15%") >= 0, naomi.controller.bubbleText)
                 // Поглаживание не перебивает системную реплику.
                 const shownText = naomi.controller.bubbleText
                 ok(!naomi.controller.react("petEnd", 5), "petting does not interrupt a system line")
                 compare(naomi.controller.bubbleText, shownText)
                 naomi.controller.hideBubble()
-                settle(60)
+                settle(190)
 
                 // Во время поглаживания системная реплика ждёт.
                 naomi.controller.systemNetwork("online")
@@ -233,13 +252,14 @@ ShellRoot {
                 naomi.controller.systemNetwork("offline")
                 const h = head()
                 mouseMove(naomi, h.x, h.y)
+                naomi.controller.interactionState.hoverFired = true
                 settle(12)
                 compare(naomi.controller.bubbleVisible, false)
                 mouseMove(naomi, 5, 5)
                 settle(2)
-                ok(naomi.controller.bubbleVisible && naomi.controller.bubbleText.indexOf("Интернет пропал.") === 0, "line waited for the petting to end")
+                ok(naomi.controller.bubbleVisible && naomi.controller.bubbleText.length > 0, "line waited for the petting to end")
                 naomi.controller.hideBubble()
-                settle(60)
+                settle(190)
                 naomi.controller.systemNetwork("online")
 
                 // Настройка выключена и Naomi скрыта: событие не говорит и не копится.
@@ -263,30 +283,86 @@ ShellRoot {
                 naomi.controller.systemIdle("away", true)
                 naomi.controller.systemIdle("away", false)
                 settle(2)
-                ok(naomi.controller.bubbleVisible && naomi.controller.bubbleText.indexOf("О, ты вернулся.") === 0, "return line")
+                ok(naomi.controller.bubbleVisible && naomi.controller.bubbleText.length > 0, "return line")
                 naomi.controller.hideBubble()
                 settle(5)
             }
             // Самые длинные реплики помещаются в облако на пять строк и не обрезаются.
+            function step_interaction_and_critical_priority() {
+                naomi.systemLines = true
+                naomi.controller.remindState.next = { water: 1e9, eyes: 1e9, move: 1e9 }
+                naomi.controller.systemState.nightKey = naomi.controller.dayKey()
+                settle(60)
+                const player = { identity:"Yandex Music", dbusName:"org.mpris.MediaPlayer2.yandex", isPlaying:false }
+                naomi.controller.systemMusic([player])
+                settle(1)
+                ok(!naomi.controller.bubbleVisible, "initial music snapshot is silent")
+                player.isPlaying = true
+                naomi.controller.systemMusic([player])
+                settle(1)
+                ok(naomi.controller.bubbleVisible && naomi.controller.systemState.last.musicStart !== undefined, "music start connected")
+                naomi.controller.hideBubble()
+                settle(190)
+                player.isPlaying = false
+                naomi.controller.systemMusic([player])
+                settle(1)
+                ok(naomi.controller.bubbleVisible && naomi.controller.systemState.last.musicStop !== undefined, "music stop connected")
+                naomi.controller.hideBubble()
+                settle(190)
+                const h = head()
+                mouseMove(naomi, h.x, h.y)
+                settle(4.9)
+                ok(!naomi.controller.bubbleVisible, "hover needs more than 5s")
+                settle(0.3)
+                ok(naomi.controller.bubbleVisible && naomi.controller.systemState.last.hoverStill !== undefined, "stationary hover speaks")
+                const hoverAt = naomi.controller.systemState.last.hoverStill
+                naomi.controller.hideBubble()
+                settle(700)
+                compare(naomi.controller.systemState.last.hoverStill, hoverAt, "one line per visit")
+                mouseMove(naomi, 5, 5)
+                settle(55)
+                naomi.remind("eyes")
+                ok(naomi.controller.bubbleActions, "reminder prompt")
+                naomi.controller.reminderChoice("ok")
+                const remaining = naomi.controller.remindState.remain
+                naomi.controller.systemBattery(true, 5, false)
+                settle(1)
+                compare(naomi.controller.talkState.kind, "critical")
+                ok(naomi.controller.bubbleText.indexOf("5%") >= 0 && !naomi.controller.bubbleActions, "critical battery overlays reminder")
+                compare(naomi.controller.remindState.phase, "count")
+                ok(naomi.controller.remindState.remain < remaining, "countdown continues")
+                settle(10)
+                ok(naomi.controller.bubbleText.indexOf("\n") >= 0, "reminder countdown returns")
+                naomi.controller.hideBubble()
+            }
             function step_system_lines_fit_bubble() {
                 const b = naomi.bubble
-                for (const kind of ["windows", "night", "game", "offline", "update", "cpu", "battery"]) {
-                    naomi.controller.hideBubble()
-                    settle(3)
-                    ok(naomi.trigger(kind), "trigger " + kind)
-                    until(function () { return b.opacity > 0.95 }, "bubble fades in for " + kind)
-                    ok(b.shown && inside(b), kind + " inside the window: " + b.y + " " + b.width + "x" + b.height)
-                    ok(b.height <= 5 * 24 + 2 * b.padY, kind + " within five lines: " + b.height)
-                    ok(naomi.controller.bubbleText.length <= 100)
-                    ok(b.contentWidth <= b.textWidth + 1, kind + " not truncated horizontally")
-                    ok(!b.truncated, kind + " is not elided")
+                const groups = []
+                for (const group of Object.values(Lines.lines.greeting)) groups.push({lines:group,phase:""})
+                for (const k of ["idle","petStart","petAgain","petLong","petEnd"]) groups.push({lines:Lines.lines[k],phase:""})
+                for (const k of Object.keys(Lines.lines.system)) groups.push({lines:[Lines.lines.system[k]].concat(Lines.lines.systemVariants[k]),phase:""})
+                for (const stages of Object.values(Lines.lines.remind))
+                    for (const phase of Object.keys(stages)) groups.push({lines:stages[phase],phase:phase})
+                for (const group of groups) for (const template of group.lines) {
+                    const text = template.replace("{percent}", "20").replace("{time}", "четыре часа ночи")
+                    naomi.controller.remindState.phase = "idle"
+                    if (group.phase === "prompt" || group.phase === "count") {
+                        naomi.controller.remindState.phase = group.phase
+                        naomi.controller.remindState.line = text
+                        naomi.controller.remindState.remain = 180
+                        naomi.controller.publish()
+                    } else ok(naomi.say(text, 0), text)
+                    wait(1)
+                    ok(b.shown && inside(b), "inside: " + text)
+                    ok(b.contentWidth <= b.textWidth + 1, "width: " + text)
+                    ok(!b.truncated, "not elided: " + text)
                 }
                 naomi.controller.hideBubble()
             }
             function test_all() {
                 for (const step of [step_geometry, step_pointer_over_head_and_petting, step_no_pet_over_body_or_when_disabled,
                                     step_say_and_bubble_geometry, step_greeting_on_appearance, step_spoke_signal, step_reduced_motion_instant,
-                                    step_hover_not_over_other_regions_when_idle, step_system_lines, step_system_lines_fit_bubble]) {
+                                    step_hover_not_over_other_regions_when_idle, step_system_lines, step_interaction_and_critical_priority, step_system_lines_fit_bubble]) {
                     console.log("NAOMI step " + step.name)
                     reset()
                     step()

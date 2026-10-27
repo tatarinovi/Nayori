@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "../status/MixerSources.js" as MixerSources
 
 // Owned by ShellRoot, never by a settings page or window.
 QtObject {
@@ -40,6 +41,7 @@ QtObject {
     readonly property string preferredFileManager: values.preferredFileManager
     readonly property bool niriColorIntegration: values.niriColorIntegration
     readonly property bool strataThemeIntegration: values.strataThemeIntegration
+    readonly property var mixerSources: values.mixerSources
     property bool ready: false
     property bool dirty: false
     property bool saving: false
@@ -175,12 +177,15 @@ QtObject {
             "captureCountdown": 3,
             "captureMic": false,
             "captureSystemAudio": true,
-            "captureCursor": true
+            "captureCursor": true,
+            "mixerSources": []
         };
     }
 
     function normalize(key, value) {
         const fallback = defaults()[key];
+        if (key === "mixerSources")
+            return MixerSources.normalize(value);
         if (key === "captureShotDir" || key === "captureVideoDir")
             return typeof value === "string" && /^(\/|~\/)/.test(value.trim()) && !/[\x00-\x1f]/.test(value) && value.length < 4096 ? value.trim() : fallback;
         if (key === "captureFps") return value === 30 || value === 60 ? value : fallback;
@@ -203,7 +208,7 @@ QtObject {
             return value === "current" || value === "fox" ? value : fallback;
 
         if (key === "companionStyle")
-            return value === "current" || value === "pixel-art" || value === "layered" ? value : fallback;
+            return value === "current" || value === "pixel-art" || value === "layered" || value === "haori" ? value : fallback;
 
         if (key === "companionScreen")
             return value === "primary" || value === "secondary" ? value : fallback;
@@ -292,10 +297,12 @@ QtObject {
                 continue;
 
             const value = normalize(key, patch[key]);
-            if (next[key] !== value) {
-                next[key] = value;
-                changed = true;
-            }
+            const unchanged = key === "mixerSources" ? MixerSources.same(next[key], value) : next[key] === value;
+            if (unchanged)
+                continue;
+
+            next[key] = value;
+            changed = true;
         }
         if (!changed)
             return ;

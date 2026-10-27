@@ -100,7 +100,7 @@ Scope {
                 dashboardCloseDelay.restart()
         }
     }
-    readonly property bool launcherHere: !fullscreen && shellState.launcherOpened
+    readonly property bool launcherHere: shellState.launcherOpened
         && panelScreen !== null
         && panelScreen === shellState.currentOverlayScreen
     function panelHoleX(win) {
@@ -165,8 +165,6 @@ Scope {
         function onLauncherOpenedChanged() {
             if (root.shellState.launcherOpened) {
                 root.expandedOpened = false
-                if (root.fullscreen && root.shellState.currentOverlayScreen === root.panelScreen)
-                    root.shellState.launcherOpened = false
             }
         }
         function onSettingsOpenedChanged() {
@@ -328,7 +326,7 @@ Scope {
                 width: capsule.implicitWidth,
                 height: capsule.implicitHeight
             })
-            available: root.topEnabled
+            available: root.topEnabled || root.launcherHere
             pointerInside: root.dashboardPointerInside || mediaHover.hovered || topTrigger.hovered
             heldOpen: root.expandedOpened || root.launcherHere || root.captureActive
         }
@@ -338,8 +336,8 @@ Scope {
         }
         property bool animateReady: false
         property real revealOpacity: topVisibility.shown ? 1 : 0
-        readonly property real contentOpacity: (root.relocationHost && root.arrival < 1 ? root.arrival : revealOpacity) * root.fullscreenReveal
-        readonly property real arrivalShift: root.relocationHost ? (1 - root.arrival) * -(root.tokens.spacing.small + capsule.closedHeight) : 0
+        readonly property real contentOpacity: root.launcherHere ? 1 : (root.relocationHost && root.arrival < 1 ? root.arrival : revealOpacity) * root.fullscreenReveal
+        readonly property real arrivalShift: !root.launcherHere && root.relocationHost ? (1 - root.arrival) * -(root.tokens.spacing.small + capsule.closedHeight) : 0
         Behavior on revealOpacity {
             enabled: islandWindow.animateReady && (!root.relocationHost || root.arrival === 1)
             NumberAnimation {
@@ -355,9 +353,9 @@ Scope {
             capsule.focusSearch()
         }
         screen: root.panelScreen
-        visible: !root.fullscreen && root.fullscreenReveal > 0
+        visible: root.launcherHere || (!root.fullscreen && root.fullscreenReveal > 0
             && (root.relocationHost ? root.arrival > 0 : root.topEnabled)
-            && (topVisibility.shown || revealOpacity > 0 || (root.relocationHost && root.arrival > 0))
+            && (topVisibility.shown || revealOpacity > 0 || (root.relocationHost && root.arrival > 0)))
         color: "transparent"
         // Size stays the dashboard window. Opening does not restretch the
         // surface, and the result list is not part of this rectangle.
@@ -419,8 +417,8 @@ Scope {
                 radius: 24
             }
         }
-        BackgroundEffect.blurRegion: root.tokens.frosted && !root.fullscreen && root.fullscreenReveal === 1 ? islandGlass : null
-        mask: root.fullscreen ? emptyInputMask : islandMask
+        BackgroundEffect.blurRegion: root.tokens.frosted && (root.launcherHere || (!root.fullscreen && root.fullscreenReveal === 1)) ? islandGlass : null
+        mask: root.fullscreen && !root.launcherHere ? emptyInputMask : islandMask
         Region {
             id: islandMask
             Region { x: Math.round(captureControls.x); y: Math.round(captureControls.y); width: captureControls.visible ? Math.round(captureControls.width) : 0; height: captureControls.visible ? 48 : 0; radius: 24 }
@@ -666,6 +664,8 @@ Scope {
             opacity: statusWindow.contentOpacity
             tokens: root.tokenSet
             menuWindow: statusWindow
+            mixerSources: root.shellState.mixerSources
+            onMixerSourcesSeen: sources => root.shellState.noteMixerSources(sources)
         }
     }
 
@@ -747,7 +747,7 @@ Scope {
                 easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
             }
         }
-        visible: !root.fullscreen && reveal > 0.01
+        visible: (root.launcherHere || !root.fullscreen) && reveal > 0.01
         mask: Region {
             width: root.launcherHere && capsule.listOpen ? Math.max(0, Math.round(launcherList.width)) : 0
             height: root.launcherHere && capsule.listOpen ? Math.max(0, Math.round(launcherList.height)) : 0

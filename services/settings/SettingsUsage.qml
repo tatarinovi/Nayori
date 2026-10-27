@@ -9,7 +9,7 @@ QtObject {
     property string storageDirectory: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/nayori"
     property var counts: ({})
     property var lastVisited: ({})
-    readonly property var knownKeys: ["display", "sound", "power", "network", "localsend", "bluetooth", "mouse", "keyboard", "shortcuts", "appearance", "wallpapers", "panels", "start", "island", "lockscreen", "weather", "windows", "alttab", "workspaces", "defaults", "capture", "autostart", "updates", "about", "naomi", "naomi-look", "naomi-place"]
+    readonly property var knownKeys: ["display", "sound", "power", "network", "localsend", "bluetooth", "mouse", "keyboard", "shortcuts", "appearance", "wallpapers", "panels", "start", "island", "lockscreen", "weather", "windows", "alttab", "workspaces", "defaults", "capture", "autostart", "updates", "about", "naomi", "naomi-look", "naomi-place", "naomi-remind"]
     property bool ready: false
     property string state: "loading"
     property bool dirty: false

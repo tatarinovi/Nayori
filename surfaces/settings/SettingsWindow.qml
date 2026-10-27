@@ -13,6 +13,8 @@ FloatingWindow {
     required property var tokens
     property var captureSettings: ({})
     signal captureSettingsChangedRequested(var patch)
+    property var mixerSources: []
+    signal mixerSourcesChangedRequested(var sources)
     property int topReserved: 0
     property int bottomReserved: 0
     property bool hideSecondaryIsland: false
@@ -64,6 +66,7 @@ FloatingWindow {
     signal companionScreenChangedRequested(string screen)
     property string companionSide: "right"
     signal companionSideChangedRequested(string side)
+    property var remindCompanion: null
     property bool animationsEnabled: true
     signal animationsChangedRequested(bool enabled)
     signal islandRotationEnabledChangedRequested(bool enabled)
@@ -112,6 +115,8 @@ FloatingWindow {
         id: settings
         captureSettings: root.captureSettings
         onCaptureSettingsChangedRequested: patch => root.captureSettingsChangedRequested(patch)
+        mixerSources: root.mixerSources
+        onMixerSourcesChangedRequested: sources => root.mixerSourcesChangedRequested(sources)
         enabled: root.settingsReady
         companionTokens: root.companionTokens
         tokens: root.tokens
@@ -167,6 +172,7 @@ FloatingWindow {
         onCompanionScreenChangedRequested: screen => root.companionScreenChangedRequested(screen)
         companionSide: root.companionSide
         onCompanionSideChangedRequested: side => root.companionSideChangedRequested(side)
+        remindCompanion: root.remindCompanion
         animationsEnabled: root.animationsEnabled
         onAnimationsChangedRequested: enabled => root.animationsChangedRequested(enabled)
         onIslandRotationEnabledChangedRequested: enabled => root.islandRotationEnabledChangedRequested(enabled)

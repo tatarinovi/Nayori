@@ -13,7 +13,7 @@ TestCase {
         id: button
         width: 280; height: 64
         text: "Test"
-        tokens: ({panel:{control:44}, motion:{off:true,fast:0}, radius:{small:4,medium:8}, color:{accent:"red",accentSoft:"red",surface:"white",surfaceAlt:"white",text:"black",textMuted:"gray",accentSoftText:"white"}, type:{body:{family:"sans",size:14,weight:400},small:{family:"sans",size:12}}})
+        tokens: ({panel:{control:44}, motion:{off:true,fast:0}, radius:{small:4,medium:8}, color:{menuIcon:"red",accent:"red",accentSoft:"red",surface:"white",surfaceAlt:"white",text:"black",textMuted:"gray",accentSoftText:"white"}, type:{body:{family:"sans",size:14,weight:400},small:{family:"sans",size:12}}})
         onHeld: test.count++
     }
     function init() { count = 0; button.holdEnabled = true }

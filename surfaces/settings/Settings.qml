@@ -14,6 +14,8 @@ FocusScope {
     required property var tokens
     property var captureSettings: ({})
     signal captureSettingsChangedRequested(var patch)
+    property var mixerSources: []
+    signal mixerSourcesChangedRequested(var sources)
     property int topReserved: 0
     property int bottomReserved: 0
     property bool hideSecondaryIsland: false
@@ -77,6 +79,7 @@ FocusScope {
     signal companionScreenChangedRequested(string screen)
     property string companionSide: "right"
     signal companionSideChangedRequested(string side)
+    property var remindCompanion: null
     property bool animationsEnabled: true
     signal animationsChangedRequested(bool enabled)
     property bool niriColorIntegration: true
@@ -123,6 +126,7 @@ FocusScope {
             onCompanionScreenChangedRequested: screen => root.companionScreenChangedRequested(screen)
             companionSide: root.companionSide
             onCompanionSideChangedRequested: side => root.companionSideChangedRequested(side)
+            remindCompanion: root.remindCompanion
             onRevealRequested: item => naomiSection.reveal(item)
         }
     }
@@ -165,7 +169,7 @@ FocusScope {
     readonly property var sections: [
         {key: "home", page: 0, title: "Обзор", group: "Обзор", description: "Состояние сети, звука и быстрый переход к разделам"},
         {key: "display", page: 5, title: "Экран", group: "Система", description: "Подключённые мониторы. Режимы вывода niri отсюда не меняются"},
-        {key: "sound", page: 6, title: "Звук", group: "Система", description: "Устройства вывода и ввода PipeWire и их громкость"},
+        {key: "sound", page: 6, title: "Звук", group: "Система", description: "Устройства PipeWire, громкость и источники микшера"},
         {key: "power", page: 7, title: "Питание", group: "Система", description: "Блокировка, завершение сеанса, перезагрузка и выключение"},
         {key: "network", page: 8, title: "Сеть", group: "Система", description: "Wi\u2011Fi, Ethernet и подключения NetworkManager"},
         {key: "localsend", page: 9, title: "LocalSend", group: "Система", description: "Запуск LocalSend, если приложение установлено"},
@@ -189,6 +193,7 @@ FocusScope {
         {key: "naomi", page: 25, title: "Обзор", group: "Naomi", description: "Включение Naomi и предпросмотр"},
         {key: "naomi-look", page: 26, title: "Внешний вид", group: "Naomi", description: "Рисунок и цвет с обоев"},
         {key: "naomi-place", page: 27, title: "Отображение", group: "Naomi", description: "Монитор, угол и слой"},
+        {key: "naomi-remind", page: 29, title: "Напоминания", group: "Naomi", description: "Вода, глаза и разминка без ожидания"},
         {key: "integrations", page: 24, title: "Интеграции", group: "Приложения", description: "Цвета Nayori в\u00A0niri и тема Strata"},
         {key: "updates", page: 22, title: "Обновления", group: "NayoriOS", description: "Обновление пакетов в терминале, только по кнопке"},
         {key: "about", page: 23, title: "О системе", group: "NayoriOS", description: "Версии Nayori, niri, Quickshell и системы"}
@@ -197,7 +202,8 @@ FocusScope {
     readonly property var section: sections.find(item => item.page === currentPage) || sections[0]
     readonly property bool persistsSettings: {
         const key = section.key
-        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key === "capture" || key.indexOf("naomi") === 0
+        const naomiSettings = key === "naomi" || key === "naomi-look" || key === "naomi-place"
+        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key === "capture" || naomiSettings
     }
     readonly property var categories: [
         {name: "Обзор", caption: "Обзор", glyph: "home"},
@@ -695,7 +701,14 @@ FocusScope {
                 manager: root.wallpaperManager
             }
             SettingsScroll { DisplayPage { width: parent.width; tokens: root.tokens } }
-            SettingsScroll { SoundPage { width: parent.width; tokens: root.tokens } }
+            SettingsScroll {
+                SoundPage {
+                    width: parent.width
+                    tokens: root.tokens
+                    mixerSources: root.mixerSources
+                    onMixerSourcesChangedRequested: sources => root.mixerSourcesChangedRequested(sources)
+                }
+            }
             SettingsScroll { PowerPage { width: parent.width; tokens: root.tokens } }
             SettingsScroll { NetworkPage { width: parent.width; tokens: root.tokens; scanning: root.currentPage === 8 } }
             SettingsScroll { LocalSendPage { width: parent.width; tokens: root.tokens } }
@@ -772,6 +785,7 @@ FocusScope {
                     onChanged: patch => root.captureSettingsChangedRequested(patch)
                 }
             }
+            NaomiSection { section: "remind"; activePage: 29 }
         }
         Rectangle {
             id: footer
