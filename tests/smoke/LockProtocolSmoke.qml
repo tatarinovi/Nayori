@@ -10,6 +10,8 @@ ShellRoot {
     property int ticks: 0
     property bool verified: false
     property bool sawExit: false
+    property bool sawPreparedReveal: false
+    property bool sawDesktopReveal: false
     property bool watchedBefore: false
     Component.onCompleted: watchedBefore = Quickshell.watchFiles
     Tokens { id: themeTokens }
@@ -36,6 +38,18 @@ ShellRoot {
             if (service.unlocking) {
                 if (!service.locked || !service.secure) throw new Error("exit animation exposed the session")
                 root.sawExit = true
+            }
+        }
+        function onRevealStageChanged() {
+            if (service.revealStage === 2) {
+                if (!service.locked || !service.secure) throw new Error("reveal prepared after lock was released")
+                if (!Quickshell.screens.every(screen => service.revealShots[screen.name])) throw new Error("lock frame was not captured")
+                root.sawPreparedReveal = true
+            }
+            if (service.revealStage === 3) {
+                if (service.locked || !root.sawPreparedReveal) throw new Error("desktop revealed before preparation")
+                if (!Quickshell.screens.every(screen => service.revealReady[screen.name])) throw new Error("desktop revealed before output was ready")
+                root.sawDesktopReveal = true
             }
         }
     }
@@ -65,6 +79,8 @@ ShellRoot {
                 if (Quickshell.env("NAYORI_LOCK_TEST_ALLOW") === "1") {
                     if (service.locked) return
                     if (!root.sawExit) throw new Error("missing authenticated exit animation")
+                    if (service.revealStage !== 0) return
+                    if (!root.sawPreparedReveal || !root.sawDesktopReveal) throw new Error("missing desktop reveal")
                     if (Quickshell.watchFiles !== root.watchedBefore) throw new Error("file reload setting not restored")
                 } else {
                     if (!service.status.startsWith("Не удалось разблокировать")) return

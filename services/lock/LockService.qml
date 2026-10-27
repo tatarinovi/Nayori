@@ -25,6 +25,11 @@ Scope {
     property string secret: ""
     property bool initialResponse: false
     property bool unlocking: false
+    // 1: capture each lock surface, 2: map the copies beneath the lock,
+    // 3: fade the copies over the now-unlocked desktop.
+    property int revealStage: 0
+    property var revealShots: ({})
+    property var revealReady: ({})
     property bool hintWanted: false
     // Quickshell 0.3.2 does not notify locked consistently on unlock.
     readonly property bool locked: lockState.engaged
@@ -47,6 +52,7 @@ Scope {
     signal relay(string text, int key)
     signal clearInput
     signal focusInput
+    signal captureForReveal
 
     PersistentProperties {
         id: lockState
@@ -57,6 +63,13 @@ Scope {
 
     onSleepingChanged: if (sleeping) {
         unlockTimer.stop()
+        captureWait.stop()
+        revealWait.stop()
+        revealEnd.stop()
+        revealStage = 0
+        revealShots = ({})
+        revealReady = ({})
+        if (!locked) restoreWatching()
         unlocking = false
         if (pam.active) pam.abort()
         secret = ""
@@ -66,6 +79,13 @@ Scope {
 
     function lock() {
         if (locked || requested) return
+        if (revealStage !== 0) {
+            revealEnd.stop()
+            revealStage = 0
+            revealShots = ({})
+            revealReady = ({})
+            restoreWatching()
+        }
         previewing = false
         status = ""
         clearInput()
@@ -76,6 +96,42 @@ Scope {
         // lock stable while editing source, then restore the prior setting.
         Quickshell.watchFiles = false
         lockState.engaged = true
+    }
+    function captureReveal() {
+        if (!unlocking || sleeping || !locked) return
+        if (tokens.motion.off) { finishUnlock(); return }
+        revealShots = ({})
+        revealReady = ({})
+        revealStage = 1
+        captureForReveal()
+        captureWait.restart()
+    }
+    function capturedReveal(name, result) {
+        if (revealStage !== 1 || !unlocking || !name) return
+        const next = Object.assign({}, revealShots)
+        next[name] = result
+        revealShots = next
+        if (Quickshell.screens.every(screen => Object.prototype.hasOwnProperty.call(next, screen.name))) prepareReveal()
+    }
+    function prepareReveal() {
+        if (revealStage !== 1 || !unlocking || sleeping || !locked) return
+        captureWait.stop()
+        revealStage = 2
+        revealWait.restart()
+    }
+    function revealSurfaceReady(name) {
+        if (revealStage !== 2 || !name) return
+        const next = Object.assign({}, revealReady)
+        next[name] = true
+        revealReady = next
+        if (Quickshell.screens.every(screen => next[screen.name])) startReveal()
+    }
+    function startReveal() {
+        if (revealStage !== 2 || !unlocking || sleeping || !locked) return
+        revealWait.stop()
+        finishUnlock()
+        revealStage = 3
+        revealEnd.restart()
     }
     function preview() {
         if (locked || requested) return
@@ -108,6 +164,9 @@ Scope {
         lockState.engaged = false
         requested = false
         status = ""
+        if (revealStage !== 2) restoreWatching()
+    }
+    function restoreWatching() {
         if (lockState.pausedWatching) {
             lockState.pausedWatching = false
             Quickshell.watchFiles = lockState.watchWasEnabled
@@ -116,7 +175,20 @@ Scope {
     Timer {
         id: unlockTimer
         interval: root.tokens.motion.off ? 0 : root.tokens.motion.fast
-        onTriggered: root.finishUnlock()
+        onTriggered: root.captureReveal()
+    }
+    Timer { id: captureWait; interval: 500; onTriggered: root.prepareReveal() }
+    // If an output disappears during setup, proceed after a bounded wait.
+    Timer { id: revealWait; interval: 500; onTriggered: root.startReveal() }
+    Timer {
+        id: revealEnd
+        interval: root.tokens.motion.base + 50
+        onTriggered: {
+            root.revealStage = 0
+            root.revealShots = ({})
+            root.revealReady = ({})
+            root.restoreWatching()
+        }
     }
     function setLockedHint(value) {
         hintWanted = value
@@ -230,6 +302,12 @@ Scope {
                 function onRelay(text, key) { if (lockView.primary) lockView.relayKey(text, key) }
                 function onClearInput() { lockView.clearPassword() }
                 function onFocusInput() { lockView.focusPassword() }
+                function onCaptureForReveal() {
+                    const name = surface.screen ? surface.screen.name : ""
+                    if (!name) return
+                    const accepted = lockView.grabToImage(result => root.capturedReveal(name, result))
+                    if (!accepted) root.capturedReveal(name, null)
+                }
             }
             Component.onCompleted: lockView.mediaComponent = musicCard
             Component {
@@ -242,6 +320,13 @@ Scope {
         active: root.previewing && !root.locked
         onActiveChanged: {
             if (active) setSource(Qt.resolvedUrl("../../surfaces/lock/LockPreview.qml"), { controller: root })
+            else source = ""
+        }
+    }
+    Loader {
+        active: root.revealStage >= 2
+        onActiveChanged: {
+            if (active) setSource(Qt.resolvedUrl("../../surfaces/lock/UnlockReveal.qml"), { controller: root })
             else source = ""
         }
     }
