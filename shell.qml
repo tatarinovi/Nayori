@@ -16,11 +16,15 @@ import "surfaces/settings"
 import "surfaces/panel"
 import "services/canvas"
 import "services/palette"
+import "services/ui"
 import "services/ui/StartRouting.js" as StartRouting
+import "services/ui/IslandRouting.js" as IslandRouting
 import "services/island"
 import "surfaces/canvas"
 import "surfaces/companion"
 import "services/clipboard"
+import "services/lock"
+import "surfaces/lock"
 import "surfaces/clipboard"
 
 ShellRoot {
@@ -192,7 +196,8 @@ ShellRoot {
             desktopOnly: settingsStore.companionDesktopOnly
             reactToPointer: settingsStore.companionReactToPointer
             systemLines: settingsStore.companionSystemLines
-            screen: root.probeScreen
+            screen: root.screenNamed(IslandRouting.companionOutput(root.outputNames, settingsStore.companionScreen, root.primaryFullscreen, settingsStore.fullscreenCompanionOutput))
+            side: settingsStore.companionSide
             bottomInset: Math.max(88, settingsStore.bottomReserved + 16)
         }
     }
@@ -225,6 +230,25 @@ ShellRoot {
     }
 
     readonly property var tokenSet: tokens
+    SessionEntrance {
+        tokens: root.tokenSet
+        ready: settingsStore.ready
+        enabled: !lockService.locked
+    }
+    LockService {
+        id: lockService
+        tokens: root.tokenSet
+        wallpapers: wallpaperStore
+        music: musicStore
+        primaryOutput: root.probeScreen ? root.probeScreen.name : ""
+    }
+    LoginTheme {
+        tokens: root.tokenSet
+        wallpapers: wallpaperStore
+        primaryOutput: root.probeScreen ? root.probeScreen.name : ""
+        outputNames: Quickshell.screens.map(screen => screen.name)
+        settled: settingsStore.ready && (settingsStore.accentMode !== "automatic" || accentExtractor.ready)
+    }
     property bool launcherOpened: false
     readonly property bool settingsOpened: settingsController.opened
     function openSettings(page): bool {
@@ -235,6 +259,7 @@ ShellRoot {
     }
     readonly property string weatherCity: settingsStore.weatherCity
     readonly property bool hideSecondaryIsland: settingsStore.hideSecondaryIsland
+    readonly property string fullscreenIslandOutput: settingsStore.fullscreenIslandOutput
     readonly property bool autoHideTop: settingsStore.autoHideTop
     readonly property bool autoHideApps: settingsStore.autoHideApps
     readonly property bool autoHideWorkspaces: settingsStore.autoHideWorkspaces
@@ -264,11 +289,10 @@ ShellRoot {
             root.launcherOpened = false
             return
         }
-        const name = Niri.focusedOutput || (root.probeScreen ? root.probeScreen.name : "")
-        let screen = root.screenNamed(name)
-        // Верхний остров скрыт на втором мониторе: лаунчера там нет, открываем на основном.
-        if (root.hideSecondaryIsland && screen !== root.probeScreen)
-            screen = root.probeScreen
+        // Верхний остров один, когда он скрыт на других мониторах: лаунчер открывается там, где остров сейчас есть.
+        const output = IslandRouting.launcherOutput(root.outputNames, Niri.focusedOutput || "",
+            root.hideSecondaryIsland, root.primaryFullscreen, root.fullscreenIslandOutput)
+        const screen = root.screenNamed(output)
         if (screen)
             root.overlayScreen = screen
         root.launcherOpened = true
@@ -372,6 +396,21 @@ ShellRoot {
 
     // Each output owns independent panels. The first output is the primary screen; all outputs get their own panels.
     readonly property var probeScreen: Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    FullscreenGuard {
+        id: primaryFullscreenGuard
+        screen: root.probeScreen
+        tokens: root.tokenSet
+    }
+    readonly property bool primaryFullscreen: primaryFullscreenGuard.blocked
+    readonly property var outputNames: {
+        const names = []
+        const screens = Quickshell.screens
+        for (let i = 0; i < screens.length; ++i) {
+            const screen = screens[i]
+            names.push(screen && screen.name ? screen.name : "")
+        }
+        return names
+    }
     property var overlayScreen: probeScreen
     readonly property var currentOverlayScreen: Quickshell.screens.indexOf(overlayScreen) >= 0
         ? overlayScreen : probeScreen

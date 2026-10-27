@@ -12,6 +12,7 @@ import "../launcher"
 import "../settings"
 import "../../services/niri"
 import "../../services/ui"
+import "../../services/ui/IslandRouting.js" as IslandRouting
 import "../../services/ui/Overlap.js" as Overlap
 
 Scope {
@@ -25,11 +26,34 @@ Scope {
     readonly property bool fullscreen: fullscreenGuard.blocked
     readonly property real fullscreenReveal: fullscreenGuard.reveal
     property bool panelsReady: false
-    Component.onCompleted: { panelsReady = true; dismissForFullscreen() }
+    Component.onCompleted: {
+        panelsReady = true
+        dismissForFullscreen()
+        Qt.callLater(function() { arrivalReady = true })
+    }
     onFullscreenRevealChanged: if (panelsReady && fullscreen && fullscreenReveal === 0) expandedOpened = false
-    readonly property bool topEnabled: panelScreen !== null
-        && (panelScreen === shellState.probeScreen || !shellState.hideSecondaryIsland)
+    readonly property bool topEnabled: panelScreen !== null && IslandRouting.topEnabled(screenName, shellState.outputNames,
+        shellState.hideSecondaryIsland, shellState.primaryFullscreen, shellState.fullscreenIslandOutput)
     readonly property string screenName: panelScreen ? panelScreen.name : ""
+    // Монитор, на котором острова нет, пока полный экран на первом не перенесёт его сюда.
+    readonly property bool relocationHost: shellState.hideSecondaryIsland
+        && shellState.fullscreenIslandOutput !== ""
+        && panelScreen !== null
+        && panelScreen !== shellState.probeScreen
+        && screenName === shellState.fullscreenIslandOutput
+    readonly property bool relocated: relocationHost && shellState.primaryFullscreen && !fullscreen
+    // 8 px над капсулой, 48 px капсула, 8 px под ней.
+    readonly property int islandBand: tokens.spacing.small * 2 + tokens.panel.height
+    property real arrival: relocated ? 1 : 0
+    property bool arrivalReady: false
+    Behavior on arrival {
+        enabled: root.arrivalReady
+        NumberAnimation {
+            duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
+        }
+    }
     property bool expandedOpened: false
     property bool dashboardHoverBlocked: false
     onFullscreenChanged: if (panelsReady) dismissForFullscreen()
@@ -154,7 +178,9 @@ Scope {
     }
     ReservedSpace {
         screen: root.panelScreen
-        amount: root.topEnabled && !root.fullscreen ? root.shellState.topReserved : 0
+        amount: root.relocationHost
+            ? IslandRouting.relocationReserve(root.relocated, root.shellState.topReserved, root.islandBand)
+            : (root.topEnabled && !root.fullscreen ? root.shellState.topReserved : 0)
         topEdge: true
     }
     ReservedSpace {
@@ -298,9 +324,10 @@ Scope {
         }
         property bool animateReady: false
         property real revealOpacity: topVisibility.shown ? 1 : 0
-        readonly property real contentOpacity: revealOpacity * root.fullscreenReveal
+        readonly property real contentOpacity: (root.relocationHost && root.arrival < 1 ? root.arrival : revealOpacity) * root.fullscreenReveal
+        readonly property real arrivalShift: root.relocationHost ? (1 - root.arrival) * -(root.tokens.spacing.small + capsule.closedHeight) : 0
         Behavior on revealOpacity {
-            enabled: islandWindow.animateReady
+            enabled: islandWindow.animateReady && (!root.relocationHost || root.arrival === 1)
             NumberAnimation {
                 duration: root.tokenSet.motion.off ? 0 : root.tokenSet.motion.fast
                 easing.type: Easing.BezierSpline
@@ -314,7 +341,9 @@ Scope {
             capsule.focusSearch()
         }
         screen: root.panelScreen
-        visible: !root.fullscreen && root.topEnabled && root.fullscreenReveal > 0 && (topVisibility.shown || revealOpacity > 0)
+        visible: !root.fullscreen && root.fullscreenReveal > 0
+            && (root.relocationHost ? root.arrival > 0 : root.topEnabled)
+            && (topVisibility.shown || revealOpacity > 0 || (root.relocationHost && root.arrival > 0))
         color: "transparent"
         // Size stays the dashboard window. Opening does not restretch the
         // surface, and the result list is not part of this rectangle.
@@ -392,6 +421,7 @@ Scope {
         RectangularShadow {
             opacity: islandWindow.contentOpacity
             anchors.fill: capsule
+            transform: Translate { y: islandWindow.arrivalShift }
             radius: capsule.radius
             blur: 16
             spread: 0
@@ -425,6 +455,7 @@ Scope {
             anchors.top: parent.top
             anchors.topMargin: 0
             anchors.horizontalCenter: parent.horizontalCenter
+            transform: Translate { y: islandWindow.arrivalShift }
             tokens: root.tokenSet
             active: islandWindow.visible
             opacity: islandWindow.contentOpacity
@@ -455,6 +486,7 @@ Scope {
             anchors.verticalCenter: capsule.verticalCenter
             anchors.left: capsule.right
             anchors.leftMargin: root.tokens.spacing.small
+            transform: Translate { y: islandWindow.arrivalShift }
             opacity: reveal * islandWindow.contentOpacity
             HoverHandler { id: mediaHover }
         }
@@ -468,6 +500,7 @@ Scope {
             anchors.verticalCenter: capsule.verticalCenter
             anchors.right: capsule.left
             anchors.rightMargin: root.tokens.spacing.small
+            transform: Translate { y: islandWindow.arrivalShift }
             opacity: reveal * islandWindow.contentOpacity
         }
     }

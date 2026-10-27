@@ -44,7 +44,7 @@ Canvas {
             tile(3, 3, 18, 7, 2)
             tile(3, 13, 7, 8, 2)
             tile(13, 13, 8, 8, 2)
-        } else if ((name === "system" || name === "display")) {
+        } else if (name === "system" || name === "display" || name === "naomi-place") {
             tile(2, 3, 20, 14, 3)
             hole(5, 6, 14, 8, 1)
             tile(10, 17, 4, 3, 1)
@@ -56,7 +56,7 @@ Canvas {
             tile(2, 10, 10, 11, 2)
             hole(4, 13, 6, 1.5, 0.5)
             hole(4, 16, 6, 1.5, 0.5)
-        } else if (name === "appearance") {
+        } else if (name === "appearance" || name === "naomi-look") {
             // Brush with a separate soft bristle.
             c.beginPath()
             c.moveTo(10, 12); c.lineTo(18, 3)
@@ -158,6 +158,12 @@ Canvas {
         } else if (name === "autostart") {
             c.beginPath(); c.moveTo(7, 3); c.lineTo(21, 12); c.lineTo(7, 21); c.closePath(); c.fill()
             line(3, 4, 3, 20)
+        } else if (name === "naomi") {
+            // Ears, head, and a short body.
+            c.beginPath(); c.moveTo(6.2, 9); c.lineTo(4.2, 2.2); c.lineTo(10.2, 7.2); c.closePath(); c.fill()
+            c.beginPath(); c.moveTo(17.8, 9); c.lineTo(19.8, 2.2); c.lineTo(13.8, 7.2); c.closePath(); c.fill()
+            c.beginPath(); c.arc(12, 11.2, 4.6, 0, Math.PI * 2); c.fill()
+            tile(7.5, 15.2, 9, 6.4, 3)
         } else if (name === "integrations") {
             c.beginPath(); c.arc(7, 12, 3.2, 0, Math.PI * 2); c.stroke()
             c.beginPath(); c.arc(17, 12, 3.2, 0, Math.PI * 2); c.stroke()

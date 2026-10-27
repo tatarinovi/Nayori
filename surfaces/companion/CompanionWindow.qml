@@ -19,6 +19,8 @@ PanelWindow {
     // Комментировать системные события (нагрузка, окна, батарея, сеть, обновление, бездействие, ночь).
     // false — источники отключаются, реплики не копятся. Приветствие и поглаживание не зависят.
     property bool systemLines: true
+    // Нижний угол: "left" или "right".
+    property string side: "right"
     FullscreenGuard { id: fullscreenGuard; screen: root.screen; tokens: root.tokens }
     visible: !fullscreenGuard.blocked && fullscreenGuard.reveal > 0
     // Над иллюстрацией — место под облачко с репликой (до пяти строк), оно прозрачно для ввода.
@@ -34,8 +36,28 @@ PanelWindow {
     // Показать облако с репликой. holdSeconds <= 0 — по длине текста. Для системных событий.
     function say(text: string, holdSeconds: real): bool { return companion.say(text, holdSeconds || 0) }
 
-    anchors { right: true; bottom: true }
-    margins { right: 20; bottom: root.bottomInset }
+    // Сначала ставится новый край, потом снимается старый. Иначе на один
+    // проход привязки окно остаётся без левого и правого края, и Quickshell падает.
+    anchors.bottom: true
+    anchors.right: true
+    margins.right: 20
+    margins.bottom: root.bottomInset
+    onSideChanged: Qt.callLater(root.place)
+    Component.onCompleted: place()
+    function place() {
+        const left = root.side === "left"
+        if (left) {
+            root.anchors.left = true
+            root.margins.left = 20
+            root.margins.right = 0
+            root.anchors.right = false
+        } else {
+            root.anchors.right = true
+            root.margins.right = 20
+            root.margins.left = 0
+            root.anchors.left = false
+        }
+    }
     implicitWidth: illustrationWidth
     implicitHeight: illustrationHeight + bubbleSpace
     color: "transparent"

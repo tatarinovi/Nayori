@@ -11,6 +11,7 @@ FocusScope {
     property int topReserved: 0
     property int bottomReserved: 0
     property bool hideSecondaryIsland: false
+    property string fullscreenIslandOutput: ""
     property bool autoHideTop: false
     property bool autoHideApps: false
     property bool autoHideWorkspaces: false
@@ -23,6 +24,7 @@ FocusScope {
     signal reservationChanged(int top, int bottom)
     signal autoHideChangedRequested(bool top, bool apps, bool workspaces, bool status)
     signal hideSecondaryIslandChangedRequested(bool hidden)
+    signal fullscreenIslandOutputChangedRequested(string output)
 
     readonly property bool autoHideAny: autoHideTop || autoHideApps || autoHideWorkspaces || autoHideStatus
     readonly property var monitors: {
@@ -48,6 +50,26 @@ FocusScope {
         return monitors.length > 0 ? monitors[0].name : ""
     }
     readonly property bool wide: width >= 640 + 12
+    readonly property var fullscreenIslandChoices: {
+        const items = [{ key: "", label: "Не показывать" }]
+        const connected = {}
+        for (let i = 1; i < monitors.length; ++i) {
+            items.push({ key: monitors[i].name, label: monitors[i].name })
+            connected[monitors[i].name] = true
+        }
+        const primaryName = monitors.length > 0 ? monitors[0].name : ""
+        if (fullscreenIslandOutput !== "" && fullscreenIslandOutput !== primaryName && !connected[fullscreenIslandOutput])
+            items.push({ key: fullscreenIslandOutput, label: fullscreenIslandOutput })
+        return items
+    }
+    readonly property bool fullscreenTargetMissing: {
+        if (fullscreenIslandOutput === "")
+            return false
+        for (let i = 0; i < monitors.length; ++i)
+            if (monitors[i].name === fullscreenIslandOutput)
+                return false
+        return true
+    }
 
     component Label: SettingsLabel { tokens: root.tokens }
     component ReservationControl: SettingsReservationControl { tokens: root.tokens }
@@ -195,7 +217,7 @@ FocusScope {
                 objectName: "panels-monitors"
                 tokens: root.tokens
                 title: "Мониторы"
-                subtitle: "Что показывается на каждом мониторе. Верхний остров на втором экране можно отключить."
+                subtitle: "Что показывается на каждом мониторе. Верхний остров на других экранах можно отключить."
                 spacing: 12
 
                 Label {
@@ -263,15 +285,54 @@ FocusScope {
                             autoHideApps: root.autoHideApps
                             autoHideWorkspaces: root.autoHideWorkspaces
                             autoHideStatus: root.autoHideStatus
-                            onTopShownRequested: shown => root.hideSecondaryIslandChangedRequested(!shown)
+                            onTopShownRequested: shown => {
+                                root.hideSecondaryIslandChangedRequested(!shown)
+                                if (!shown)
+                                    Qt.callLater(() => root.reveal(fullscreenIslandBlock))
+                            }
                             onItemFocused: item => root.reveal(item)
                         }
+                    }
+                }
+                Column {
+                    id: fullscreenIslandBlock
+                    objectName: "panels-fullscreen-island"
+                    visible: root.hideSecondaryIsland && root.monitors.length > 1
+                    width: parent.width
+                    spacing: 8
+                    Label {
+                        width: parent.width
+                        text: "Монитор при полном экране"
+                        font.pixelSize: root.tokens.type.body.size
+                    }
+                    Label {
+                        width: parent.width
+                        text: "Пока основной монитор в\u00A0полноэкранном режиме, верхний остров показывается на\u00A0выбранном экране"
+                        color: root.tokens.color.textMuted
+                        font.pixelSize: root.tokens.type.small.size
+                    }
+                    SettingsSegmented {
+                        objectName: "panels-fullscreen-island-choice"
+                        width: parent.width
+                        tokens: root.tokens
+                        equalWidth: true
+                        model: root.fullscreenIslandChoices
+                        currentKey: root.fullscreenIslandOutput
+                        onActivated: key => root.fullscreenIslandOutputChangedRequested(key)
+                        onFocusReceived: root.reveal(fullscreenIslandBlock)
+                    }
+                    Label {
+                        visible: root.fullscreenTargetMissing
+                        width: parent.width
+                        text: "Выбранный монитор не подключён. Остров остаётся скрытым, пока он не появится"
+                        color: root.tokens.color.textMuted
+                        font.pixelSize: root.tokens.type.small.size
                     }
                 }
                 SettingsInfoRow {
                     tokens: root.tokens
                     text: root.monitors.length > 1
-                        ? "Скрыть можно только верхний остров на втором экране. Остальные острова показываются на каждом мониторе, а автоскрытие задаётся в общих параметрах."
+                        ? "Скрыть можно только верхний остров на других экранах. Остальные острова показываются на каждом мониторе, а автоскрытие задаётся в общих параметрах."
                         : "Все острова показываются на подключённом мониторе. Автоскрытие задаётся в общих параметрах."
                 }
             }

@@ -27,10 +27,13 @@ with tempfile.TemporaryDirectory(prefix="ns-") as directory:
     saved = json.loads(path.read_text())
     assert saved["weatherCity"] == "Москва" and saved["autoHideApps"]
     assert saved["weatherRefreshMinutes"] == 30
+    assert saved["companionStyle"] == "layered"
     assert saved["companionEnabled"] is True
     assert saved["companionDesktopOnly"] is True
     assert saved["companionReactToPointer"] is False
     assert saved["companionSystemLines"] is False
+    assert saved["companionScreen"] == "secondary"
+    assert saved["companionSide"] == "left"
     assert saved["surfaceStyle"] == "frosted"
     assert saved["startIconStyle"] == "fox"
     before = path.read_bytes()

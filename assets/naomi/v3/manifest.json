@@ -1,0 +1,125 @@
+{
+  "source": "Naomi black-dress character from approved concept sheet, standing pixel-art, no kimono",
+  "canvas": {
+    "width": 305,
+    "height": 1024
+  },
+  "parts": {
+    "legs": {
+      "visible_pixels": 54857,
+      "visible_bounds_xyxy": [
+        38,
+        488,
+        283,
+        1019
+      ],
+      "underpaint_radius": 12
+    },
+    "body": {
+      "visible_pixels": 19454,
+      "visible_bounds_xyxy": [
+        90,
+        182,
+        223,
+        406
+      ],
+      "underpaint_radius": 10
+    },
+    "hair_back": {
+      "visible_pixels": 12398,
+      "visible_bounds_xyxy": [
+        26,
+        12,
+        235,
+        204
+      ],
+      "underpaint_radius": 7
+    },
+    "clothing": {
+      "visible_pixels": 26968,
+      "visible_bounds_xyxy": [
+        38,
+        358,
+        282,
+        543
+      ],
+      "underpaint_radius": 8
+    },
+    "head": {
+      "visible_pixels": 7841,
+      "visible_bounds_xyxy": [
+        78,
+        60,
+        202,
+        223
+      ],
+      "underpaint_radius": 8
+    },
+    "arm_right": {
+      "visible_pixels": 15883,
+      "visible_bounds_xyxy": [
+        213,
+        198,
+        288,
+        586
+      ],
+      "underpaint_radius": 8
+    },
+    "arm_left": {
+      "visible_pixels": 6737,
+      "visible_bounds_xyxy": [
+        31,
+        163,
+        111,
+        322
+      ],
+      "underpaint_radius": 8
+    },
+    "hair_front": {
+      "visible_pixels": 7920,
+      "visible_bounds_xyxy": [
+        50,
+        62,
+        176,
+        194
+      ],
+      "underpaint_radius": 6
+    },
+    "eyes": {
+      "visible_pixels": 1285,
+      "visible_bounds_xyxy": [
+        88,
+        103,
+        162,
+        157
+      ],
+      "underpaint_radius": 0
+    },
+    "mouth": {
+      "visible_pixels": 72,
+      "visible_bounds_xyxy": [
+        140,
+        173,
+        152,
+        179
+      ],
+      "underpaint_radius": 0
+    }
+  },
+  "z_order_back_to_front": [
+    "legs",
+    "body",
+    "hair_back",
+    "clothing",
+    "head",
+    "arm_right",
+    "arm_left",
+    "hair_front",
+    "eyes",
+    "mouth"
+  ],
+  "rig_quality": "Lossless pixel-aligned layers and modest seam underpainting; small idle/blink/talk motion. Not full deformable Live2D rig. Original hidden anatomy cannot be reconstructed with certainty.",
+  "usage": "Render all 10 PNGs at exactly the same x/y and size, use z_order_back_to_front. Avoid large independent limb rotations without further inpainting.",
+  "assembly_diff_pixels": 0,
+  "assembly_diff_percent": 0.0
+}

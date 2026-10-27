@@ -13,6 +13,9 @@ QtObject {
     property bool _available: false
     property string _error: ""
     property string _focusedOutput: ""
+    property var _keyboardLayouts: []
+    property int _keyboardIndex: 0
+    readonly property string keyboardLayout: _keyboardLayouts[_keyboardIndex] || ""
     property var _workspaces: []
     property var _windows: []
 
@@ -230,6 +233,8 @@ QtObject {
         _available = false
         _error = message.length > 0 ? message : "сокет niri недоступен"
         _focusedOutput = ""
+        _keyboardLayouts = []
+        _keyboardIndex = 0
         _workspaces = []
         _windows = []
         _actionQueue = []
@@ -321,6 +326,18 @@ QtObject {
     function applyEvent(msg, epoch) {
         if (epoch !== _streamEpoch)
             return
+        if (msg.KeyboardLayoutsChanged !== undefined) {
+            const layouts = msg.KeyboardLayoutsChanged.keyboard_layouts
+            if (layouts && Array.isArray(layouts.names) && Number.isInteger(layouts.current_idx)) {
+                _keyboardLayouts = layouts.names
+                _keyboardIndex = layouts.current_idx
+            }
+            return
+        }
+        if (msg.KeyboardLayoutSwitched !== undefined) {
+            if (Number.isInteger(msg.KeyboardLayoutSwitched.idx)) _keyboardIndex = msg.KeyboardLayoutSwitched.idx
+            return
+        }
         if (msg.WorkspacesChanged !== undefined) {
             applyWorkspaces(msg.WorkspacesChanged, epoch)
             return

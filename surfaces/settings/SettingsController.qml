@@ -30,7 +30,8 @@ QtObject {
         display: 5, sound: 6, power: 7, network: 8, localsend: 9,
         bluetooth: 10, mouse: 11, keyboard: 12, shortcuts: 13, start: 14,
         island: 15, lockscreen: 16, windows: 17, alttab: 18, workspaces: 19,
-        defaults: 20, autostart: 21, updates: 22, about: 23, integrations: 24, naomi: 25
+        defaults: 20, autostart: 21, updates: 22, about: 23, integrations: 24, naomi: 25,
+        "naomi-look": 26, "naomi-place": 27
     })
 
     function open() { return show("") }
@@ -129,6 +130,7 @@ QtObject {
             topReserved: root.settingsService.topReserved
             bottomReserved: root.settingsService.bottomReserved
             hideSecondaryIsland: root.settingsService.hideSecondaryIsland
+            fullscreenIslandOutput: root.settingsService.fullscreenIslandOutput
             autoHideTop: root.settingsService.autoHideTop
             autoHideApps: root.settingsService.autoHideApps
             autoHideWorkspaces: root.settingsService.autoHideWorkspaces
@@ -158,6 +160,12 @@ QtObject {
             onCompanionReactToPointerChangedRequested: enabled => root.settingsService.update({companionReactToPointer: enabled})
             companionSystemLines: root.settingsService.companionSystemLines
             onCompanionSystemLinesChangedRequested: enabled => root.settingsService.update({companionSystemLines: enabled})
+            fullscreenCompanionOutput: root.settingsService.fullscreenCompanionOutput
+            onFullscreenCompanionOutputChangedRequested: output => root.settingsService.update({fullscreenCompanionOutput: output})
+            companionScreen: root.settingsService.companionScreen
+            onCompanionScreenChangedRequested: screen => root.settingsService.update({companionScreen: screen})
+            companionSide: root.settingsService.companionSide
+            onCompanionSideChangedRequested: side => root.settingsService.update({companionSide: side})
             animationsEnabled: root.settingsService.animationsEnabled
             settingsMessage: root.settingsService.message
             canRecover: root.settingsService.canRecover
@@ -166,6 +174,7 @@ QtObject {
             onAutoHideChangedRequested: (top, apps, workspaces, status) => root.settingsService.update({
                 autoHideTop: top, autoHideApps: apps, autoHideWorkspaces: workspaces, autoHideStatus: status})
             onHideSecondaryIslandChangedRequested: hidden => root.settingsService.update({hideSecondaryIsland: hidden})
+            onFullscreenIslandOutputChangedRequested: output => root.settingsService.update({fullscreenIslandOutput: output})
             onWeatherCityChangedRequested: city => root.settingsService.update({weatherCity: city})
             onWeatherRefreshMinutesChangedRequested: minutes => root.settingsService.update({weatherRefreshMinutes: minutes})
             onSurfaceStyleChangedRequested: style => root.settingsService.update({surfaceStyle: style})

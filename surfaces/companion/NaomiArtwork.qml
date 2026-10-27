@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "../../services/companion/NaomiBehavior.js" as Pet
 
 // Keep one appearance loaded; the companion/controller/bubble survive a style change.
 Item {
@@ -20,7 +21,7 @@ Item {
     Loader {
         id: picture
         anchors.fill: parent
-        sourceComponent: root.style === "pixel-art" ? pixel : current
+        sourceComponent: root.style === "layered" ? layered : root.style === "pixel-art" ? pixel : current
     }
     Component {
         id: current
@@ -46,6 +47,25 @@ Item {
             pet: root.pet
             petLean: root.petLean
             onPointerMoved: (x,y) => root.pointerMoved(x,y)
+        }
+    }
+    Component {
+        id: layered
+        NaomiSprite {
+            id: sprite
+            active: root.active
+            animationsEnabled: root.animationsEnabled && !root.tokens.motion.off
+            readonly property bool pointerInside: pointer.hovered
+            HoverHandler {
+                id: pointer
+                enabled: root.followPointer || root.pointerTracking
+                onPointChanged: {
+                    if (!hovered || sprite.headRect.width <= 0) return
+                    const zone = Pet.zone(), h = sprite.headRect
+                    root.pointerMoved(zone.x + (point.position.x-h.x)/h.width*zone.w,
+                                      zone.y + (point.position.y-h.y)/h.height*zone.h)
+                }
+            }
         }
     }
 }

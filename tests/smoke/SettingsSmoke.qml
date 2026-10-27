@@ -201,20 +201,29 @@ ShellRoot {
                         "compact appearance scroll reveals keyboard focus")
                     openKey("naomi")
                     test.check(currentPage === 25, "dedicated Naomi page opens")
-                    const styleControl = test.findItem(view, "settingsNaomiStyle")
                     const naomiPreview = test.findItem(view, "naomiPreview")
+                    openKey("naomi-look")
+                    test.check(currentPage === 26, "Naomi appearance page opens")
+                    const styleControl = test.findItem(view, "settingsNaomiStyle")
                     styleControl.activated("current")
                     test.check(settings.companionStyle === "current" && naomiPreview.illustrationHeight === 534,
                         "current artwork selected through settings")
                     styleControl.activated("pixel-art")
                     test.check(settings.companionStyle === "pixel-art" && naomiPreview.illustrationHeight === 400,
                         "approved pixel artwork selected through settings")
+                    styleControl.activated("layered")
+                    test.check(settings.companionStyle === "layered" && naomiPreview.illustrationHeight === 534,
+                        "third layered appearance selected through settings")
+                    styleControl.activated("pixel-art")
+                    openKey("naomi")
                     const companionControl = test.findItem(view, "settingsCompanionToggle")
                     companionControl.forceActiveFocus()
                     input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
                     test.check(!settings.companionEnabled, "companion disables from settings")
                     input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
                     test.check(settings.companionEnabled, "companion re-enables from settings")
+                    openKey("naomi-place")
+                    test.check(currentPage === 27, "Naomi display page opens")
                     const desktopOnlyControl = test.findItem(view, "settingsCompanionDesktopOnlyToggle")
                     settings.update({companionDesktopOnly: false})
                     test.check(!desktopOnlyControl.checked, "desktop-only switch follows the service")
@@ -239,6 +248,26 @@ ShellRoot {
                     test.check(!settings.companionSystemLines && !systemControl.checked, "system lines turn off from settings")
                     input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
                     test.check(settings.companionSystemLines && systemControl.checked, "system lines turn back on")
+                    const leftSide = test.findItem(view, "settingsNaomiSideLeft")
+                    leftSide.forceActiveFocus()
+                    input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                    test.check(settings.companionSide === "left", "Naomi moves to the left corner")
+                    const rightSide = test.findItem(view, "settingsNaomiSideRight")
+                    rightSide.forceActiveFocus()
+                    input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                    test.check(settings.companionSide === "right", "Naomi returns to the right corner")
+                    const screenBlock = test.findItem(view, "settingsNaomiScreen")
+                    if (screenBlock.visible) {
+                        const screenChoice = test.findItem(view, "settingsNaomiScreenChoice")
+                        const monitor = test.findItem(view, "settingsNaomiMonitor")
+                        screenChoice.activated("primary")
+                        const shownOnPrimary = monitor.visible
+                        screenChoice.activated("secondary")
+                        test.check(settings.companionScreen === "secondary" && !monitor.visible, "second monitor hides fullscreen transfer")
+                        screenChoice.activated("primary")
+                        test.check(settings.companionScreen === "primary" && monitor.visible === shownOnPrimary, "primary monitor restores fullscreen transfer")
+                    }
+                    openKey("naomi")
                     const sayButton = test.findItem(view, "settingsNaomiSayButton")
                     const preview = test.findItem(view, "naomiPreview")
                     test.check(sayButton !== null && preview !== null, "Naomi preview and speech button exist")
@@ -302,6 +331,10 @@ ShellRoot {
                 onCompanionReactToPointerChangedRequested: enabled => settings.update({companionReactToPointer: enabled})
                 companionSystemLines: settings.companionSystemLines
                 onCompanionSystemLinesChangedRequested: enabled => settings.update({companionSystemLines: enabled})
+                companionScreen: settings.companionScreen
+                onCompanionScreenChangedRequested: screen => settings.update({companionScreen: screen})
+                companionSide: settings.companionSide
+                onCompanionSideChangedRequested: side => settings.update({companionSide: side})
                 startIconStyle: settings.startIconStyle
                 onStartIconStyleChangedRequested: style => { test.iconRequests++; settings.update({startIconStyle: style}); }
                 surfaceStyle: settings.surfaceStyle
@@ -378,8 +411,15 @@ ShellRoot {
                     test.check(settings.companionStyle === "current", "existing Naomi remains the default");
                     settings.update({companionStyle: "pixel-art"});
                     test.check(settings.companionStyle === "pixel-art", "pixel-art style applies immediately");
+                    settings.update({companionStyle: "layered"});
+                    test.check(settings.companionStyle === "layered", "third layered style applies immediately");
                     settings.update({companionStyle: "unknown"});
                     test.check(settings.companionStyle === "current", "invalid style uses the existing artwork");
+                    test.check(settings.companionScreen === "primary" && settings.companionSide === "right", "Naomi stays on the primary monitor at the right");
+                    settings.update({companionScreen: "secondary", companionSide: "left"});
+                    test.check(settings.companionScreen === "secondary" && settings.companionSide === "left", "second monitor and left corner apply");
+                    settings.update({companionScreen: "middle", companionSide: "up"});
+                    test.check(settings.companionScreen === "primary" && settings.companionSide === "right", "invalid Naomi placement uses the defaults");
                     test.check(!settings.companionEnabled, "companion defaults off");
                     test.check(!settings.companionDesktopOnly, "desktop-only defaults off");
                     settings.update({companionDesktopOnly: "yes"});
@@ -443,6 +483,24 @@ ShellRoot {
                         test.check(settings.surfaceStyle === "solid", "invalid style defaults to solid");
                     }
                     test.check(settings.weatherRefreshMinutes === 15, "missing interval uses default");
+                    test.check(settings.fullscreenCompanionOutput === "", "fullscreen companion output defaults empty");
+                    settings.update({fullscreenCompanionOutput: "  DP-2  "});
+                    test.check(settings.fullscreenCompanionOutput === "DP-2", "fullscreen companion output trims");
+                    settings.update({fullscreenCompanionOutput: 12});
+                    test.check(settings.fullscreenCompanionOutput === "", "fullscreen companion output rejects non-strings");
+                    settings.update({fullscreenCompanionOutput: "   "});
+                    test.check(settings.fullscreenCompanionOutput === "", "blank fullscreen companion output clears");
+                    test.check(settings.fullscreenIslandOutput === "", "fullscreen island output defaults empty");
+                    settings.update({fullscreenIslandOutput: "  DP-2  "});
+                    test.check(settings.fullscreenIslandOutput === "DP-2", "fullscreen island output trims");
+                    settings.update({fullscreenIslandOutput: 12});
+                    test.check(settings.fullscreenIslandOutput === "", "fullscreen island output rejects non-strings");
+                    settings.update({fullscreenIslandOutput: "x".repeat(257)});
+                    test.check(settings.fullscreenIslandOutput === "", "fullscreen island output rejects a long name");
+                    settings.update({fullscreenIslandOutput: "HDMI-A-1"});
+                    test.check(settings.fullscreenIslandOutput === "HDMI-A-1", "fullscreen island output keeps a name");
+                    settings.update({fullscreenIslandOutput: "   "});
+                    test.check(settings.fullscreenIslandOutput === "", "blank fullscreen island output clears");
                     test.check(settings.islandRotationEnabled === true && settings.islandRotationSeconds === 15, "rotation defaults");
                     test.check(settings.preferredTerminal === "kitty" && settings.preferredFileManager === "io.github.lgse.Strata", "app defaults");
                     test.check(settings.niriColorIntegration === true && settings.strataThemeIntegration === true, "integration defaults");
@@ -482,11 +540,12 @@ ShellRoot {
                     test.finish();
                 } else if (test.scenario === "restore") {
                     test.check(settings.weatherCity === "Москва" && settings.topReserved === 200 && !settings.animationsEnabled && settings.weatherRefreshMinutes === 30 && settings.surfaceStyle === "frosted" && settings.startIconStyle === "fox", "restored values");
-                    test.check(settings.companionStyle === "pixel-art", "selected artwork restored after restart");
+                    test.check(settings.companionStyle === "layered", "selected artwork restored after restart");
                     test.check(settings.companionEnabled, "companion restored after restart");
                     test.check(settings.companionDesktopOnly, "desktop-only restored after restart");
                     test.check(!settings.companionReactToPointer, "pointer reaction restored after restart");
                     test.check(!settings.companionSystemLines, "system lines restored after restart");
+                    test.check(settings.companionScreen === "secondary" && settings.companionSide === "left", "Naomi placement restored after restart");
                     test.check(!settings.dirty && test.changes === 1, "no write loop on load");
                     test.finish();
                 } else if (test.scenario === "revert") {
@@ -600,10 +659,12 @@ ShellRoot {
                         "surfaceStyle": "frosted",
                         "startIconStyle": "fox",
                         "companionEnabled": true,
-                        "companionStyle": "pixel-art",
+                        "companionStyle": "layered",
                         "companionDesktopOnly": true,
                         "companionReactToPointer": false,
                         "companionSystemLines": false,
+                        "companionScreen": "secondary",
+                        "companionSide": "left",
                         "topReserved": 999,
                         "animationsEnabled": false,
                         "autoHideTop": true

@@ -26,8 +26,6 @@ QtObject {
         if (!_toolsReady || _probeFailed && !_loginctlFound && !_systemctlFound && !_niriFound)
             return _toolsReady ? "Не удалось проверить команды сеанса. Повторите действие" : ""
         const parts = []
-        if (!_loginctlFound)
-            parts.push("loginctl не найден, блокировка недоступна")
         if (!_systemctlFound)
             parts.push("systemctl не найден, выключение и перезагрузка недоступны")
         if (!niriReady() && sessionId() === "")
@@ -45,9 +43,7 @@ QtObject {
     }
 
     function lock(): bool {
-        if (!_loginctlFound)
-            return reject("lock", "Команда loginctl не найдена. Блокировка сеанса недоступна")
-        return begin("lock", ["loginctl", "lock-session"])
+        return begin("lock", ["qs", "ipc", "-p", Quickshell.shellDir, "call", "lock", "lock"])
     }
 
     function logout(): bool {

@@ -15,6 +15,9 @@ import "services/island"
 import "surfaces/canvas"
 import "surfaces/companion"
 import "services/clipboard"
+import "services/lock"
+import "surfaces/lock"
+import "sddm/nayori/components"
 import "surfaces/clipboard"
 // qmllint enable unused-imports
 

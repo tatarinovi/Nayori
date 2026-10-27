@@ -16,6 +16,8 @@ FocusScope {
     property int bottomReserved: 0
     property bool hideSecondaryIsland: false
     signal hideSecondaryIslandChangedRequested(bool hidden)
+    property string fullscreenIslandOutput: ""
+    signal fullscreenIslandOutputChangedRequested(string output)
     property bool autoHideTop: false
     property bool autoHideApps: false
     property bool autoHideWorkspaces: false
@@ -36,7 +38,7 @@ FocusScope {
         if (!item) return null
         const category = categories.find(category => category.name === item.group)
         const specific = ["sound", "network", "power", "wallpapers", "panels", "island"]
-        return {key: item.key, title: item.title, glyph: specific.indexOf(item.key) >= 0 ? item.key : category ? category.glyph : "apps"}
+        return {key: item.key, title: item.title, glyph: item.glyph || (specific.indexOf(item.key) >= 0 ? item.key : category ? category.glyph : "apps")}
     }).filter(item => item !== null).slice(0, 4)
     property string weatherCity: ""
     property int weatherRefreshMinutes: 15
@@ -67,6 +69,12 @@ FocusScope {
     signal companionReactToPointerChangedRequested(bool enabled)
     property bool companionSystemLines: true
     signal companionSystemLinesChangedRequested(bool enabled)
+    property string fullscreenCompanionOutput: ""
+    signal fullscreenCompanionOutputChangedRequested(string output)
+    property string companionScreen: "primary"
+    signal companionScreenChangedRequested(string screen)
+    property string companionSide: "right"
+    signal companionSideChangedRequested(string side)
     property bool animationsEnabled: true
     signal animationsChangedRequested(bool enabled)
     property bool niriColorIntegration: true
@@ -86,6 +94,36 @@ FocusScope {
     signal retryRequested()
     component Label: SettingsLabel { tokens: root.tokens }
     component Action: SettingsAction { tokens: root.tokens }
+    component NaomiSection: SettingsScroll {
+        id: naomiSection
+        property string section: "overview"
+        property int activePage: 25
+        NaomiPage {
+            section: naomiSection.section
+            width: parent.width
+            tokens: root.tokens
+            companionTokens: root.companionTokens
+            companionStyle: root.companionStyle
+            onCompanionStyleChangedRequested: style => root.companionStyleChangedRequested(style)
+            companionEnabled: root.companionEnabled
+            animationsEnabled: root.animationsEnabled
+            previewActive: root.currentPage === naomiSection.activePage && root.visible
+            onCompanionChangedRequested: enabled => root.companionChangedRequested(enabled)
+            companionDesktopOnly: root.companionDesktopOnly
+            onCompanionDesktopOnlyChangedRequested: enabled => root.companionDesktopOnlyChangedRequested(enabled)
+            companionReactToPointer: root.companionReactToPointer
+            onCompanionReactToPointerChangedRequested: enabled => root.companionReactToPointerChangedRequested(enabled)
+            companionSystemLines: root.companionSystemLines
+            onCompanionSystemLinesChangedRequested: enabled => root.companionSystemLinesChangedRequested(enabled)
+            fullscreenCompanionOutput: root.fullscreenCompanionOutput
+            onFullscreenCompanionOutputChangedRequested: output => root.fullscreenCompanionOutputChangedRequested(output)
+            companionScreen: root.companionScreen
+            onCompanionScreenChangedRequested: screen => root.companionScreenChangedRequested(screen)
+            companionSide: root.companionSide
+            onCompanionSideChangedRequested: side => root.companionSideChangedRequested(side)
+            onRevealRequested: item => naomiSection.reveal(item)
+        }
+    }
     property int currentPage: 0
     signal reservationChanged(int top, int bottom)
     signal autoHideChangedRequested(bool top, bool apps, bool workspaces, bool status)
@@ -145,7 +183,9 @@ FocusScope {
         {key: "workspaces", page: 19, title: "Рабочие столы", group: "Окна и столы", description: "Столы, которые сейчас сообщает niri"},
         {key: "defaults", page: 20, title: "По умолчанию", group: "Приложения", description: "Приложения по умолчанию через xdg-mime"},
         {key: "autostart", page: 21, title: "Автозапуск", group: "Приложения", description: "Записи автозапуска пользователя и системы"},
-        {key: "naomi", page: 25, title: "Naomi", group: "Приложения", description: "Спутница на рабочем столе и её анимация"},
+        {key: "naomi", page: 25, title: "Обзор", group: "Naomi", description: "Включение Naomi и предпросмотр"},
+        {key: "naomi-look", page: 26, title: "Внешний вид", group: "Naomi", description: "Рисунок и цвет с обоев"},
+        {key: "naomi-place", page: 27, title: "Отображение", group: "Naomi", description: "Монитор, угол и слой"},
         {key: "integrations", page: 24, title: "Интеграции", group: "Приложения", description: "Цвета Nayori в\u00A0niri и тема Strata"},
         {key: "updates", page: 22, title: "Обновления", group: "NayoriOS", description: "Обновление пакетов в терминале, только по кнопке"},
         {key: "about", page: 23, title: "О системе", group: "NayoriOS", description: "Версии Nayori, niri, Quickshell и системы"}
@@ -154,13 +194,14 @@ FocusScope {
     readonly property var section: sections.find(item => item.page === currentPage) || sections[0]
     readonly property bool persistsSettings: {
         const key = section.key
-        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key === "naomi"
+        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key.indexOf("naomi") === 0
     }
     readonly property var categories: [
         {name: "Обзор", caption: "Обзор", glyph: "home"},
         {name: "Система", caption: "Система", glyph: "system"},
         {name: "Устройства", caption: "Устройства", glyph: "devices"},
         {name: "Персонализация", caption: "Облик", glyph: "appearance"},
+        {name: "Naomi", caption: "Naomi", glyph: "naomi"},
         {name: "Окна и столы", caption: "Окна", glyph: "windows"},
         {name: "Приложения", caption: "Приложения", glyph: "apps"},
         {name: "NayoriOS", caption: "NayoriOS", glyph: "about"}
@@ -577,6 +618,7 @@ FocusScope {
                 topReserved: root.topReserved
                 bottomReserved: root.bottomReserved
                 hideSecondaryIsland: root.hideSecondaryIsland
+                fullscreenIslandOutput: root.fullscreenIslandOutput
                 autoHideTop: root.autoHideTop
                 autoHideApps: root.autoHideApps
                 autoHideWorkspaces: root.autoHideWorkspaces
@@ -584,6 +626,7 @@ FocusScope {
                 onReservationChanged: (top, bottom) => root.reservationChanged(top, bottom)
                 onAutoHideChangedRequested: (top, apps, workspaces, status) => root.autoHideChangedRequested(top, apps, workspaces, status)
                 onHideSecondaryIslandChangedRequested: hidden => root.hideSecondaryIslandChangedRequested(hidden)
+                onFullscreenIslandOutputChangedRequested: output => root.fullscreenIslandOutputChangedRequested(output)
             }
             ScrollView {
                 id: appearanceScroll
@@ -715,27 +758,9 @@ FocusScope {
                     onStrataThemeIntegrationChangedRequested: enabled => root.strataThemeIntegrationChangedRequested(enabled)
                 }
             }
-            SettingsScroll {
-                id: naomiScroll
-                NaomiPage {
-                    companionTokens: root.companionTokens
-                    width: parent.width
-                    tokens: root.tokens
-                    companionStyle: root.companionStyle
-                    onCompanionStyleChangedRequested: style => root.companionStyleChangedRequested(style)
-                    companionEnabled: root.companionEnabled
-                    animationsEnabled: root.animationsEnabled
-                    previewActive: root.currentPage === 25 && root.visible
-                    onCompanionChangedRequested: enabled => root.companionChangedRequested(enabled)
-                    companionDesktopOnly: root.companionDesktopOnly
-                    onCompanionDesktopOnlyChangedRequested: enabled => root.companionDesktopOnlyChangedRequested(enabled)
-                    companionReactToPointer: root.companionReactToPointer
-                    onCompanionReactToPointerChangedRequested: enabled => root.companionReactToPointerChangedRequested(enabled)
-                    companionSystemLines: root.companionSystemLines
-                    onCompanionSystemLinesChangedRequested: enabled => root.companionSystemLinesChangedRequested(enabled)
-                    onRevealRequested: item => naomiScroll.reveal(item)
-                }
-            }
+            NaomiSection { section: "overview"; activePage: 25 }
+            NaomiSection { section: "look"; activePage: 26 }
+            NaomiSection { section: "place"; activePage: 27 }
         }
         Rectangle {
             id: footer

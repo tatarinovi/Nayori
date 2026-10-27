@@ -14,6 +14,7 @@ Rectangle {
     // true: segments share the width equally; false: each takes its label width.
     property bool equalWidth: false
     signal activated(string key)
+    signal focusReceived()
 
     implicitHeight: 32
     implicitWidth: row.implicitWidth + 4
@@ -43,6 +44,7 @@ Rectangle {
                 Accessible.name: text
                 Accessible.checked: selected
                 onClicked: root.activated(modelData.key)
+                onActiveFocusChanged: if (activeFocus) root.focusReceived()
                 background: Rectangle {
                     radius: root.radius - 2
                     color: segment.selected ? root.tokens.color.accent

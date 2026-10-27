@@ -16,6 +16,7 @@ QtObject {
     readonly property bool autoHideWorkspaces: values.autoHideWorkspaces
     readonly property bool autoHideStatus: values.autoHideStatus
     readonly property bool hideSecondaryIsland: values.hideSecondaryIsland
+    readonly property string fullscreenIslandOutput: values.fullscreenIslandOutput
     readonly property int topReserved: values.topReserved
     readonly property int bottomReserved: values.bottomReserved
     readonly property string surfaceStyle: values.surfaceStyle
@@ -26,6 +27,9 @@ QtObject {
     readonly property bool companionDesktopOnly: values.companionDesktopOnly
     readonly property bool companionReactToPointer: values.companionReactToPointer
     readonly property bool companionSystemLines: values.companionSystemLines
+    readonly property string fullscreenCompanionOutput: values.fullscreenCompanionOutput
+    readonly property string companionScreen: values.companionScreen
+    readonly property string companionSide: values.companionSide
     readonly property bool animationsEnabled: values.animationsEnabled
     readonly property string weatherCity: values.weatherCity
     readonly property int weatherRefreshMinutes: values.weatherRefreshMinutes
@@ -138,6 +142,7 @@ QtObject {
             "autoHideWorkspaces": false,
             "autoHideStatus": false,
             "hideSecondaryIsland": false,
+            "fullscreenIslandOutput": "",
             "topReserved": 0,
             "bottomReserved": 0,
             "animationsEnabled": true,
@@ -146,6 +151,9 @@ QtObject {
             "companionDesktopOnly": false,
             "companionReactToPointer": true,
             "companionSystemLines": true,
+            "fullscreenCompanionOutput": "",
+            "companionScreen": "primary",
+            "companionSide": "right",
             "surfaceStyle": "solid",
             "accentMode": "default",
             "manualAccent": "#C0AFD1",
@@ -179,7 +187,13 @@ QtObject {
             return value === "current" || value === "fox" ? value : fallback;
 
         if (key === "companionStyle")
-            return value === "current" || value === "pixel-art" ? value : fallback;
+            return value === "current" || value === "pixel-art" || value === "layered" ? value : fallback;
+
+        if (key === "companionScreen")
+            return value === "primary" || value === "secondary" ? value : fallback;
+
+        if (key === "companionSide")
+            return value === "left" || value === "right" ? value : fallback;
 
         if (key === "surfaceStyle")
             return value === "solid" || value === "frosted" ? value : fallback;
@@ -192,6 +206,13 @@ QtObject {
                 return fallback;
             const trimmed = value.trim();
             return trimmed.length > 0 ? trimmed : fallback;
+        }
+
+        if (key === "fullscreenIslandOutput" || key === "fullscreenCompanionOutput") {
+            if (typeof value !== "string")
+                return fallback;
+            const trimmed = value.trim();
+            return trimmed.length > 256 ? fallback : trimmed;
         }
 
         if (key === "accentMode")

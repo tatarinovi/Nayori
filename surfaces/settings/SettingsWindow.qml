@@ -15,6 +15,8 @@ FloatingWindow {
     property int bottomReserved: 0
     property bool hideSecondaryIsland: false
     signal hideSecondaryIslandChangedRequested(bool hidden)
+    property string fullscreenIslandOutput: ""
+    signal fullscreenIslandOutputChangedRequested(string output)
     property bool autoHideTop: false
     property bool autoHideApps: false
     property bool autoHideWorkspaces: false
@@ -54,6 +56,12 @@ FloatingWindow {
     signal companionReactToPointerChangedRequested(bool enabled)
     property bool companionSystemLines: true
     signal companionSystemLinesChangedRequested(bool enabled)
+    property string fullscreenCompanionOutput: ""
+    signal fullscreenCompanionOutputChangedRequested(string output)
+    property string companionScreen: "primary"
+    signal companionScreenChangedRequested(string screen)
+    property string companionSide: "right"
+    signal companionSideChangedRequested(string side)
     property bool animationsEnabled: true
     signal animationsChangedRequested(bool enabled)
     signal islandRotationEnabledChangedRequested(bool enabled)
@@ -108,6 +116,8 @@ FloatingWindow {
         bottomReserved: root.bottomReserved
         hideSecondaryIsland: root.hideSecondaryIsland
         onHideSecondaryIslandChangedRequested: function(hidden) { root.hideSecondaryIslandChangedRequested(hidden) }
+        fullscreenIslandOutput: root.fullscreenIslandOutput
+        onFullscreenIslandOutputChangedRequested: function(output) { root.fullscreenIslandOutputChangedRequested(output) }
         autoHideTop: root.autoHideTop
         autoHideApps: root.autoHideApps
         autoHideWorkspaces: root.autoHideWorkspaces
@@ -147,6 +157,12 @@ FloatingWindow {
         onCompanionReactToPointerChangedRequested: enabled => root.companionReactToPointerChangedRequested(enabled)
         companionSystemLines: root.companionSystemLines
         onCompanionSystemLinesChangedRequested: enabled => root.companionSystemLinesChangedRequested(enabled)
+        fullscreenCompanionOutput: root.fullscreenCompanionOutput
+        onFullscreenCompanionOutputChangedRequested: output => root.fullscreenCompanionOutputChangedRequested(output)
+        companionScreen: root.companionScreen
+        onCompanionScreenChangedRequested: screen => root.companionScreenChangedRequested(screen)
+        companionSide: root.companionSide
+        onCompanionSideChangedRequested: side => root.companionSideChangedRequested(side)
         animationsEnabled: root.animationsEnabled
         onAnimationsChangedRequested: enabled => root.animationsChangedRequested(enabled)
         onIslandRotationEnabledChangedRequested: enabled => root.islandRotationEnabledChangedRequested(enabled)

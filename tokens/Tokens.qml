@@ -112,5 +112,6 @@ QtObject {
         property bool off: !root.animationsEnabled
         readonly property int fast: 140
         readonly property int base: 220
+        readonly property var easeOut: [0.23, 1, 0.32, 1, 1, 1]
     }
 }

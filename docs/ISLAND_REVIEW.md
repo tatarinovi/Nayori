@@ -1,53 +1,59 @@
-# Dynamic island interface review
+# Обзор интерфейса Dynamic Island
 
-## Scope and coverage
+Статусы сверены с кодом 27 октября 2026. Новый визуальный обзор не проводился. Контраст, снимки и результаты команд ниже оставлены из исходного обзора и в этот день не повторялись.
 
-The compact header, expanded Home page, context menu, and morphing wrapper were reviewed as one desktop surface. Implementation is Qt Quick/QML with Quickshell, native MPRIS, Inter/Literata, and the existing graphite/lavender/cream/rose tokens. Project references: `docs/PANEL.md`, `docs/ARCHITECTURE.md`, and `tokens/Tokens.qml`. This is a screen/style review and implementation, not a review of the repository's uncommitted diff.
+## Охват
 
-Supported geometry inspected: 352 × 48 compact, 680 × 490 expanded wrapper, 680 × 450 dashboard. A 320 px mobile viewport and browser zoom are outside this desktop layer surface's current layout contract. No responsive/mobile coverage is claimed.
+Свёрнутая шапка, раскрытая «Главная», меню источника музыки и морфинг смотрелись как одна поверхность рабочего стола. Реализация — Qt Quick/QML и Quickshell, штатный MPRIS, Inter и Literata, существующие токены. Ориентиры проекта: `docs/PANEL.md`, `docs/ARCHITECTURE.md`, `tokens/Tokens.qml`. Это обзор экрана и стиля, не обзор незакоммиченного diff.
 
-| Domain | Evidence inspected | Result |
+Геометрия исходного осмотра: покой 352×48, обёртка раскрытия 680×490, дашборд 680×450. Эти три размера в коде остались. Свёрнутая ширина больше не фиксирована: с названием трека центр 400–448 px, с уведомлением 240–520 px, весь основной остров не шире 640 px. Окно острова закладывает не меньше 712×522. Мобильная ширина 320 px и зум браузера в контракт этой поверхности не входят.
+
+| Область | Что смотрели | Статус на 27 октября 2026 |
 | --- | --- | --- |
-| Accessibility | Dashboard actions, accessible names, focus borders, calendar selected day, source of compact/context interactions | Fixed focus treatment and selected-day redundancy; native keyboard/screen-reader walk not verified |
-| Layout | Expanded offscreen image and layout source; header dimensions/morph smoke | Fixed calendar footer overflow, section alignment and hierarchy |
-| Writing | All dashboard empty, fetching, error, weather settings and navigation strings | Short neutral actions and recoverable weather errors retained; no invented data |
-| Typography | Inter/Literata tokens, rendered Home/music/calendar headings, caption and numeric sizes | Fixed serif/sans hierarchy; 12–13 px captions except secondary provider attribution at 11 px |
-| Colors | Existing tokens and calculated rendered pairs, image-overlay worst case | Required dashboard text pairs pass 4.5:1 |
-| UI | Music/weather/calendar surfaces, outlined controls, hover/focus/disabled source, morph smoke | Consistent restrained editorial composition; existing header motion contract retained |
+| Доступность | Действия дашборда, доступные имена, рамка фокуса, выбранный день, источник свёрнутых действий | День по-прежнему выделен жирным и подчёркиванием. Рамка фокуса неоднородна: см. таблицу ниже. Клавиатура и чтение с экрана в живой сессии не проверялись |
+| Раскладка | Раскрытый кадр и исходник, размеры шапки, смоук морфинга | Колонки и подвал календаря в коде на месте. Снимок переполнения не повторялся |
+| Текст | Пустые состояния, загрузка, ошибка погоды, навигация | Короткие действия и восстанавливаемые ошибки погоды на месте. «Выбрать город» на месте |
+| Типографика | Токены Inter/Literata, заголовки «Главной», музыки и календаря | Literata по-прежнему у заголовков, названия трека и месяца. Подписей 11 px больше, чем в исходной формулировке |
+| Цвет | Токены и пары исходного расчёта, худший случай поверх иллюстрации | Затемнение иллюстрации по-прежнему 72% `tokens.color.background`. Сами отношения контраста не пересчитывались |
+| Интерфейс | Музыка, погода, календарь, обводка, hover/focus/disabled, смоук морфинга | Колонки и контролы на месте. Контракт шапки изменился: см. «Что осталось» |
 
-## Findings addressed
+## Что разобрали
 
-| Severity | Domain | Location | Before | After | Why |
-| --- | --- | --- | --- | --- | --- |
-| MEDIUM | Layout | `surfaces/island/IslandDashboard.qml:122` | Three similar rounded utility cards with competing labels | Music and illustrated weather form one column; calendar sits on an open editorial column | Clear grouping and deliberate hierarchy support quick scanning |
-| MEDIUM | Typography | `surfaces/island/IslandDashboard.qml:87` | Serif used primarily on Home; calendar and track metadata had nearly equal weight | Literata identifies Home, track title and month; Inter carries controls and metadata | One consistent display/body relationship preserves Nayori's literary character |
-| MEDIUM | Accessibility | `surfaces/island/IslandDashboard.qml:93` | A 1 px keyboard focus border | A 2 px accent perimeter on native abstract buttons | Visible keyboard focus is distinct from ordinary outlined controls |
-| MEDIUM | Accessibility | `surfaces/island/IslandDashboard.qml:266` | Today indicated by lavender fill alone | Today also has bold underlined date text | Current-day status survives color differences |
-| MEDIUM | Layout | `surfaces/island/IslandDashboard.qml:248` | Calendar footer overflowed at the fixed dashboard height during the first revised render | 26 px day rows with 3 px gaps; complete footer is visible | Today action remains reachable at the supported expanded geometry |
-| LOW | Writing | `surfaces/island/IslandDashboard.qml:218` | Empty weather button named its settings area | “Выбрать город” names the next user action | Empty state gives a clear path forward |
+| Было | Где сейчас | Статус | Зачем оставили |
+| --- | --- | --- | --- |
+| Три похожие карточки с равными подписями | Музыка и погода в одной колонке, календарь в открытой колонке справа, `surfaces/island/IslandDashboard.qml` | В коде | Группировка и иерархия для быстрого взгляда |
+| Антиква почти только на «Главной» | Literata у заголовков разделов, названия трека и месяца. Inter у кнопок и метаданных | В коде | Один показ и одно чтение |
+| Рамка фокуса 1 px у абстрактных кнопок | `IslandAction` и кнопка воспроизведения — 2 px акцента. Вкладки разделов в дашборде — 1 px. Кнопки свёрнутого плеера — 1 px | Частично | Исходная правка обещала 2 px у нативных абстрактных кнопок. Вкладки разделов к этому не пришли |
+| Сегодня только заливкой | Заливка акцентом, жирная подчёркнутая цифра, `font.underline` и `Font.Bold` | В коде | День читается и без различия цвета |
+| Подвал календаря не влезал в фиксированную высоту | Ряды дней 26 px, промежуток строк 3 px, промежуток колонок 2 px, внизу кнопка «Сегодня» | Значения в коде. Кадр не повторяли | Действие «Сегодня» остаётся в разметке раскрытого дашборда |
+| Пустая погода называла область настроек | Кнопка «Выбрать город» | В коде | У пустого состояния есть следующий шаг |
 
-## Verification
+Старые номера строк из исходной таблицы больше не указывают на эти места.
 
-Passed:
+## Проверка
 
-- Six local weather illustrations integrated and visually inspected in the card: clear, cloudy, rain, snow, storm and fog. `tests/smoke/WeatherSmoke.qml` reports `WEATHER_ARTWORK_PASS`, verifies all six images load, and verifies empty/error conditions clear the source. Rounded corners also render in the software backend.
-- Running Nayori reloaded the updated configuration successfully.
+В коде по-прежнему есть шесть сцен погоды: clear, cloudy, rain, snow, storm, fog. `tests/smoke/WeatherSmoke.qml` по-прежнему пишет `WEATHER_ARTWORK_PASS`. Прогон 27 октября 2026 не запускался.
 
-- `/usr/lib/qt6/bin/qmllint surfaces/island/IslandDashboard.qml` exits 0, without diagnostics.
-- `QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QPA_PLATFORMTHEME=basic XDG_RUNTIME_DIR=/tmp/nayori-dashboard-runtime timeout 2s quickshell -p ./tests/smoke/MorphSmoke.qml --no-color` reports `MORPH_ISLAND_PASS`. Timeout 124 is expected.
-- Expanded screenshot `/tmp/nayori-morph-expanded.png` visually inspected: complete calendar footer, no overlap between music/weather/calendar, consistent insets and heading hierarchy. Intermediate morph and reduced-motion geometry assertions pass.
-- Color calculation from sRGB tokens: cream text on music card 13.12:1; muted text 10.15:1. With a completely white weather-image pixel under the 72% graphite overlay, cream is at least 6.21:1 and muted text at least 4.80:1. Current-day dark text on lavender is 9.15:1.
+Из исходного обзора, без повторного прогона:
 
-Not verified:
+- Рабочий экземпляр Nayori тогда перечитал обновлённую конфигурацию.
+- `qmllint` для `surfaces/island/IslandDashboard.qml` тогда завершился с кодом 0.
+- Offscreen-запуск `tests/smoke/MorphSmoke.qml` тогда писал `MORPH_ISLAND_PASS`. Код выхода 124 от `timeout` ожидался.
+- Снимок `/tmp/nayori-morph-expanded.png` тогда показывал целый подвал календаря, без наложений музыки, погоды и календаря.
+- Расчёт контраста из sRGB-токенов тогда дал: кремовый текст на карточке музыки 13,12:1, приглушённый 10,15:1. Белый пиксель иллюстрации под 72% графитового затемнения: кремовый не ниже 6,21:1, приглушённый не ниже 4,80:1. Тёмный текст текущего дня на лавандовом — 9,15:1.
 
-- Native Wayland hover/grab/keyboard focus and screen-reader announcement. Offscreen backend cannot represent the session's pointer behavior.
-- Live MPRIS action dispatch and network weather fetching. The isolated runtime cannot connect to the session’s D-Bus/PipeWire; weather tests inject conditions without making network requests.
-- Long real-world media titles and arbitrary-width desktop layouts beyond the fixed surface contract.
+Не проверено ни тогда, ни 27 октября 2026:
 
-## Remaining observations
+- Наведение, захват, фокус клавиатуры и объявление скринридера в живом Wayland. Offscreen этого не показывает.
+- Живой вызов действий MPRIS и сетевой запрос погоды. Изолированный прогон не подключается к D-Bus и PipeWire сессии. Тест погоды подставляет условия сам.
+- Длинные реальные названия и ширина стола вне разобранных размеров. Свёрнутый остров теперь сам меняет ширину в пределах 640 px.
 
-The context and wrapper preserve the existing equal header gaps, central fox, edge-following clock/date, right-click menu, hover expansion, and no close button. Changes to that interaction contract were excluded from this dashboard polish. Full native interaction acceptance should be completed in the running shell. No unverified behavior is marked as passing.
+## Что осталось
 
-## Verdict
+Лиса по центру, часы и дата по краям спокойной шапки и раскрытие по наведению сохранены. Наведение открывает дашборд через 400 мс и закрывает через 600 мс (`surfaces/panel/ScreenPanels.qml`). Кнопки закрытия нет. Escape вызывает `closeRequested`. Правого меню у острова в коде нет: средняя кнопка переключает беззвучный режим, колесо меняет громкость. Меню в карточке музыки выбирает MPRIS-плеер, это не контекстное меню шапки.
 
-Approve the dashboard's inspected desktop style/layout scope. Native input and assistive-technology coverage remain explicitly unverified.
+Полную приёмку нативного ввода по-прежнему нужно делать в рабочей оболочке. Непроверенное поведение здесь не отмечено как пройденное.
+
+## Итог
+
+Разобранный стиль и раскладка дашборда в коде на месте, с двумя поправками: рамка фокуса вкладок осталась 1 px, а правого меню у острова нет. Нативный ввод и вспомогательные технологии по-прежнему не проверены.

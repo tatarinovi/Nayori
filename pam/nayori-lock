@@ -1,0 +1,2 @@
+# Local password verification, as in Angel OS; no session is created here.
+auth required pam_unix.so
