@@ -56,7 +56,7 @@ with tempfile.TemporaryDirectory(prefix="nwin-") as temporary:
                 and w.get("title") == "Nayori Settings"]
     if not args.wayland:
         output = run("qs", "-p", str(root / "tests/smoke/SettingsWindowSmoke.qml"), "--no-color")
-        print("PASS controller native-close/recreate/PID isolation")
+        print("PASS controller close-request/recreate/PID isolation")
     env["NAYORI_WINDOW_WAYLAND"] = "1"  # Persistent IPC harness, also used on offscreen.
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
@@ -116,6 +116,7 @@ with tempfile.TemporaryDirectory(prefix="nwin-") as temporary:
         ipc("close")
         history = folder / "state/nayori/settings-usage.json"
         until(lambda: history.exists(), "visit history was not persisted")
+        until(lambda: snapshot()["usageReady"] and not snapshot()["usageDirty"], "visit history did not finish saving")
         visits_before = json.loads(history.read_text())["counts"]
         assert visits_before.get("weather", 0) >= 1 and "home" not in visits_before
         ipc("quit")

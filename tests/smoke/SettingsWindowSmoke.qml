@@ -40,7 +40,9 @@ ShellRoot {
         function snapshot(): string {
             return JSON.stringify({opened: controller.opened, id: controller.windowId,
                 pid: Quickshell.processId, page: controller.window ? controller.window.selectedPage : -1,
-                city: service.weatherCity, dirty: service.dirty})
+                city: service.weatherCity, dirty: service.dirty,
+                usageReady: controller.usage.ready,
+                usageDirty: controller.usage.dirty || controller.usage.saving})
         }
         function quit(): void { Qt.quit() }
     }
@@ -61,9 +63,10 @@ ShellRoot {
                 fakeNiri.windows = fakeNiri.windows.concat([{id: 12, pid: Quickshell.processId, appId: Quickshell.appId, title: "Nayori Settings"}])
                 test.check(controller.windowId === 12 && fakeNiri.lastFocused === 12, "register exact identity")
             } else if (test.step === 1) {
-                // Native close, after the surface has been connected to a window.
-                controller.window.contentItem.Window.window.close()
-                test.check(!controller.opened && controller.windowId === -1, "native close clears identity")
+                // Offscreen Qt does not guarantee a native QQuickWindow.
+                // The --wayland Python test checks compositor-driven native close.
+                controller.window.closeRequested()
+                test.check(!controller.opened && controller.windowId === -1, "close request clears identity")
                 service.update({weatherCity: "Closed window"})
             } else if (test.step === 2) {
                 const old = controller.window
