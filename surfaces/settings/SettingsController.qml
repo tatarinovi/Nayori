@@ -1,4 +1,5 @@
 pragma ComponentBehavior: Bound
+import "../../services/ui/PanelModes.js" as PanelModes
 import QtQuick
 import Quickshell
 import "../../services/settings"
@@ -136,6 +137,8 @@ QtObject {
             bottomReserved: root.settingsService.bottomReserved
             hideSecondaryIsland: root.settingsService.hideSecondaryIsland
             fullscreenIslandOutput: root.settingsService.fullscreenIslandOutput
+            panelReservations: root.settingsService.panelReservations
+            panelModes: root.settingsService.panelModes
             autoHideTop: root.settingsService.autoHideTop
             autoHideApps: root.settingsService.autoHideApps
             autoHideWorkspaces: root.settingsService.autoHideWorkspaces
@@ -149,6 +152,8 @@ QtObject {
             preferredTerminal: root.settingsService.preferredTerminal
             preferredFileManager: root.settingsService.preferredFileManager
             niri: root.niri
+            colorScheme: root.settingsService.colorScheme
+            onColorSchemeChangedRequested: scheme => root.settingsService.update({colorScheme: scheme})
             surfaceStyle: root.settingsService.surfaceStyle
             accentMode: root.settingsService.accentMode
             manualAccent: root.settingsService.manualAccent
@@ -177,6 +182,10 @@ QtObject {
             canRecover: root.settingsService.canRecover
             canRetry: root.settingsService.canRetry
             onReservationChanged: (top, bottom) => root.settingsService.update({topReserved: top, bottomReserved: bottom})
+            onPanelReservationChangedRequested: (output, top, bottom) => root.settingsService.update({
+                panelReservations: PanelModes.updatedReservation(root.settingsService.panelReservations, output, top, bottom)})
+            onPanelModeChangedRequested: (output, part, mode) => root.settingsService.update({
+                panelModes: PanelModes.updated(root.settingsService.panelModes, output, part, mode)})
             onAutoHideChangedRequested: (top, apps, workspaces, status) => root.settingsService.update({
                 autoHideTop: top, autoHideApps: apps, autoHideWorkspaces: workspaces, autoHideStatus: status})
             onHideSecondaryIslandChangedRequested: hidden => root.settingsService.update({hideSecondaryIsland: hidden})

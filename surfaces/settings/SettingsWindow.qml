@@ -21,6 +21,8 @@ FloatingWindow {
     signal hideSecondaryIslandChangedRequested(bool hidden)
     property string fullscreenIslandOutput: ""
     signal fullscreenIslandOutputChangedRequested(string output)
+    property var panelReservations: ({})
+    property var panelModes: ({})
     property bool autoHideTop: false
     property bool autoHideApps: false
     property bool autoHideWorkspaces: false
@@ -40,6 +42,8 @@ FloatingWindow {
     property string preferredFileManager: "org.gnome.Nautilus"
     property var niri: null
     property bool settingsReady: true
+    property string colorScheme: "dark"
+    signal colorSchemeChangedRequested(string scheme)
     property string surfaceStyle: "solid"
     signal surfaceStyleChangedRequested(string style)
     property string accentMode: "default"
@@ -88,6 +92,8 @@ FloatingWindow {
     signal weatherCityChangedRequested(string city)
     signal weatherRefreshMinutesChangedRequested(int minutes)
     signal reservationChanged(int top, int bottom)
+    signal panelReservationChangedRequested(string output, int top, int bottom)
+    signal panelModeChangedRequested(string output, string part, string mode)
     signal autoHideChangedRequested(bool top, bool apps, bool workspaces, bool status)
     signal closeRequested()
 
@@ -127,6 +133,8 @@ FloatingWindow {
         onHideSecondaryIslandChangedRequested: function(hidden) { root.hideSecondaryIslandChangedRequested(hidden) }
         fullscreenIslandOutput: root.fullscreenIslandOutput
         onFullscreenIslandOutputChangedRequested: function(output) { root.fullscreenIslandOutputChangedRequested(output) }
+        panelReservations: root.panelReservations
+        panelModes: root.panelModes
         autoHideTop: root.autoHideTop
         autoHideApps: root.autoHideApps
         autoHideWorkspaces: root.autoHideWorkspaces
@@ -146,6 +154,8 @@ FloatingWindow {
         preferredFileManager: root.preferredFileManager
         niri: root.niri
         currentPage: root.initialPage
+        colorScheme: root.colorScheme
+        onColorSchemeChangedRequested: scheme => root.colorSchemeChangedRequested(scheme)
         surfaceStyle: root.surfaceStyle
         onSurfaceStyleChangedRequested: style => root.surfaceStyleChangedRequested(style)
         accentMode: root.accentMode
@@ -193,6 +203,8 @@ FloatingWindow {
         anchors.fill: parent
         onCloseRequested: root.closeRequested()
         onReservationChanged: function(top, bottom) { root.reservationChanged(top, bottom) }
+        onPanelReservationChangedRequested: (output, top, bottom) => root.panelReservationChangedRequested(output, top, bottom)
+        onPanelModeChangedRequested: (output, part, mode) => root.panelModeChangedRequested(output, part, mode)
         onAutoHideChangedRequested: function(top, apps, workspaces, status) { root.autoHideChangedRequested(top, apps, workspaces, status) }
         onWeatherCityChangedRequested: function(city) { root.weatherCityChangedRequested(city) }
         onWeatherRefreshMinutesChangedRequested: minutes => root.weatherRefreshMinutesChangedRequested(minutes)

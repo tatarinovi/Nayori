@@ -15,6 +15,7 @@ import "../../services/niri"
 import "../../services/ui"
 import "../../services/ui/IslandRouting.js" as IslandRouting
 import "../../services/ui/Overlap.js" as Overlap
+import "../../services/ui/PanelModes.js" as PanelModes
 
 Scope {
     id: root
@@ -36,11 +37,19 @@ Scope {
         Qt.callLater(function() { arrivalReady = true })
     }
     onFullscreenRevealChanged: if (panelsReady && fullscreen && fullscreenReveal === 0) expandedOpened = false
-    readonly property bool topEnabled: panelScreen !== null && IslandRouting.topEnabled(screenName, shellState.outputNames,
-        shellState.hideSecondaryIsland, shellState.primaryFullscreen, shellState.fullscreenIslandOutput)
+    readonly property int topReserved: PanelModes.reservation(shellState.panelReservations, screenName, "top", shellState.topReserved)
+    readonly property int bottomReserved: PanelModes.reservation(shellState.panelReservations, screenName, "bottom", shellState.bottomReserved)
+    readonly property string topMode: PanelModes.mode(shellState.panelModes, screenName, "top", shellState.autoHideTop, false)
+    readonly property string appsMode: PanelModes.mode(shellState.panelModes, screenName, "apps", shellState.autoHideApps, false)
+    readonly property string workspacesMode: PanelModes.mode(shellState.panelModes, screenName, "workspaces", shellState.autoHideWorkspaces, false)
+    readonly property string statusMode: PanelModes.mode(shellState.panelModes, screenName, "status", shellState.autoHideStatus, false)
+    readonly property bool explicitTop: PanelModes.explicitMode(shellState.panelModes, screenName, "top") !== ""
+    readonly property bool topEnabled: panelScreen !== null && (explicitTop ? topMode !== "hidden"
+        : IslandRouting.topEnabled(screenName, shellState.outputNames,
+            shellState.hideSecondaryIsland, shellState.primaryFullscreen, shellState.fullscreenIslandOutput))
     readonly property string screenName: panelScreen ? panelScreen.name : ""
     // Монитор, на котором острова нет, пока полный экран на первом не перенесёт его сюда.
-    readonly property bool relocationHost: shellState.hideSecondaryIsland
+    readonly property bool relocationHost: !explicitTop && shellState.hideSecondaryIsland
         && shellState.fullscreenIslandOutput !== ""
         && panelScreen !== null
         && panelScreen !== shellState.probeScreen
@@ -148,6 +157,7 @@ Scope {
             expandedOpened = false
             dashboardOpenDelay.stop()
             dashboardCloseDelay.stop()
+            capsule.closePopups()
         }
     }
     Connections {
@@ -191,13 +201,13 @@ Scope {
     ReservedSpace {
         screen: root.panelScreen
         amount: root.relocationHost
-            ? IslandRouting.relocationReserve(root.relocated, root.shellState.topReserved, root.islandBand)
-            : (root.topEnabled && !root.fullscreen ? root.shellState.topReserved : 0)
+            ? IslandRouting.relocationReserve(root.relocated, root.topReserved, root.islandBand)
+            : (root.topEnabled && !root.fullscreen ? root.topReserved : 0)
         topEdge: true
     }
     ReservedSpace {
         screen: root.panelScreen
-        amount: root.fullscreen ? 0 : root.shellState.bottomReserved
+        amount: root.fullscreen || (root.appsMode === "hidden" && root.workspacesMode === "hidden" && root.statusMode === "hidden") ? 0 : root.bottomReserved
         topEdge: false
     }
 
@@ -206,7 +216,7 @@ Scope {
         id: topTrigger
         ns: "nayori-edge-top"
         screen: root.panelScreen
-        visible: !root.fullscreen && root.topEnabled && root.shellState.autoHideTop
+        visible: !root.fullscreen && root.topEnabled && (root.topMode === "auto")
         topEdge: true
         span: 400
     }
@@ -214,7 +224,7 @@ Scope {
         id: workspaceTrigger
         ns: "nayori-edge-workspaces"
         screen: root.panelScreen
-        visible: !root.fullscreen && root.panelScreen !== null && root.shellState.autoHideWorkspaces
+        visible: !root.fullscreen && root.panelScreen !== null && (root.workspacesMode === "auto")
         side: -1
         span: dockCluster.implicitWidth
     }
@@ -222,14 +232,14 @@ Scope {
         id: appsTrigger
         ns: "nayori-edge-apps"
         screen: root.panelScreen
-        visible: !root.fullscreen && root.panelScreen !== null && root.shellState.autoHideApps && apps.hasWindows
+        visible: !root.fullscreen && root.panelScreen !== null && (root.appsMode === "auto") && apps.hasWindows
         span: apps.implicitWidth
     }
     EdgeTrigger {
         id: statusTrigger
         ns: "nayori-edge-status"
         screen: root.panelScreen
-        visible: !root.fullscreen && root.panelScreen !== null && root.shellState.autoHideStatus
+        visible: !root.fullscreen && root.panelScreen !== null && (root.statusMode === "auto")
         side: 1
         span: status.implicitWidth
     }
@@ -275,29 +285,35 @@ Scope {
         readonly property int pad: root.tokens.spacing.small
 
         screen: root.panelScreen
-        property bool animateReady: false
-        property real revealOpacity: visibility.shown ? 1 : 0
-        readonly property real contentOpacity: revealOpacity * root.fullscreenReveal
-        Behavior on revealOpacity {
-            enabled: dock.animateReady
-            NumberAnimation {
-                duration: root.tokenSet.motion.off ? 0 : root.tokenSet.motion.fast
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
-            }
+        EdgeMotion {
+            id: dockMotion
+            tokens: root.tokens
+            shown: visibility.shown
+            appearDuration: 520
+            disappearDuration: 580
         }
-        Component.onCompleted: Qt.callLater(function() { dock.animateReady = true })
+        readonly property real revealOpacity: dockMotion.progress
+        readonly property real contentOpacity: revealOpacity * root.fullscreenReveal
         visible: !root.fullscreen && root.fullscreenReveal > 0 && (visibility.shown || revealOpacity > 0)
         color: "transparent"
         anchors.top: false
         anchors.bottom: true
         anchors.left: side < 0
         anchors.right: side > 0
-        margins.bottom: pad
+        // Keep the layer surface fixed: moving it through compositor margins
+        // remaps native blur independently from the QML frame.
+        margins.bottom: 0
         margins.left: side < 0 ? root.tokens.spacing.large : 0
         margins.right: side > 0 ? root.tokens.spacing.large : 0
         implicitWidth: island ? island.implicitWidth : 0
-        implicitHeight: island ? island.implicitHeight : 0
+        implicitHeight: island ? island.implicitHeight + pad : 0
+        readonly property real revealShift: (1 - revealOpacity) * implicitHeight
+        Binding {
+            target: dock.island
+            property: "y"
+            value: dock.revealShift
+            when: dock.island !== null
+        }
         exclusionMode: ExclusionMode.Ignore
         focusable: false
         WlrLayershell.layer: WlrLayer.Overlay
@@ -305,9 +321,16 @@ Scope {
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
         property var materialRegion: dockGlass
-        Region { id: dockGlass; item: dock.island; radius: dock.island ? Math.round(dock.island.radius) : 0 }
+        Region {
+            id: dockGlass
+            x: dock.island ? Math.round(dock.island.x) : 0
+            y: Math.round(dock.revealShift)
+            width: dock.island ? Math.round(dock.island.width) : 0
+            height: dock.island ? Math.round(dock.island.height) : 0
+            radius: dock.island ? Math.round(dock.island.radius) : 0
+        }
         BackgroundEffect.blurRegion: root.tokens.frosted && !root.fullscreen && root.fullscreenReveal === 1 ? dock.materialRegion : null
-        mask: root.fullscreen ? emptyInputMask : dockMask
+        mask: root.fullscreen || !visibility.shown ? emptyInputMask : dockMask
         Region {
             id: dockMask
             item: dock.island
@@ -319,7 +342,7 @@ Scope {
         id: islandWindow
         EdgeVisibility {
             id: topVisibility
-            autoHide: root.shellState.autoHideTop
+            autoHide: (root.topMode === "auto")
             obstructed: root.obstruction({
                 x: root.panelScreen ? (root.panelScreen.width - capsule.implicitWidth) / 2 : 0,
                 y: root.tokens.spacing.small,
@@ -334,19 +357,16 @@ Scope {
             id: topHover
             parent: capsule
         }
-        property bool animateReady: false
-        property real revealOpacity: topVisibility.shown ? 1 : 0
-        readonly property real contentOpacity: root.launcherHere ? 1 : (root.relocationHost && root.arrival < 1 ? root.arrival : revealOpacity) * root.fullscreenReveal
-        readonly property real arrivalShift: !root.launcherHere && root.relocationHost ? (1 - root.arrival) * -(root.tokens.spacing.small + capsule.closedHeight) : 0
-        Behavior on revealOpacity {
-            enabled: islandWindow.animateReady && (!root.relocationHost || root.arrival === 1)
-            NumberAnimation {
-                duration: root.tokenSet.motion.off ? 0 : root.tokenSet.motion.fast
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
-            }
+        EdgeMotion {
+            id: topMotion
+            tokens: root.tokens
+            shown: topVisibility.shown
+            enabled: !root.relocationHost || root.arrival === 1
         }
-        Component.onCompleted: Qt.callLater(function() { islandWindow.animateReady = true })
+        readonly property real revealOpacity: topMotion.progress
+        readonly property real contentOpacity: root.launcherHere ? 1 : (root.relocationHost && root.arrival < 1 ? root.arrival : revealOpacity) * root.fullscreenReveal
+        readonly property real arrivalShift: root.launcherHere ? 0
+            : -(root.tokens.spacing.small + capsule.closedHeight) * (1 - (root.relocationHost && root.arrival < 1 ? root.arrival : revealOpacity))
         function focusLauncherField() {
             if (!root.launcherHere || !islandWindow.visible)
                 return
@@ -418,7 +438,7 @@ Scope {
             }
         }
         BackgroundEffect.blurRegion: root.tokens.frosted && (root.launcherHere || (!root.fullscreen && root.fullscreenReveal === 1)) ? islandGlass : null
-        mask: root.fullscreen && !root.launcherHere ? emptyInputMask : islandMask
+        mask: (root.fullscreen || !topVisibility.shown) && !root.launcherHere ? emptyInputMask : islandMask
         Region {
             id: islandMask
             Region { x: Math.round(captureControls.x); y: Math.round(captureControls.y); width: captureControls.visible ? Math.round(captureControls.width) : 0; height: captureControls.visible ? 48 : 0; radius: 24 }
@@ -436,7 +456,6 @@ Scope {
         RectangularShadow {
             opacity: islandWindow.contentOpacity
             anchors.fill: capsule
-            transform: Translate { y: islandWindow.arrivalShift }
             radius: capsule.radius
             blur: 16
             spread: 0
@@ -468,9 +487,8 @@ Scope {
                 root.shellState.openSettings("weather")
             }
             anchors.top: parent.top
-            anchors.topMargin: 0
+            anchors.topMargin: islandWindow.arrivalShift
             anchors.horizontalCenter: parent.horizontalCenter
-            transform: Translate { y: islandWindow.arrivalShift }
             tokens: root.tokenSet
             active: islandWindow.visible
             opacity: islandWindow.contentOpacity
@@ -501,7 +519,6 @@ Scope {
             anchors.verticalCenter: capsule.verticalCenter
             anchors.left: capsule.right
             anchors.leftMargin: root.tokens.spacing.small
-            transform: Translate { y: islandWindow.arrivalShift }
             opacity: reveal * islandWindow.contentOpacity
             HoverHandler { id: mediaHover }
         }
@@ -515,7 +532,6 @@ Scope {
             anchors.verticalCenter: capsule.verticalCenter
             anchors.right: capsule.left
             anchors.rightMargin: root.tokens.spacing.small
-            transform: Translate { y: islandWindow.arrivalShift }
             opacity: reveal * islandWindow.contentOpacity
         }
         CaptureCapsule {
@@ -526,21 +542,31 @@ Scope {
             anchors.verticalCenter: capsule.verticalCenter
             anchors.right: lyricClock.visible ? lyricClock.left : capsule.left
             anchors.rightMargin: root.tokens.spacing.small
-            transform: Translate { y: islandWindow.arrivalShift }
             opacity: islandWindow.contentOpacity
         }
     }
 
     IslandWindow {
         id: workspacesWindow
-        autoHide: root.shellState.autoHideWorkspaces
+        available: root.workspacesMode !== "hidden"
+        autoHide: (root.workspacesMode === "auto")
         edgeHovered: workspaceTrigger.hovered
+        onAvailableChanged: if (!available) {
+            startMenu.opened = false
+            startContext.opened = false
+        }
         heldOpen: startMenu.presenting || startContext.opened
         ns: "nayori-workspaces"
         side: -1
         island: dockCluster
         materialRegion: Region {
-            Region { item: workspaces; radius: Math.round(workspaces.radius) }
+            Region {
+                x: Math.round(workspaces.x)
+                y: Math.round(workspacesWindow.revealShift)
+                width: Math.round(workspaces.width)
+                height: Math.round(workspaces.height)
+                radius: Math.round(workspaces.radius)
+            }
         }
 
         // Пуск в том же левом окне: второе окно слева легло бы поверх рабочих столов.
@@ -635,8 +661,8 @@ Scope {
 
     IslandWindow {
         id: appsWindow
-        available: apps.hasWindows
-        autoHide: root.shellState.autoHideApps
+        available: apps.hasWindows && root.appsMode !== "hidden"
+        autoHide: (root.appsMode === "auto")
         edgeHovered: appsTrigger.hovered
         ns: "nayori-apps"
         side: 0
@@ -652,7 +678,9 @@ Scope {
 
     IslandWindow {
         id: statusWindow
-        autoHide: root.shellState.autoHideStatus
+        available: root.statusMode !== "hidden"
+        onAvailableChanged: if (!available) status.opened = ""
+        autoHide: (root.statusMode === "auto")
         edgeHovered: statusTrigger.hovered
         heldOpen: status.opened !== ""
         ns: "nayori-status"

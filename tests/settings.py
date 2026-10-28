@@ -34,6 +34,7 @@ with tempfile.TemporaryDirectory(prefix="ns-") as directory:
     assert saved["companionSystemLines"] is False
     assert saved["companionScreen"] == "secondary"
     assert saved["companionSide"] == "left"
+    assert saved["colorScheme"] == "light"
     assert saved["surfaceStyle"] == "frosted"
     assert saved["startIconStyle"] == "fox"
     before = path.read_bytes()

@@ -31,14 +31,13 @@ Item {
     onAudioReactionChanged: updateConsumer()
     Component.onCompleted: updateConsumer()
     Component.onDestruction: { if (audioReaction) audioReaction.consumer(consumerKey, false) }
-    // Fur is the muted accent (accentSoft) lightened; belly and far legs a middle step,
-    // socks, ear tips and nose accentSoft itself (the darkest step that still reads on
-    // the graphite island), chest and tail tip cream.
-    readonly property color bodyInk: Qt.lighter(tokens.color.accentSoft, 1.45)
-    readonly property color lightInk: tokens.color.text
-    readonly property color shadeInk: Qt.lighter(tokens.color.accentSoft, 1.12)
-    readonly property color darkInk: tokens.color.accentSoft
-    readonly property color eyeInk: tokens.color.background
+    // Silver fur stays fixed across themes; the tail tip follows the resolved accent.
+    readonly property color bodyInk: tokens.fox.body
+    readonly property color lightInk: tokens.fox.light
+    readonly property color shadeInk: tokens.fox.shade
+    readonly property color darkInk: tokens.fox.dark
+    readonly property color eyeInk: tokens.fox.eye
+    readonly property color tailTipInk: tokens.color.accent
     property var cells: []
     function rebuild() {
         const next = Sprite.render(behavior.pose)
@@ -78,11 +77,12 @@ Item {
     onDarkInkChanged: drawing.requestPaint()
     onShadeInkChanged: drawing.requestPaint()
     onEyeInkChanged: drawing.requestPaint()
+    onTailTipInkChanged: drawing.requestPaint()
     Rectangle {
         anchors.right: parent.right; anchors.top: parent.top
         width: 5; height: 5; radius: 2.5
         color: root.tokens.color.accent
-        // The cream ring keeps the dot apart from the lavender fur next to it.
+        // A contrasting ring keeps the dot apart from the silver fur.
         border.width: 1; border.color: root.tokens.color.text
         visible: behavior.pose.marker
     }
@@ -99,7 +99,7 @@ Item {
             const scale = Math.min(width / Sprite.W, height / Sprite.H)
             ctx.translate((width - Sprite.W * scale) / 2, (height - Sprite.H * scale) / 2)
             ctx.scale(scale, scale)
-            const colors = [null, root.bodyInk, root.lightInk, root.darkInk, root.shadeInk, root.bodyInk, root.lightInk, root.eyeInk]
+            const colors = [null, root.bodyInk, root.lightInk, root.darkInk, root.shadeInk, root.bodyInk, root.tailTipInk, root.eyeInk]
             const cells = root.cells
             for (let y = 0; y < Sprite.H; y++) {
                 let x = 0

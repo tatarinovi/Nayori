@@ -22,6 +22,8 @@ FocusScope {
     signal hideSecondaryIslandChangedRequested(bool hidden)
     property string fullscreenIslandOutput: ""
     signal fullscreenIslandOutputChangedRequested(string output)
+    property var panelReservations: ({})
+    property var panelModes: ({})
     property bool autoHideTop: false
     property bool autoHideApps: false
     property bool autoHideWorkspaces: false
@@ -53,6 +55,8 @@ FocusScope {
     property string preferredTerminal: "kitty"
     property string preferredFileManager: "io.github.lgse.Strata"
     property var niri: null
+    property string colorScheme: "dark"
+    signal colorSchemeChangedRequested(string scheme)
     property string surfaceStyle: "solid"
     signal surfaceStyleChangedRequested(string style)
     property string accentMode: "default"
@@ -132,6 +136,8 @@ FocusScope {
     }
     property int currentPage: 0
     signal reservationChanged(int top, int bottom)
+    signal panelReservationChangedRequested(string output, int top, int bottom)
+    signal panelModeChangedRequested(string output, string part, string mode)
     signal autoHideChangedRequested(bool top, bool apps, bool workspaces, bool status)
     signal weatherCityChangedRequested(string city)
     signal weatherRefreshMinutesChangedRequested(int minutes)
@@ -177,7 +183,7 @@ FocusScope {
         {key: "mouse", page: 11, title: "Мышь", group: "Устройства", description: "Что можно прочитать о мыши в этой сессии niri"},
         {key: "keyboard", page: 12, title: "Клавиатура", group: "Устройства", description: "Раскладка и повтор, которые задаёт niri"},
         {key: "shortcuts", page: 13, title: "Сочетания клавиш", group: "Устройства", description: "Сочетания из конфигурации niri. Запись файла выключена"},
-        {key: "appearance", page: 2, title: "Внешний вид", group: "Персонализация", description: "Прозрачность, акцент и анимации интерфейса"},
+        {key: "appearance", page: 2, title: "Внешний вид", group: "Персонализация", description: "Тема, прозрачность, акцент и анимации интерфейса"},
         {key: "wallpapers", page: 4, title: "Обои", group: "Персонализация", description: "Выберите папку и изображение для рабочего стола"},
         {key: "panels", page: 1, title: "Панель задач", group: "Персонализация", description: "Автоскрытие островов, место для окон у краёв экрана и мониторы"},
         {key: "start", page: 14, title: "Пуск", group: "Персонализация", description: "Значок и приложения кнопки «Пуск»"},
@@ -628,11 +634,15 @@ FocusScope {
                 bottomReserved: root.bottomReserved
                 hideSecondaryIsland: root.hideSecondaryIsland
                 fullscreenIslandOutput: root.fullscreenIslandOutput
+                panelReservations: root.panelReservations
+                panelModes: root.panelModes
                 autoHideTop: root.autoHideTop
                 autoHideApps: root.autoHideApps
                 autoHideWorkspaces: root.autoHideWorkspaces
                 autoHideStatus: root.autoHideStatus
                 onReservationChanged: (top, bottom) => root.reservationChanged(top, bottom)
+                onPanelReservationChangedRequested: (output, top, bottom) => root.panelReservationChangedRequested(output, top, bottom)
+                onPanelModeChangedRequested: (output, part, mode) => root.panelModeChangedRequested(output, part, mode)
                 onAutoHideChangedRequested: (top, apps, workspaces, status) => root.autoHideChangedRequested(top, apps, workspaces, status)
                 onHideSecondaryIslandChangedRequested: hidden => root.hideSecondaryIslandChangedRequested(hidden)
                 onFullscreenIslandOutputChangedRequested: output => root.fullscreenIslandOutputChangedRequested(output)
@@ -655,6 +665,8 @@ FocusScope {
                     width: Math.min(960, appearanceScroll.availableWidth - 12)
                     tokens: root.tokens
                     showHeading: false
+                    colorScheme: root.colorScheme
+                    onColorSchemeChangedRequested: scheme => root.colorSchemeChangedRequested(scheme)
                     surfaceStyle: root.surfaceStyle
                     onRevealRequested: item => appearanceScroll.reveal(item)
                     onSurfaceStyleChangedRequested: style => root.surfaceStyleChangedRequested(style)

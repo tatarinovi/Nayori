@@ -2,8 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 
-// One monitor: identity header and the state of the four islands on it.
-// Only the top island of a secondary monitor has a setting; the rest report their auto-hide state.
+// Independent visibility modes for each part of this output.
 Rectangle {
     id: card
     required property var tokens
@@ -11,16 +10,12 @@ Rectangle {
     property string detail: ""
     property bool primary: false
     property bool selected: false
-    property bool topSwitchable: false
-    property bool topShown: true
-    property bool autoHideTop: false
-    property bool autoHideApps: false
-    property bool autoHideWorkspaces: false
-    property bool autoHideStatus: false
-    signal topShownRequested(bool shown)
+    property int topReserved: 0
+    property int bottomReserved: 0
+    signal reservationRequested(int top, int bottom)
+    property var modes: ({})
+    signal modeRequested(string part, string mode)
     signal itemFocused(Item item)
-
-    function stateText(autoHide) { return autoHide ? "Автоскрытие" : "Всегда" }
 
     width: parent ? parent.width : implicitWidth
     implicitHeight: column.implicitHeight + 24
@@ -88,40 +83,83 @@ Rectangle {
                 }
             }
         }
-        SettingsIconSwitch {
-            objectName: "panels-" + card.outputName + "-top"
+        Repeater {
+            model: [
+                {key: "top", label: "Верхний остров"},
+                {key: "apps", label: "Док приложений"},
+                {key: "workspaces", label: "Рабочие столы"},
+                {key: "status", label: "Трей и системный остров"}
+            ]
+            delegate: Item {
+                id: partRow
+                required property var modelData
+                width: column.width
+                height: Math.max(partLabel.implicitHeight, selector.implicitHeight) + 4
+                SettingsLabel {
+                    id: partLabel
+                    tokens: card.tokens
+                    text: partRow.modelData.label
+                    width: parent.width - selector.width - 12
+                    anchors.verticalCenter: parent.verticalCenter
+                    wrapMode: Text.WordWrap
+                }
+                SettingsSelect {
+                    id: selector
+                    objectName: "panels-" + card.outputName + "-" + partRow.modelData.key
+                    anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                    width: Math.min(190, parent.width * 0.57)
+                    tokens: card.tokens
+                    Accessible.name: partRow.modelData.label + ": " + currentLabel
+                    model: [
+                        {key: "always", label: "Показывать всегда"},
+                        {key: "auto", label: "Авто-скрытие"},
+                        {key: "hidden", label: "Не отображать"}
+                    ]
+                    currentKey: card.modes[partRow.modelData.key] || "always"
+                    onActivated: key => card.modeRequested(partRow.modelData.key, key)
+                    onFocusReceived: card.itemFocused(this)
+                }
+            }
+        }
+        Rectangle { width: parent.width; height: 1; color: card.tokens.color.border }
+        SettingsLabel {
             tokens: card.tokens
-            glyph: "topisland"
-            text: "Верхний остров"
-            showSwitch: card.topSwitchable
-            checked: card.topShown
-            status: card.stateText(card.autoHideTop)
-            onClicked: card.topShownRequested(checked)
+            text: "Отступы от краёв"
+            color: card.tokens.color.textMuted
+        }
+        SettingsReservationControl {
+            objectName: "panels-" + card.outputName + "-top-reservation"
+            width: parent.width
+            tokens: card.tokens
+            label: "Сверху"
+            reserved: card.topReserved
+            onAdjusted: amount => card.reservationRequested(amount, card.bottomReserved)
             onFocusReceived: card.itemFocused(this)
         }
-        SettingsIconSwitch {
-            objectName: "panels-" + card.outputName + "-apps"
+        SettingsReservationControl {
+            objectName: "panels-" + card.outputName + "-bottom-reservation"
+            width: parent.width
             tokens: card.tokens
-            glyph: "apps"
-            text: "Док приложений"
-            showSwitch: false
-            status: card.stateText(card.autoHideApps)
+            label: "Снизу"
+            reserved: card.bottomReserved
+            onAdjusted: amount => card.reservationRequested(card.topReserved, amount)
+            onFocusReceived: card.itemFocused(this)
         }
-        SettingsIconSwitch {
-            objectName: "panels-" + card.outputName + "-workspaces"
-            tokens: card.tokens
-            glyph: "workspaces"
-            text: "Рабочие столы"
-            showSwitch: false
-            status: card.stateText(card.autoHideWorkspaces)
-        }
-        SettingsIconSwitch {
-            objectName: "panels-" + card.outputName + "-status"
-            tokens: card.tokens
-            glyph: "island"
-            text: "Системный остров"
-            showSwitch: false
-            status: card.stateText(card.autoHideStatus)
+        Flow {
+            width: parent.width
+            spacing: 8
+            SettingsButton {
+                tokens: card.tokens
+                text: "По размеру панелей"
+                onClicked: card.reservationRequested(64, 72)
+                onActiveFocusChanged: if (activeFocus) card.itemFocused(this)
+            }
+            SettingsButton {
+                tokens: card.tokens
+                text: "Сбросить"
+                onClicked: card.reservationRequested(0, 0)
+                onActiveFocusChanged: if (activeFocus) card.itemFocused(this)
+            }
         }
     }
 }

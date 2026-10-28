@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "../status/MixerSources.js" as MixerSources
+import "../ui/PanelModes.js" as PanelModes
 
 // Owned by ShellRoot, never by a settings page or window.
 QtObject {
@@ -12,6 +13,8 @@ QtObject {
         "version": 1
     })
     property var values: defaults()
+    readonly property var panelReservations: values.panelReservations
+    readonly property var panelModes: values.panelModes
     readonly property bool autoHideTop: values.autoHideTop
     readonly property bool autoHideApps: values.autoHideApps
     readonly property bool autoHideWorkspaces: values.autoHideWorkspaces
@@ -20,6 +23,7 @@ QtObject {
     readonly property string fullscreenIslandOutput: values.fullscreenIslandOutput
     readonly property int topReserved: values.topReserved
     readonly property int bottomReserved: values.bottomReserved
+    readonly property string colorScheme: values.colorScheme
     readonly property string surfaceStyle: values.surfaceStyle
     readonly property string accentMode: values.accentMode
     readonly property string manualAccent: values.manualAccent
@@ -139,6 +143,8 @@ QtObject {
 
     function defaults() {
         return {
+            "panelModes": {},
+            "panelReservations": {},
             "autoHideTop": false,
             "autoHideApps": false,
             "autoHideWorkspaces": false,
@@ -156,6 +162,7 @@ QtObject {
             "fullscreenCompanionOutput": "",
             "companionScreen": "primary",
             "companionSide": "right",
+            "colorScheme": "dark",
             "surfaceStyle": "solid",
             "accentMode": "default",
             "manualAccent": "#C0AFD1",
@@ -184,6 +191,8 @@ QtObject {
 
     function normalize(key, value) {
         const fallback = defaults()[key];
+        if (key === "panelModes") return PanelModes.normalize(value);
+        if (key === "panelReservations") return PanelModes.normalizeReservations(value);
         if (key === "mixerSources")
             return MixerSources.normalize(value);
         if (key === "captureShotDir" || key === "captureVideoDir")
@@ -215,6 +224,9 @@ QtObject {
 
         if (key === "companionSide")
             return value === "left" || value === "right" ? value : fallback;
+
+        if (key === "colorScheme")
+            return value === "dark" || value === "light" ? value : fallback;
 
         if (key === "surfaceStyle")
             return value === "solid" || value === "frosted" ? value : fallback;
@@ -297,7 +309,7 @@ QtObject {
                 continue;
 
             const value = normalize(key, patch[key]);
-            const unchanged = key === "mixerSources" ? MixerSources.same(next[key], value) : next[key] === value;
+            const unchanged = (key === "panelModes" || key === "panelReservations") ? JSON.stringify(next[key]) === JSON.stringify(value) : key === "mixerSources" ? MixerSources.same(next[key], value) : next[key] === value;
             if (unchanged)
                 continue;
 

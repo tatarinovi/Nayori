@@ -190,6 +190,7 @@ ShellRoot {
     Tokens {
         id: tokens
         animationsEnabled: settingsStore.animationsEnabled
+        colorScheme: settingsStore.colorScheme
         surfaceStyle: settingsStore.surfaceStyle
         accentSource: root.accentSource
         accentDerived: root.accentDerived
@@ -207,6 +208,7 @@ ShellRoot {
     }
     Tokens {
         id: naomiTokens
+        colorScheme: settingsStore.colorScheme
         animationsEnabled: settingsStore.animationsEnabled
         accentSource: accentExtractor.accent
         accentDerived: accentExtractor.ready && !accentExtractor.fallbackUsed
@@ -329,6 +331,8 @@ ShellRoot {
     readonly property string weatherCity: settingsStore.weatherCity
     readonly property bool hideSecondaryIsland: settingsStore.hideSecondaryIsland
     readonly property string fullscreenIslandOutput: settingsStore.fullscreenIslandOutput
+    readonly property var panelReservations: settingsStore.panelReservations
+    readonly property var panelModes: settingsStore.panelModes
     readonly property bool autoHideTop: settingsStore.autoHideTop
     readonly property bool autoHideApps: settingsStore.autoHideApps
     readonly property bool autoHideWorkspaces: settingsStore.autoHideWorkspaces

@@ -7,6 +7,8 @@ import QtQuick.Dialogs
 Column {
     property bool showHeading: true
     required property var tokens
+    property string colorScheme: "dark"
+    signal colorSchemeChangedRequested(string scheme)
     property string surfaceStyle: "solid"
     signal surfaceStyleChangedRequested(string style)
     signal revealRequested(var item)
@@ -100,6 +102,18 @@ Column {
     id: root
             spacing: 16
             Label { visible: root.showHeading; text: "Внешний вид"; font.family: root.tokens.type.display.family; font.pixelSize: 20 }
+            Label { text: "Тема"; font.pixelSize: 18 }
+            SettingsSegmented {
+                objectName: "colorSchemeSelector"
+                tokens: root.tokens
+                width: parent.width
+                equalWidth: true
+                implicitHeight: root.tokens.settings.control
+                model: [{key: "dark", label: "Тёмная"}, {key: "light", label: "Светлая"}]
+                currentKey: root.colorScheme
+                onActivated: scheme => root.colorSchemeChangedRequested(scheme)
+                onFocusReceived: root.revealRequested(this)
+            }
             Label { text: "Прозрачность"; font.pixelSize: 18 }
             Label {
                 width: parent.width
@@ -110,8 +124,8 @@ Column {
             ButtonGroup { id: surfaceStyles }
             Repeater {
                 model: [
-                    {key: "solid", title: "Solid", description: "Графитовые поверхности без прозрачности"},
-                    {key: "frosted", title: "Frosted Glass", description: "Матовое стекло: нижние острова прозрачнее, Dynamic Island темнее, меню пуск и настройки плотнее"}
+                    {key: "solid", title: "Solid", description: "Непрозрачные поверхности выбранной темы"},
+                    {key: "frosted", title: "Frosted Glass", description: "Матовое стекло: нижние острова прозрачнее, Dynamic Island, меню пуск и настройки плотнее"}
                 ]
                 RadioButton {
                     id: styleOption

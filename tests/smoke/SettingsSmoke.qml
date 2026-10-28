@@ -61,6 +61,7 @@ ShellRoot {
 
     Tokens {
         id: theme
+        colorScheme: settings.colorScheme
         surfaceStyle: settings.surfaceStyle
         animationsEnabled: settings.animationsEnabled
     }
@@ -175,20 +176,18 @@ ShellRoot {
                     input.keyClick(Qt.Key_Down, Qt.NoModifier, -1)
                     input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
                     test.check(currentPage === 1, "panels page opens from the sidebar")
-                    const slider = test.findItem(view, "bottomReservationSlider")
-                    slider.forceActiveFocus()
                     const flick = test.findItem(view, "settings-panels-scroll")
-                    test.check(flick.contentY > 0, "focus reveals lower controls")
-                    test.check(flick.height > 0 && flick.contentHeight > flick.height, "panels page scrolls: visible height and taller content")
-                    test.check(flick.contentY + flick.height <= flick.contentHeight + 1, "reveal stays inside the scrollable range")
-                    const revealedY = flick.contentY
-                    const autohide = test.findItem(view, "panels-autohide")
-                    autohide.forceActiveFocus()
-                    test.check(flick.contentY >= 0 && flick.contentY + flick.height <= flick.contentHeight + 1, "focus on the top switch keeps scroll in range")
-                    slider.forceActiveFocus()
-                    test.check(Math.abs(flick.contentY - revealedY) < 1, "refocusing a visible control does not move the page")
+                    test.check(flick.height > 0, "panels page has a viewport")
+                    test.check(flick.contentY >= 0 && flick.contentY <= Math.max(0, flick.contentHeight - flick.height) + 1, "focus stays in scroll range")
+                    test.check(test.findItem(view, "panels-autohide") === null, "global autohide block removed")
                     currentPage = 2
+                    const scheme = test.findItem(view, "colorSchemeSelector")
+                    scheme.activated("light")
+                    test.check(settings.colorScheme === "light", "light theme applies through settings")
+                    settings.update({colorScheme: "dark"})
+                    test.check(scheme.currentKey === "dark", "theme selector follows service")
                     const frosted = test.findItem(view, "surfaceStyle-frosted")
+                    frosted.forceActiveFocus()
                     input.mouseClick(frosted, frosted.width / 2, frosted.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
                     test.check(settings.surfaceStyle === "frosted" && test.surfaceStyleRequests === 1, "style action applies once")
                     settings.update({surfaceStyle: "solid"})
@@ -337,6 +336,8 @@ ShellRoot {
                 onCompanionSideChangedRequested: side => settings.update({companionSide: side})
                 startIconStyle: settings.startIconStyle
                 onStartIconStyleChangedRequested: style => { test.iconRequests++; settings.update({startIconStyle: style}); }
+                colorScheme: settings.colorScheme
+                onColorSchemeChangedRequested: scheme => settings.update({colorScheme: scheme})
                 surfaceStyle: settings.surfaceStyle
                 onSurfaceStyleChangedRequested: style => {
                     test.surfaceStyleRequests++;
@@ -449,6 +450,14 @@ ShellRoot {
                     test.check(settings.startIconStyle === "fox", "fox enum accepted");
                     settings.update({startIconStyle: "unsupported"});
                     test.check(settings.startIconStyle === "current", "invalid icon defaults to current");
+                    test.check(settings.colorScheme === "dark", "missing scheme defaults to dark");
+                    settings.update({colorScheme: "light"});
+                    test.check(settings.colorScheme === "light", "light scheme accepted");
+                    for (const value of ["auto", "", null, 1, true, {}, []]) {
+                        settings.update({colorScheme: "light"});
+                        settings.update({colorScheme: value});
+                        test.check(settings.colorScheme === "dark", "invalid scheme defaults to dark");
+                    }
                     test.check(settings.surfaceStyle === "solid", "missing or invalid style defaults to solid");
                     test.check(settings.accentMode === "default" && settings.manualAccent === "#C0AFD1", "accent defaults");
                     settings.update({accentMode: "automatic", manualAccent: "#abc"});
@@ -540,12 +549,15 @@ ShellRoot {
                     test.finish();
                 } else if (test.scenario === "restore") {
                     test.check(settings.weatherCity === "Москва" && settings.topReserved === 200 && !settings.animationsEnabled && settings.weatherRefreshMinutes === 30 && settings.surfaceStyle === "frosted" && settings.startIconStyle === "fox", "restored values");
+                    test.check(settings.colorScheme === "light", "restored light scheme");
+                    test.check(settings.panelModes["DP-1"].top === "hidden" && settings.panelModes["DP-2"].top === "auto", "per-output modes survive restart");
                     test.check(settings.companionStyle === "layered", "selected artwork restored after restart");
                     test.check(settings.companionEnabled, "companion restored after restart");
                     test.check(settings.companionDesktopOnly, "desktop-only restored after restart");
                     test.check(!settings.companionReactToPointer, "pointer reaction restored after restart");
                     test.check(!settings.companionSystemLines, "system lines restored after restart");
                     test.check(settings.companionScreen === "secondary" && settings.companionSide === "left", "Naomi placement restored after restart");
+                    test.check(settings.panelReservations["DP-1"].top === 64 && settings.panelReservations["DP-2"].bottom === 24, "per-output reservations survive restart");
                     test.check(!settings.dirty && test.changes === 1, "no write loop on load");
                     test.finish();
                 } else if (test.scenario === "revert") {
@@ -656,6 +668,7 @@ ShellRoot {
                     settings.update({
                         "weatherCity": "  Москва  ",
                         "weatherRefreshMinutes": 30,
+                        "colorScheme": "light",
                         "surfaceStyle": "frosted",
                         "startIconStyle": "fox",
                         "companionEnabled": true,
@@ -667,7 +680,9 @@ ShellRoot {
                         "companionSide": "left",
                         "topReserved": 999,
                         "animationsEnabled": false,
-                        "autoHideTop": true
+                        "autoHideTop": true,
+                        "panelModes": {"DP-1": {top: "hidden", apps: "always"}, "DP-2": {top: "auto", status: "hidden"}},
+                        "panelReservations": {"DP-1": {top: 64, bottom: 72}, "DP-2": {top: 0, bottom: 24}}
                     });
                     test.check(settings.weatherCity === "Москва" && settings.topReserved === 200 && !settings.animationsEnabled, "immediate normalized state");
                     settings.update({

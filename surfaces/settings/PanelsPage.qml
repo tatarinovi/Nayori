@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import "../../services/ui/PanelModes.js" as PanelModes
 import QtQuick.Controls
 import "../../services/system"
 
@@ -12,6 +13,8 @@ FocusScope {
     property int bottomReserved: 0
     property bool hideSecondaryIsland: false
     property string fullscreenIslandOutput: ""
+    property var panelReservations: ({})
+    property var panelModes: ({})
     property bool autoHideTop: false
     property bool autoHideApps: false
     property bool autoHideWorkspaces: false
@@ -22,11 +25,12 @@ FocusScope {
     property var screens: displays.screens
     property string selectedOutput: ""
     signal reservationChanged(int top, int bottom)
+    signal panelReservationChangedRequested(string output, int top, int bottom)
+    signal panelModeChangedRequested(string output, string part, string mode)
     signal autoHideChangedRequested(bool top, bool apps, bool workspaces, bool status)
     signal hideSecondaryIslandChangedRequested(bool hidden)
     signal fullscreenIslandOutputChangedRequested(string output)
 
-    readonly property bool autoHideAny: autoHideTop || autoHideApps || autoHideWorkspaces || autoHideStatus
     readonly property var monitors: {
         const items = []
         const list = screens || []
@@ -50,29 +54,7 @@ FocusScope {
         return monitors.length > 0 ? monitors[0].name : ""
     }
     readonly property bool wide: width >= 640 + 12
-    readonly property var fullscreenIslandChoices: {
-        const items = [{ key: "", label: "Не показывать" }]
-        const connected = {}
-        for (let i = 1; i < monitors.length; ++i) {
-            items.push({ key: monitors[i].name, label: monitors[i].name })
-            connected[monitors[i].name] = true
-        }
-        const primaryName = monitors.length > 0 ? monitors[0].name : ""
-        if (fullscreenIslandOutput !== "" && fullscreenIslandOutput !== primaryName && !connected[fullscreenIslandOutput])
-            items.push({ key: fullscreenIslandOutput, label: fullscreenIslandOutput })
-        return items
-    }
-    readonly property bool fullscreenTargetMissing: {
-        if (fullscreenIslandOutput === "")
-            return false
-        for (let i = 0; i < monitors.length; ++i)
-            if (monitors[i].name === fullscreenIslandOutput)
-                return false
-        return true
-    }
-
     component Label: SettingsLabel { tokens: root.tokens }
-    component ReservationControl: SettingsReservationControl { tokens: root.tokens }
 
     function reveal(item) {
         if (!item || !item.visible)
@@ -84,10 +66,6 @@ FocusScope {
         else if (point.y + item.height > view.contentY + view.height)
             view.contentY = Math.min(Math.max(0, view.contentHeight - view.height), point.y + item.height - view.height)
     }
-    function setAutoHide(top, apps, workspaces, status) {
-        root.autoHideChangedRequested(top, apps, workspaces, status)
-    }
-
     DisplayList { id: displays }
 
     // The page fills whatever the host gives it and never reports a size of its own,
@@ -118,106 +96,10 @@ FocusScope {
             Label { visible: root.showHeading; text: "Панель задач"; font.family: root.tokens.type.display.family; font.pixelSize: 20 }
 
             SettingsCard {
-                objectName: "panels-general"
-                tokens: root.tokens
-                title: "Общие параметры"
-                subtitle: "Настройте поведение панели задач и расстояние от краёв экрана."
-
-                SettingsIconSwitch {
-                    objectName: "panels-autohide"
-                    tokens: root.tokens
-                    glyph: "autohide"
-                    text: "Автоскрытие при пересечении с окном"
-                    description: "Остров скрывается, когда окно пересекает его."
-                    checked: root.autoHideAny
-                    onClicked: root.setAutoHide(checked, checked, checked, checked)
-                    onFocusReceived: root.reveal(this)
-                }
-                Column {
-                    width: parent.width
-                    leftPadding: 14
-                    rightPadding: 14
-                    spacing: 8
-                    Label {
-                        width: parent.width - 28
-                        text: "Какие острова скрывать"
-                        color: root.tokens.color.textMuted
-                        font.pixelSize: root.tokens.type.small.size - 1
-                    }
-                    Flow {
-                        width: parent.width - 28
-                        spacing: 8
-                        SettingsChip {
-                            objectName: "panels-autohide-top"
-                            tokens: root.tokens
-                            text: "Верхний остров"
-                            checked: root.autoHideTop
-                            onClicked: root.setAutoHide(checked, root.autoHideApps, root.autoHideWorkspaces, root.autoHideStatus)
-                            onFocusReceived: root.reveal(this)
-                        }
-                        SettingsChip {
-                            objectName: "panels-autohide-apps"
-                            tokens: root.tokens
-                            text: "Док приложений"
-                            checked: root.autoHideApps
-                            onClicked: root.setAutoHide(root.autoHideTop, checked, root.autoHideWorkspaces, root.autoHideStatus)
-                            onFocusReceived: root.reveal(this)
-                        }
-                        SettingsChip {
-                            objectName: "panels-autohide-workspaces"
-                            tokens: root.tokens
-                            text: "Рабочие столы"
-                            checked: root.autoHideWorkspaces
-                            onClicked: root.setAutoHide(root.autoHideTop, root.autoHideApps, checked, root.autoHideStatus)
-                            onFocusReceived: root.reveal(this)
-                        }
-                        SettingsChip {
-                            objectName: "panels-autohide-status"
-                            tokens: root.tokens
-                            text: "Системный остров"
-                            checked: root.autoHideStatus
-                            onClicked: root.setAutoHide(root.autoHideTop, root.autoHideApps, root.autoHideWorkspaces, checked)
-                            onFocusReceived: root.reveal(this)
-                        }
-                    }
-                }
-                // Revealing a hidden island on pointer approach is part of auto-hide, not a separate setting.
-                SettingsIconSwitch {
-                    objectName: "panels-hover-reveal"
-                    tokens: root.tokens
-                    glyph: "pointer"
-                    text: "Показывать при наведении к краю"
-                    description: "Временно показывать скрытый остров при наведении указателя."
-                    showSwitch: false
-                    status: "Всегда"
-                    opacity: root.autoHideAny ? 1 : 0.55
-                }
-                SettingsInfoRow {
-                    tokens: root.tokens
-                    text: "Если Niri не передаёт положение окна, действует обычное автоскрытие."
-                }
-                Rectangle { width: parent.width; height: 1; color: root.tokens.color.border }
-                Column {
-                    width: parent.width
-                    leftPadding: 14
-                    rightPadding: 14
-                    spacing: 8
-                    ReservationControl { width: parent.width - 28; label: "Сверху"; reserved: root.topReserved; onFocusReceived: root.reveal(this); onAdjusted: function(amount) { root.reservationChanged(amount, root.bottomReserved) } }
-                    ReservationControl { width: parent.width - 28; label: "Снизу"; reserved: root.bottomReserved; onFocusReceived: root.reveal(this); onAdjusted: function(amount) { root.reservationChanged(root.topReserved, amount) } }
-                    Flow {
-                        width: parent.width - 28
-                        spacing: 8
-                        SettingsButton { tokens: root.tokens; primary: true; text: "По размеру панелей"; onClicked: root.reservationChanged(64, 72); onActiveFocusChanged: if (activeFocus) root.reveal(this) }
-                        SettingsButton { tokens: root.tokens; text: "Сбросить"; onClicked: root.reservationChanged(0, 0); onActiveFocusChanged: if (activeFocus) root.reveal(this) }
-                    }
-                }
-            }
-
-            SettingsCard {
                 objectName: "panels-monitors"
                 tokens: root.tokens
                 title: "Мониторы"
-                subtitle: "Что показывается на каждом мониторе. Верхний остров на других экранах можно отключить."
+                subtitle: "Выберите режим каждого элемента отдельно для каждого монитора."
                 spacing: 12
 
                 Label {
@@ -279,61 +161,23 @@ FocusScope {
                             detail: modelData.detail
                             primary: modelData.primary
                             selected: root.monitors.length > 1 && modelData.name === root.activeOutput
-                            topSwitchable: !modelData.primary
-                            topShown: modelData.primary || !root.hideSecondaryIsland
-                            autoHideTop: root.autoHideTop
-                            autoHideApps: root.autoHideApps
-                            autoHideWorkspaces: root.autoHideWorkspaces
-                            autoHideStatus: root.autoHideStatus
-                            onTopShownRequested: shown => {
-                                root.hideSecondaryIslandChangedRequested(!shown)
-                                if (!shown)
-                                    Qt.callLater(() => root.reveal(fullscreenIslandBlock))
-                            }
+                            topReserved: PanelModes.reservation(root.panelReservations, modelData.name, "top", root.topReserved)
+                            bottomReserved: PanelModes.reservation(root.panelReservations, modelData.name, "bottom", root.bottomReserved)
+                            onReservationRequested: (top, bottom) => root.panelReservationChangedRequested(modelData.name, top, bottom)
+                            modes: ({
+                                top: PanelModes.mode(root.panelModes, modelData.name, "top", root.autoHideTop, !modelData.primary && root.hideSecondaryIsland),
+                                apps: PanelModes.mode(root.panelModes, modelData.name, "apps", root.autoHideApps, false),
+                                workspaces: PanelModes.mode(root.panelModes, modelData.name, "workspaces", root.autoHideWorkspaces, false),
+                                status: PanelModes.mode(root.panelModes, modelData.name, "status", root.autoHideStatus, false)
+                            })
+                            onModeRequested: (part, mode) => root.panelModeChangedRequested(modelData.name, part, mode)
                             onItemFocused: item => root.reveal(item)
                         }
                     }
                 }
-                Column {
-                    id: fullscreenIslandBlock
-                    objectName: "panels-fullscreen-island"
-                    visible: root.hideSecondaryIsland && root.monitors.length > 1
-                    width: parent.width
-                    spacing: 8
-                    Label {
-                        width: parent.width
-                        text: "Монитор при полном экране"
-                        font.pixelSize: root.tokens.type.body.size
-                    }
-                    Label {
-                        width: parent.width
-                        text: "Пока основной монитор в\u00A0полноэкранном режиме, верхний остров показывается на\u00A0выбранном экране"
-                        color: root.tokens.color.textMuted
-                        font.pixelSize: root.tokens.type.small.size
-                    }
-                    SettingsSegmented {
-                        objectName: "panels-fullscreen-island-choice"
-                        width: parent.width
-                        tokens: root.tokens
-                        equalWidth: true
-                        model: root.fullscreenIslandChoices
-                        currentKey: root.fullscreenIslandOutput
-                        onActivated: key => root.fullscreenIslandOutputChangedRequested(key)
-                        onFocusReceived: root.reveal(fullscreenIslandBlock)
-                    }
-                    Label {
-                        visible: root.fullscreenTargetMissing
-                        width: parent.width
-                        text: "Выбранный монитор не подключён. Остров остаётся скрытым, пока он не появится"
-                        color: root.tokens.color.textMuted
-                        font.pixelSize: root.tokens.type.small.size
-                    }
-                }
                 SettingsInfoRow {
                     tokens: root.tokens
-                    text: root.monitors.length > 1
-                        ? "Скрыть можно только верхний остров на других экранах. Остальные острова показываются на каждом мониторе, а автоскрытие задаётся в общих параметрах."
-                        : "Все острова показываются на подключённом мониторе. Автоскрытие задаётся в общих параметрах."
+                    text: "Авто-скрытие плавно убирает элемент при пересечении с окном. Наведите указатель к краю экрана, чтобы показать его снова. Режим «Не отображать» отключает и показ при наведении."
                 }
             }
         }

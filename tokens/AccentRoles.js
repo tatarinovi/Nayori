@@ -245,7 +245,27 @@ function accentInk(accent) {
     return ink
 }
 
-function roles(source, derived) {
+// Preserve wallpaper hue with restrained chroma at a light surface's luminance.
+function lightNeutral(source, lightness) {
+    var color = toOklch(source)
+    var chroma = fitChroma(lightness, Math.min(color.C, 0.025), color.H)
+    return oklchToHex(lightness, chroma, color.H)
+}
+
+function roles(source, derived, light, surface) {
+    if (light === true) {
+        var accent = accentOnSurface(derived === true ? source : AUTHORED_ACCENT, surface || "#EBE5F0")
+        var soft = mixHex(accent, BLACK, 0.18)
+        var hover = mixHex(accent, BLACK, 0.09)
+        return {
+            accent: accent,
+            accentSoft: soft,
+            accentHover: hover,
+            accentText: accentInk(accent),
+            accentSoftText: accentInk(soft),
+            accentBorder: accent
+        }
+    }
     if (derived !== true)
         return authoredRoles()
     var accent = resolveAccent(source)
