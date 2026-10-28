@@ -8,7 +8,7 @@ case "${1:-}" in
             printf '\n>>> %s\n' "$test"
             node "$test"
         done
-        for test in island-audio lyrics-fetch super-tap clipboard-store capture naomi-layers overview-backdrop launcher-focus; do
+        for test in island-audio lyrics-fetch super-tap clipboard-store shelf-store capture naomi-layers overview-backdrop launcher-focus; do
             printf '\n>>> %s\n' "$test"
             python3 "tests/$test.py"
         done
@@ -24,7 +24,7 @@ case "${1:-}" in
         export XDG_CACHE_HOME="$runtime/cache" XDG_STATE_HOME="$runtime/state"
         export XDG_DATA_HOME="$runtime/data"
         mkdir -m 700 "$XDG_RUNTIME_DIR"
-        for suite in island music canvas accent; do
+        for suite in island music canvas accent shelf; do
             printf '\n>>> %s\n' "$suite"
             bash "scripts/check-$suite.sh"
         done

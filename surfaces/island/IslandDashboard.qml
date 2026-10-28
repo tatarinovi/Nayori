@@ -15,7 +15,10 @@ FocusScope {
     function closePopups() { musicCard.closePopups() }
     property var selectedPlayer: null
     property var notifications: null
+    property var shelfService: null
+    readonly property bool shelfInteracting: shelfView.interacting
     property int currentPage: 0
+    readonly property int pageCount: 3
     property real pagePosition: currentPage
     property real wheelDelta: 0
     property double lastPageWheel: 0
@@ -24,7 +27,7 @@ FocusScope {
         if (wheelDelta * delta < 0) wheelDelta = 0
         wheelDelta += delta
         if (Math.abs(wheelDelta) < 120) return
-        const next = Math.max(0, Math.min(1, currentPage + (wheelDelta < 0 ? 1 : -1)))
+        const next = Math.max(0, Math.min(pageCount - 1, currentPage + (wheelDelta < 0 ? 1 : -1)))
         wheelDelta = 0
         if (next !== currentPage) { currentPage = next; lastPageWheel = now }
     }
@@ -123,9 +126,9 @@ FocusScope {
                 }
             }
             Layout.fillWidth: true
-            spacing: 24
+            spacing: 16
             Repeater {
-                model: ["Главная", "Уведомления" + (root.notifications && root.notifications.unreadCount ? " · " + root.notifications.unreadCount : "")]
+                model: ["Главная", "Уведомления" + (root.notifications && root.notifications.unreadCount ? " · " + root.notifications.unreadCount : ""), "Полка"]
                 delegate: AbstractButton {
                     id: pageTab
                     required property int index
@@ -138,6 +141,8 @@ FocusScope {
                     Accessible.role: Accessible.PageTab
                     Accessible.selected: root.currentPage === index
                     onClicked: root.currentPage = index
+                    Keys.onLeftPressed: root.currentPage = Math.max(0, root.currentPage - 1)
+                    Keys.onRightPressed: root.currentPage = Math.min(root.pageCount - 1, root.currentPage + 1)
                     background: Rectangle {
                         color: "transparent"
                         border.width: pageTab.visualFocus ? 1 : 0
@@ -341,11 +346,21 @@ FocusScope {
                 id: notificationsView
                 x: (1 - root.pagePosition) * pageViewport.width
                 width: pageViewport.width; height: pageViewport.height
-                visible: root.pagePosition > 0
+                visible: root.pagePosition > 0 && root.pagePosition < 2
                 enabled: root.currentPage === 1
                 tokens: root.tokens
                 notifications: root.notifications
                 onCloseRequested: root.closeRequested()
+            }
+            ShelfPage {
+                id: shelfView
+                objectName: "shelfPage"
+                x: (2 - root.pagePosition) * pageViewport.width
+                width: pageViewport.width; height: pageViewport.height
+                visible: root.pagePosition > 1
+                enabled: root.currentPage === 2
+                tokens: root.tokens
+                store: root.shelfService
             }
         }
     }

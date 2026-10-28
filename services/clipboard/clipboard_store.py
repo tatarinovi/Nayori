@@ -5,6 +5,7 @@ talks JSON lines over stdin/stdout; binary clipboard data never passes through
 QML or a shell command. Original bytes are retained for lossless copying.
 """
 import argparse
+import base64
 import asyncio
 import contextlib
 import fcntl
@@ -244,6 +245,47 @@ def capture(socket_path, kind):
             pass  # The shell may have closed while wl-paste was dispatching.
 
 
+async def read_current():
+    async def read(arguments, limit):
+        process = await asyncio.create_subprocess_exec("wl-paste", *arguments,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+        try:
+            async def consume():
+                result = bytearray()
+                while chunk := await process.stdout.read(min(65536, limit + 1 - len(result))):
+                    result.extend(chunk)
+                    if len(result) > limit:
+                        raise ValueError("Содержимое буфера больше 16 МиБ")
+                return bytes(result)
+            data = await asyncio.wait_for(consume(), 5)
+            await asyncio.wait_for(process.wait(), 5)
+            if process.returncode:
+                raise ValueError("Буфер пуст или недоступен в текущем сеансе Wayland")
+            return data
+        finally:
+            if process.returncode is None:
+                process.kill()
+                await process.communicate()
+    types = (await read(["--list-types"], 8192)).decode("utf-8").splitlines()
+    mime = next((t for t in types if t == "text/uri-list"), None)
+    mime = mime or next((t for t in types if t.startswith("image/") and t != "image/svg+xml"), None)
+    mime = mime or next((t for t in types if t in ("video/mp4", "video/webm", "video/ogg")), None)
+    mime = mime or next((t for t in types if t.startswith("text/plain")), None)
+    if not mime:
+        raise ValueError("В буфере нет текста, изображения или видео поддерживаемого формата")
+    data = await read(["--no-newline", "--type", mime], MAX_ITEM_BYTES)
+    if not data:
+        raise ValueError("Буфер обмена пуст")
+    if mime.startswith("image/"):
+        return {"image": "data:" + mime + ";base64," + base64.b64encode(data).decode()}
+    if mime.startswith("video/"):
+        return {"media": base64.b64encode(data).decode(), "mime": mime}
+    text = data.decode("utf-8")
+    if mime == "text/uri-list":
+        return {"urls": [line for line in text.splitlines() if line and not line.startswith("#")]}
+    return {"text": text}
+
+
 async def run(args):
     store = Store(args.directory)
     lock = (store.directory / "worker.lock").open("w")
@@ -289,7 +331,9 @@ async def run(args):
         nonlocal cleared_at
         try:
             action, identity = message.get("action"), message.get("id", "")
-            if action == "list":
+            if action == "read-current":
+                emit(dict(event="content", content=await read_current()))
+            elif action == "list":
                 snapshot()
             elif action == "pin":
                 store.pin(identity)
@@ -310,8 +354,14 @@ async def run(args):
                     await process.wait()
                 if process.returncode != 0:
                     raise ValueError("История очищена, но текущий буфер очистить не удалось")
-            elif action == "copy":
-                payload = store.payload(identity)
+            elif action in ("copy", "copy-content"):
+                if action == "copy-content":
+                    mime, text = message.get("mime"), message.get("text")
+                    if mime not in ("text/plain;charset=utf-8", "text/uri-list") or not isinstance(text, str) or len(text.encode()) > MAX_TEXT_BYTES:
+                        raise ValueError("Недопустимое содержимое буфера")
+                    payload = (mime, text.encode())
+                else:
+                    payload = store.payload(identity)
                 if not payload:
                     raise ValueError("Запись больше не доступна")
                 process = await asyncio.create_subprocess_exec("wl-copy", "--type", payload[0],
@@ -340,8 +390,8 @@ async def run(args):
                     emit(dict(event="paste-unavailable", error="Скопировано. Приложение не приняло автоматическую вставку"))
             elif action == "stop":
                 stopped.set()
-        except (OSError, ValueError) as failure:
-            emit(dict(event="error", error=str(failure)))
+        except (OSError, ValueError, asyncio.TimeoutError) as failure:
+            emit(dict(event="error", error=str(failure) or "Буфер обмена не ответил"))
 
     # Serialize UI actions, including copy, while still receiving clipboard events.
     commands = asyncio.Queue()
@@ -356,7 +406,7 @@ async def run(args):
             stopped.set()
             return
         input_buffer.extend(chunk)
-        if len(input_buffer) > 65536:
+        if len(input_buffer) > MAX_TEXT_BYTES * 6 + 65536:
             input_buffer.clear()
             return
         while b"\n" in input_buffer:

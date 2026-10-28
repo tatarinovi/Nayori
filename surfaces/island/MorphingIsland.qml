@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import "../launcher"
+import "ShelfDrop.js" as ShelfDrop
 
 // One body in a fixed layer surface. Only its scene geometry changes; compact
 // and dashboard content share the same border, colour, and top-center origin.
@@ -11,15 +12,24 @@ Rectangle {
     property var audioReaction: null
     property var musicService: null
     property var notifications: null
+    property var shelfService: null
+    property int currentPage: 0
+    readonly property bool dropHover: compactDrop.containsDrag
+    readonly property bool shelfInteracting: dropHover || (!!dashboard.item && dashboard.item.shelfInteracting)
+    onCurrentPageChanged: {
+        notificationPage = currentPage === 1
+        updateNotificationView()
+        updateMusicConsumer()
+    }
     property bool notificationPage: false
     readonly property string viewKey: "island-" + String(root)
     function updateNotificationView() {
         if (notifications) notifications.view(viewKey, expanded, expanded && notificationPage)
-        if (dashboard.item && dashboard.item.currentPage !== (notificationPage ? 1 : 0))
-            dashboard.item.currentPage = notificationPage ? 1 : 0
+        if (dashboard.item && dashboard.item.currentPage !== currentPage)
+            dashboard.item.currentPage = currentPage
     }
     readonly property bool wantsMusic: active && visible && !testMode &&
-        ((expanded && !notificationPage) || (!!musicService && !!musicService.player && musicService.player.isPlaying))
+        ((expanded && currentPage === 0) || (!!musicService && !!musicService.player && musicService.player.isPlaying))
     onWantsMusicChanged: updateMusicConsumer()
     function updateMusicConsumer() {
         if (musicService) musicService.consumer(viewKey, wantsMusic)
@@ -28,11 +38,15 @@ Rectangle {
     onActiveChanged: updateMusicConsumer()
     onVisibleChanged: updateMusicConsumer()
     onExpandedChanged: {
-        if (expanded) notificationPage = !!notifications && notifications.unreadCount > 0
+        if (expanded) currentPage = !!notifications && notifications.unreadCount > 0 ? 1 : 0
         updateNotificationView()
         updateMusicConsumer()
     }
-    onNotificationPageChanged: { updateNotificationView(); updateMusicConsumer() }
+    onNotificationPageChanged: {
+        if (notificationPage) currentPage = 1
+        else if (currentPage === 1) currentPage = 0
+        updateNotificationView(); updateMusicConsumer()
+    }
     onNotificationsChanged: updateNotificationView()
     Component.onDestruction: {
         if (notifications) notifications.view(viewKey, false, false)
@@ -194,8 +208,22 @@ Rectangle {
         onLauncherRequested: root.launcherRequested()
         onSettingsRequested: root.settingsRequested()
     }
-    // Passive: only reports where the cursor is, so the fox can look at it anywhere in
-    // the expanded island. Does not take clicks, wheel or hover from the content.
+    // Incoming native Wayland drags open the shelf from the compact capsule.
+    DropArea {
+        id: compactDrop
+        anchors.fill: parent
+        enabled: !root.launcherOpen && !root.expanded && !!root.shelfService
+        onEntered: event => {
+            if (event.source || !ShelfDrop.supports(event)) { event.accepted = false; return }
+            ShelfDrop.prefetch(event)
+            root.dashboardRequested()
+            root.currentPage = 2
+        }
+        onDropped: event => {
+            if (root.shelfService.add(ShelfDrop.read(event))) event.accept(Qt.CopyAction)
+        }
+    }
+    // Passive cursor tracking for the fox across the expanded island.
     HoverHandler { id: cursor }
     Loader {
         id: dashboard
@@ -221,8 +249,9 @@ Rectangle {
             weatherLoading: root.weatherService ? root.weatherService.loading : false
             onWeatherRefreshRequested: if (root.weatherService) root.weatherService.refresh()
             notifications: root.notifications
-            currentPage: root.notificationPage ? 1 : 0
-            onCurrentPageChanged: root.notificationPage = currentPage === 1
+            shelfService: root.shelfService
+            currentPage: root.currentPage
+            onCurrentPageChanged: root.currentPage = currentPage
             drawChrome: false
             showDate: false
             topInset: 0

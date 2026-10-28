@@ -24,6 +24,7 @@ import "services/island"
 import "surfaces/canvas"
 import "surfaces/companion"
 import "services/clipboard"
+import "services/shelf"
 import "services/lock"
 import "surfaces/lock"
 import "surfaces/clipboard"
@@ -63,6 +64,8 @@ ShellRoot {
         }
     }
     ClipboardService { id: clipboardStore }
+    readonly property var shelfService: shelfStore
+    ShelfService { id: shelfStore; clipboard: clipboardStore }
     readonly property var captureService: captureStore
     CaptureService { id: captureStore; settings: settingsStore; notifications: notificationModel }
     function beginCapture(kind) {

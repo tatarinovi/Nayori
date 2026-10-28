@@ -95,7 +95,7 @@ Scope {
         if (shellState.launcherOpened && shellState.currentOverlayScreen === panelScreen)
             shellState.launcherOpened = false
     }
-    readonly property bool dashboardPointerInside: topHover.hovered || capsule.popupOpen
+    readonly property bool dashboardPointerInside: topHover.hovered || capsule.popupOpen || capsule.shelfInteracting
     onDashboardPointerInsideChanged: {
         if (fullscreen || root.captureBlocksDashboard) return
         if (dashboardPointerInside) {
@@ -465,6 +465,7 @@ Scope {
         }
 
         MorphingIsland {
+            shelfService: root.shellState.shelfService || null
             musicService: root.shellState.islandMusic
             audioReaction: root.shellState.islandAudio
             notifications: root.shellState.islandNotifications

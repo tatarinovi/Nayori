@@ -7,6 +7,13 @@ QtObject {
     property bool ready: false
     property string error: ""
     property bool copying: false
+    property bool reading: false
+    signal contentReady(var content)
+    function readCurrent() {
+        if (root.reading) return false
+        root.reading = root.send("read-current", "")
+        return root.reading
+    }
     property bool pasteRequested: false
     property bool pasteReady: false
     property bool enabled: true
@@ -20,6 +27,14 @@ QtObject {
         root.error = ""
         worker.write(JSON.stringify({action: action, id: identity || ""}) + "\n")
         return true
+    }
+    function copyContent(mime, text) {
+        if (root.copying) return
+        root.cancelPaste()
+        if (!worker.running) { root.error = "Служба буфера обмена не запущена"; return }
+        root.error = ""
+        root.copying = true
+        worker.write(JSON.stringify({action: "copy-content", mime: mime, text: text}) + "\n")
     }
     function copy(identity, pasteAfter) {
         if (root.copying) return
@@ -56,6 +71,9 @@ QtObject {
                         root.records = message.records
                         root.ready = message.ready
                         root.error = message.error || ""
+                    } else if (message.event === "content") {
+                        root.reading = false
+                        root.contentReady(message.content)
                     } else if (message.event === "copied") {
                         root.copying = false
                         root.pasteReady = root.pasteRequested
@@ -64,6 +82,7 @@ QtObject {
                     } else if (message.event === "paste-unavailable") {
                         console.warn("Clipboard:", message.error)
                     } else if (message.event === "error") {
+                        root.reading = false
                         root.copying = false
                         root.cancelPaste()
                         root.error = message.error
@@ -73,6 +92,7 @@ QtObject {
         }
         onExited: (code, status) => {
             root.ready = false
+            root.reading = false
             root.copying = false
             root.cancelPaste()
             if (root.enabled) {

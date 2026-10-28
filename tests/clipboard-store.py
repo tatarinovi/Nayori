@@ -91,10 +91,15 @@ with tempfile.TemporaryDirectory(prefix="nayori-clipboard-tests-") as temporary:
                     "pathlib.Path(os.environ['CLIP_TEST_MIME']).write_text(sys.argv[2])\n")
     copy.chmod(0o700)
     paste = binary / "wl-paste"
-    paste.write_text("#!/bin/sh\nexit 1\n")
+    paste.write_text("#!/usr/bin/env python3\nimport os,sys,pathlib\n"
+                     "p=pathlib.Path(os.environ['CLIP_TEST_SELECTION'])\n"
+                     "if not p.exists(): sys.exit(1)\n"
+                     "if '--list-types' in sys.argv: print(p.with_suffix('.mime').read_text())\n"
+                     "else: sys.stdout.buffer.write(p.read_bytes())\n")
     paste.chmod(0o700)
     env = dict(os.environ, PATH=str(binary) + ":" + os.environ["PATH"],
                XDG_RUNTIME_DIR=temporary, WAYLAND_DISPLAY="no-such-wayland",
+               CLIP_TEST_SELECTION=str(directory / "selection"),
                CLIP_TEST_COPY=str(directory / "copied"), CLIP_TEST_MIME=str(directory / "mime"))
     process = subprocess.Popen([sys.executable, "-u", str(WORKER), "--no-watch", "--directory", str(directory / "daemon")],
                                env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -122,6 +127,39 @@ with tempfile.TemporaryDirectory(prefix="nayori-clipboard-tests-") as temporary:
     try:
         socket_path = event("capture")["socket"]
         assert event("history")["ready"]
+        process.stdin.write(json.dumps(dict(action="copy-content", mime="text/uri-list", text="file:///tmp/%23example\r\n")).encode() + b"\n")
+        process.stdin.flush()
+        event("copied")
+        assert (directory / "copied").read_bytes() == b"file:///tmp/%23example\r\n"
+        assert (directory / "mime").read_text() == "text/uri-list"
+        process.stdin.write(json.dumps(dict(action="copy-content", mime="application/invalid", text="bad")).encode() + b"\n")
+        process.stdin.flush()
+        assert event("error")["error"]
+
+        # Read the actual selection, including binary image/video and file-manager URI lists.
+        selection = directory / "selection"
+        for mime, payload, field in [
+            ("text/plain;charset=utf-8", "Текст с полки".encode(), "text"),
+            ("image/png", data, "image"),
+            ("video/mp4", b"\x00\x00\x00\x18ftypmp42" + b"V" * 100000, "media"),
+            ("text/uri-list", b"file:///tmp/video.mp4\r\n", "urls"),
+        ]:
+            selection.write_bytes(payload)
+            selection.with_suffix(".mime").write_text(mime)
+            send("read-current")
+            content = event("content")["content"]
+            assert field in content
+            if field == "text":
+                assert content[field] == payload.decode()
+            elif field == "urls":
+                assert content[field] == ["file:///tmp/video.mp4"]
+            else:
+                import base64
+                assert base64.b64decode(content[field].split(",", 1)[-1]) == payload
+        selection.unlink()
+        send("read-current")
+        assert event("error")["error"]
+
         for kind, payload in [("text", b"printf '$HOME `literal`'\n"), ("image", data)]:
             capture = subprocess.run([sys.executable, str(WORKER), "capture", socket_path, kind],
                                      input=payload, env=env, capture_output=True, timeout=5)
