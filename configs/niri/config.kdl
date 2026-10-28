@@ -1,0 +1,13 @@
+// Nayori portable preset. Replace this directory with your own complete preset.
+include "cfg/input.kdl"
+include "cfg/layout.kdl"
+include "cfg/animation.kdl"
+include "cfg/keybinds.kdl"
+include "cfg/autostart.kdl"
+prefer-no-csd
+hotkey-overlay { skip-at-startup; }
+window-rule {
+    geometry-corner-radius 12
+    clip-to-geometry true
+}
+screenshot-path "~/Pictures/Screenshots/%Y-%m-%d_%H-%M-%S.png"

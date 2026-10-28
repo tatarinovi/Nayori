@@ -29,7 +29,7 @@ jobs:
       - name: Install dependencies
         run: |
           pacman -Syu --noconfirm --needed \
-            git nodejs python python-gobject python-pillow python-numpy quickshell qt6-declarative \
+            git nodejs python python-textual python-gobject python-pillow python-numpy quickshell qt6-declarative \
             qt6-imageformats qt6-multimedia qt6-5compat imagemagick \
             dbus systemd ripgrep ffmpeg niri ruff shellcheck ttf-dejavu shadow util-linux
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6

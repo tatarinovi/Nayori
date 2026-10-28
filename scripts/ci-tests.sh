@@ -4,6 +4,7 @@ cd "$(dirname "$0")/.."
 
 case "${1:-}" in
     unit)
+        python3 tests/installer.py
         for test in tests/*.cjs; do
             printf '\n>>> %s\n' "$test"
             node "$test"

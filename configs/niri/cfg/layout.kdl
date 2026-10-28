@@ -1,0 +1,23 @@
+layout {
+    gaps 10 // Gap between windows
+    center-focused-column "never" // Don’t auto-center focused column
+	always-center-single-column
+    background-color "transparent"
+
+    preset-column-widths {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+    }
+
+	focus-ring {
+		width 2
+    }
+
+	shadow {
+		on
+		softness 20
+		spread 2
+		offset x=0 y=4
+    }
+}

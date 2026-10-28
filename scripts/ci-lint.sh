@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 
 ruff check scripts services tests
 # Start with correctness diagnostics; legacy style is not reformatted by CI.
-shellcheck --severity=error scripts/*.sh scripts/nayori-settings
+shellcheck --severity=error install.sh scripts/*.sh scripts/nayori-settings
 while IFS= read -r -d '' script; do
     bash -n "$script"
 done < <(git ls-files -z -- '*.sh' scripts/nayori-settings)

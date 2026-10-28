@@ -1,0 +1,384 @@
+{
+  "schema_version": 1,
+  "components": {
+    "nayori": {
+      "label": "Оболочка Nayori",
+      "requires": [],
+      "conflicts": [],
+      "packages": [
+        "quickshell",
+        "niri",
+        "qt6-declarative",
+        "qt6-imageformats",
+        "qt6-multimedia",
+        "qt6-5compat",
+        "python",
+        "python-gobject",
+        "curl",
+        "xdg-utils",
+        "qt6-svg",
+        "pipewire",
+        "wireplumber",
+        "networkmanager",
+        "bluez",
+        "upower"
+      ],
+      "description": "Версионная установка оболочки и пользовательской команды nayori.",
+      "system_requirements": [
+        "session-bus",
+        "pipewire",
+        "NetworkManager",
+        "bluetooth",
+        "upower"
+      ]
+    },
+    "niri": {
+      "label": "Конфиги niri",
+      "requires": [],
+      "conflicts": [],
+      "packages": [
+        "niri",
+        "kitty",
+        "firefox",
+        "thunar",
+        "wireplumber",
+        "playerctl",
+        "brightnessctl"
+      ],
+      "description": "Переносимый комплект US/RU. Существующий каталог будет сохранён целиком.",
+      "system_requirements": []
+    },
+    "autostart": {
+      "label": "Автозапуск Nayori",
+      "requires": [
+        "nayori"
+      ],
+      "conflicts": [],
+      "packages": [],
+      "description": "С комплектом niri подключается автоматически; иначе выдаётся фрагмент для ручного подключения.",
+      "system_requirements": []
+    },
+    "notifications": {
+      "label": "Уведомления",
+      "requires": [
+        "nayori"
+      ],
+      "conflicts": [],
+      "packages": [],
+      "description": "Приём org.freedesktop.Notifications. Другой демон автоматически не останавливается.",
+      "system_requirements": [
+        "notification-owner"
+      ]
+    },
+    "clipboard": {
+      "label": "Буфер обмена",
+      "requires": [
+        "nayori"
+      ],
+      "conflicts": [],
+      "packages": [
+        "wl-clipboard",
+        "ffmpeg"
+      ],
+      "description": "История буфера и превью медиа.",
+      "system_requirements": []
+    },
+    "capture": {
+      "label": "Захват экрана",
+      "requires": [
+        "nayori"
+      ],
+      "conflicts": [],
+      "packages": [
+        "grim",
+        "python-pillow",
+        "wl-clipboard",
+        "gpu-screen-recorder",
+        "ffmpeg",
+        "ttf-dejavu"
+      ],
+      "description": "Снимки и запись экрана. Проверяется доступность рекордера.",
+      "system_requirements": []
+    },
+    "visualizer": {
+      "label": "Музыкальная визуализация",
+      "requires": [
+        "nayori"
+      ],
+      "conflicts": [],
+      "packages": [
+        "cava",
+        "libpulse",
+        "pipewire-pulse"
+      ],
+      "description": "Анализ системного звука; работающий PulseAudio может конфликтовать с pipewire-pulse.",
+      "system_requirements": [
+        "pipewire-pulse"
+      ],
+      "incompatible_packages": [
+        "pulseaudio",
+        "pulseaudio-bluetooth"
+      ]
+    },
+    "fonts": {
+      "label": "Шрифты Nayori",
+      "requires": [],
+      "conflicts": [],
+      "packages": [
+        "inter-font",
+        "ttf-literata"
+      ],
+      "description": "Inter (репозитории pacman) и Literata (AUR). Нужен существующий paru/yay.",
+      "system_requirements": [],
+      "package_sources": {
+        "ttf-literata": "aur"
+      }
+    },
+    "lock": {
+      "label": "Блокировка / PAM",
+      "requires": [
+        "nayori"
+      ],
+      "conflicts": [],
+      "packages": [
+        "pam"
+      ],
+      "description": "Только проверенный комплектный профиль pam_unix.so; /etc/pam.d не меняется.",
+      "system_requirements": []
+    },
+    "sddm": {
+      "label": "Тема SDDM",
+      "requires": [],
+      "conflicts": [],
+      "packages": [
+        "sddm",
+        "qt6-declarative",
+        "qt6-svg",
+        "qt6-multimedia"
+      ],
+      "description": "Установка темы без переключения служб display manager.",
+      "system_requirements": [
+        "sddm"
+      ]
+    },
+    "sddm-select": {
+      "label": "Выбрать тему SDDM",
+      "requires": [
+        "sddm"
+      ],
+      "conflicts": [],
+      "packages": [],
+      "description": "Запись Current=nayori в отдельный конфиг SDDM. Службы не переключаются.",
+      "system_requirements": []
+    }
+  },
+  "apps": {
+    "kitty": {
+      "label": "Kitty",
+      "category": "Системные",
+      "description": "Kitty · репозитории pacman",
+      "packages": [
+        "kitty"
+      ],
+      "source": "repo"
+    },
+    "thunar": {
+      "label": "Thunar",
+      "category": "Системные",
+      "description": "Thunar · репозитории pacman",
+      "packages": [
+        "thunar"
+      ],
+      "source": "repo"
+    },
+    "btop": {
+      "label": "btop",
+      "category": "Системные",
+      "description": "btop · репозитории pacman",
+      "packages": [
+        "btop"
+      ],
+      "source": "repo"
+    },
+    "fastfetch": {
+      "label": "fastfetch",
+      "category": "Системные",
+      "description": "fastfetch · репозитории pacman",
+      "packages": [
+        "fastfetch"
+      ],
+      "source": "repo"
+    },
+    "pavucontrol": {
+      "label": "pavucontrol",
+      "category": "Системные",
+      "description": "pavucontrol · репозитории pacman",
+      "packages": [
+        "pavucontrol"
+      ],
+      "source": "repo"
+    },
+    "blueman": {
+      "label": "Blueman",
+      "category": "Системные",
+      "description": "Blueman · репозитории pacman",
+      "packages": [
+        "blueman"
+      ],
+      "source": "repo"
+    },
+    "firefox": {
+      "label": "Firefox",
+      "category": "Браузеры",
+      "description": "Firefox · репозитории pacman",
+      "packages": [
+        "firefox"
+      ],
+      "source": "repo"
+    },
+    "chromium": {
+      "label": "Chromium",
+      "category": "Браузеры",
+      "description": "Chromium · репозитории pacman",
+      "packages": [
+        "chromium"
+      ],
+      "source": "repo"
+    },
+    "zen-browser-bin": {
+      "label": "Zen Browser",
+      "category": "Браузеры",
+      "description": "Zen Browser · AUR",
+      "packages": [
+        "zen-browser-bin"
+      ],
+      "source": "aur"
+    },
+    "telegram-desktop": {
+      "label": "Telegram",
+      "category": "Общение",
+      "description": "Telegram · репозитории pacman",
+      "packages": [
+        "telegram-desktop"
+      ],
+      "source": "repo"
+    },
+    "discord": {
+      "label": "Discord",
+      "category": "Общение",
+      "description": "Discord · репозитории pacman",
+      "packages": [
+        "discord"
+      ],
+      "source": "repo"
+    },
+    "element-desktop": {
+      "label": "Element",
+      "category": "Общение",
+      "description": "Element · репозитории pacman",
+      "packages": [
+        "element-desktop"
+      ],
+      "source": "repo"
+    },
+    "mpv": {
+      "label": "mpv",
+      "category": "Мультимедиа",
+      "description": "mpv · репозитории pacman",
+      "packages": [
+        "mpv"
+      ],
+      "source": "repo"
+    },
+    "vlc": {
+      "label": "VLC",
+      "category": "Мультимедиа",
+      "description": "VLC · репозитории pacman",
+      "packages": [
+        "vlc"
+      ],
+      "source": "repo"
+    },
+    "obs-studio": {
+      "label": "OBS Studio",
+      "category": "Мультимедиа",
+      "description": "OBS Studio · репозитории pacman",
+      "packages": [
+        "obs-studio"
+      ],
+      "source": "repo"
+    },
+    "git": {
+      "label": "Git",
+      "category": "Разработка",
+      "description": "Git · репозитории pacman",
+      "packages": [
+        "git"
+      ],
+      "source": "repo"
+    },
+    "neovim": {
+      "label": "Neovim",
+      "category": "Разработка",
+      "description": "Neovim · репозитории pacman",
+      "packages": [
+        "neovim"
+      ],
+      "source": "repo"
+    },
+    "vscodium-bin": {
+      "label": "VSCodium",
+      "category": "Разработка",
+      "description": "VSCodium · AUR",
+      "packages": [
+        "vscodium-bin"
+      ],
+      "source": "aur"
+    },
+    "steam": {
+      "label": "Steam",
+      "category": "Игры",
+      "description": "Steam · репозитории pacman",
+      "packages": [
+        "steam"
+      ],
+      "source": "repo"
+    },
+    "lutris": {
+      "label": "Lutris",
+      "category": "Игры",
+      "description": "Lutris · репозитории pacman",
+      "packages": [
+        "lutris"
+      ],
+      "source": "repo"
+    },
+    "mangohud": {
+      "label": "MangoHud",
+      "category": "Игры",
+      "description": "MangoHud · репозитории pacman",
+      "packages": [
+        "mangohud"
+      ],
+      "source": "repo"
+    },
+    "libreoffice-fresh": {
+      "label": "LibreOffice",
+      "category": "Офис и заметки",
+      "description": "LibreOffice · репозитории pacman",
+      "packages": [
+        "libreoffice-fresh"
+      ],
+      "source": "repo"
+    },
+    "obsidian": {
+      "label": "Obsidian",
+      "category": "Офис и заметки",
+      "description": "Obsidian · репозитории pacman",
+      "packages": [
+        "obsidian"
+      ],
+      "source": "repo"
+    }
+  }
+}
