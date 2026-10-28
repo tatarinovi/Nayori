@@ -11,6 +11,8 @@ FocusScope {
     id: root
     property var wallpaperManager: null
     property var companionTokens: tokens
+    property var bluetoothService: null
+    property var settingsService: null
     required property var tokens
     property var captureSettings: ({})
     signal captureSettingsChangedRequested(var patch)
@@ -724,7 +726,7 @@ FocusScope {
             SettingsScroll { PowerPage { width: parent.width; tokens: root.tokens } }
             SettingsScroll { NetworkPage { width: parent.width; tokens: root.tokens; scanning: root.currentPage === 8 } }
             SettingsScroll { LocalSendPage { width: parent.width; tokens: root.tokens } }
-            SettingsScroll { BluetoothPage { width: parent.width; tokens: root.tokens } }
+            SettingsScroll { BluetoothPage { width: parent.width; tokens: root.tokens; bluetoothService: root.bluetoothService; settingsService: root.settingsService } }
             SettingsScroll { MousePage { width: parent.width; tokens: root.tokens; niriConfig: niriConfig } }
             SettingsScroll { KeyboardPage { width: parent.width; tokens: root.tokens; niriConfig: niriConfig } }
             SettingsScroll { ShortcutsPage { width: parent.width; tokens: root.tokens; niriConfig: niriConfig } }

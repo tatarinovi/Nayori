@@ -688,6 +688,9 @@ Scope {
         island: status
 
         StatusIsland {
+            bluetoothService: root.shellState.bluetoothService || null
+            settingsService: root.shellState.settingsService || null
+            onBluetoothSettingsRequested: root.shellState.openSettings("bluetooth")
             id: status
             opacity: statusWindow.contentOpacity
             tokens: root.tokenSet

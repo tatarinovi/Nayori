@@ -188,3 +188,8 @@ surfaces/clipboard/
 - `noctalia.kdl` сценарии акцента и обзора не меняют.
 - Плагинного хоста и каталога плагинов нет.
 - Экран блокировки использует `WlSessionLock` и PAM. `SessionActions` вызывает IPC `lock.lock`; сигналы logind и сон обрабатывает `services/lock/LockService.qml`. Тема SDDM использует тот же `AuthView` и снимок рассчитанных цветов и обоев. Установка — в [LOCKSCREEN.md](LOCKSCREEN.md).
+
+
+## Bluetooth
+
+`ShellRoot` владеет общим `services/system/BluetoothService.qml`: меню `StatusIsland` и страница настроек используют его модель. Динамический `BluetoothBackend.qml` получает состояния через `Quickshell.Bluetooth`; событийный `scripts/bluetooth-bridge.py` на PyGObject/Gio дополняет API результатами операций и агентом сопряжения BlueZ. Состояние не опрашивается внешними командами. Видимость значка хранится в существующем `SettingsService`. Подробности и проверки — [Bluetooth](BLUETOOTH.md).

@@ -10,6 +10,8 @@ FloatingWindow {
     id: root
     property var wallpaperManager: null
     property var companionTokens: tokens
+    property var bluetoothService: null
+    property var settingsService: null
     required property var tokens
     property var captureSettings: ({})
     signal captureSettingsChangedRequested(var patch)
@@ -118,6 +120,8 @@ FloatingWindow {
     readonly property int selectedPage: settings.currentPage
 
     Settings {
+        bluetoothService: root.bluetoothService
+        settingsService: root.settingsService
         id: settings
         captureSettings: root.captureSettings
         onCaptureSettingsChangedRequested: patch => root.captureSettingsChangedRequested(patch)

@@ -17,14 +17,10 @@ PanelWindow {
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     focusable: true
-    WlrLayershell.layer: WlrLayer.Top
+    WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "nayori-capture"
     WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-    // Native island remains above this frozen layer and accepts its own input.
-    mask: Region {
-        width: root.width; height: root.height
-        Region { intersection: Intersection.Subtract; x: 0; y: 0; width: root.width; height: 64 }
-    }
+    // Cover the entire frozen frame, including the island, for selection and markup.
     property var liveMark: null
     property point origin: Qt.point(0, 0)
     property var startArea: null

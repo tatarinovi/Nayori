@@ -25,3 +25,5 @@ qs -p tests/smoke/NaomiPixelSmoke.qml
 `python3 tests/color-scheme.py` проверяет светлую палитру, контраст текста и акцентов, цвета с обоев, прозрачность и возврат к тёмной теме. `NAYORI_THEME_PREVIEW=/tmp/nayori-light.png python3 tests/color-scheme.py` также сохраняет превью настроек.
 
 `python3 tests/panel-modes.py` проверяет отдельные режимы и отступы двух мониторов, селекты с клавиатуры, задержку автоскрытия и промежуточные кадры появления/исчезновения. `node tests/panel-modes.cjs` проверяет нормализацию и совместимость со старыми настройками.
+
+`dbus-run-session -- python3 tests/bluetooth.py` проверяет `BluetoothSmoke.qml` с настоящими Quickshell Bluetooth-моделями и изолированным тестовым BlueZ; нужен PyGObject/Gio. Реальный адаптер не используется. См. [Bluetooth](../../docs/BLUETOOTH.md).

@@ -53,6 +53,45 @@ Button {
                     const top = kind === "chevron-up" ? 12 : 8
                     const bottom = kind === "chevron-up" ? 7 : 13
                     ctx.moveTo(5, top); ctx.lineTo(10, bottom); ctx.lineTo(15, top)
+                } else if (kind === "settings") {
+                    for (let i = 0; i < 32; i++) {
+                        const angle = i * Math.PI / 16 - Math.PI / 8
+                        const radius = i % 4 === 1 || i % 4 === 2 ? 8 : 6.3
+                        const x = 10 + Math.cos(angle) * radius
+                        const y = 10 + Math.sin(angle) * radius
+                        if (i === 0) ctx.moveTo(x, y)
+                        else ctx.lineTo(x, y)
+                    }
+                    ctx.closePath()
+                    ctx.moveTo(13, 10); ctx.arc(10, 10, 3, 0, Math.PI * 2)
+                } else if (kind === "device-forget") {
+                    ctx.moveTo(4, 5); ctx.lineTo(16, 5)
+                    ctx.moveTo(8, 2); ctx.lineTo(12, 2)
+                    ctx.moveTo(6, 5); ctx.lineTo(7, 17); ctx.lineTo(13, 17); ctx.lineTo(14, 5)
+                    ctx.moveTo(9, 8); ctx.lineTo(9, 14)
+                    ctx.moveTo(11, 8); ctx.lineTo(11, 14)
+                } else if (kind === "device-connect" || kind === "device-disconnect") {
+                    ctx.moveTo(7, 3); ctx.lineTo(7, 7)
+                    ctx.moveTo(13, 3); ctx.lineTo(13, 7)
+                    ctx.moveTo(5, 7); ctx.lineTo(15, 7); ctx.lineTo(15, 10)
+                    ctx.quadraticCurveTo(15, 14, 10, 14)
+                    ctx.quadraticCurveTo(5, 14, 5, 10); ctx.closePath()
+                    ctx.moveTo(10, 14); ctx.lineTo(10, 18)
+                    if (kind === "device-disconnect") {
+                        ctx.moveTo(3, 3); ctx.lineTo(17, 17)
+                    }
+                } else if (kind.indexOf("bluetooth") === 0) {
+                    ctx.moveTo(6, 6); ctx.lineTo(14, 13); ctx.lineTo(10, 17)
+                    ctx.lineTo(10, 3); ctx.lineTo(14, 7); ctx.lineTo(6, 14)
+                    if (kind === "bluetooth-off") {
+                        ctx.moveTo(3, 3); ctx.lineTo(17, 17)
+                    } else if (kind === "bluetooth-unavailable") {
+                        ctx.moveTo(17, 4); ctx.lineTo(17, 10)
+                        ctx.moveTo(17, 13); ctx.lineTo(17, 13.2)
+                    } else if (kind === "bluetooth-connected") {
+                        ctx.moveTo(3, 10); ctx.lineTo(4, 10)
+                        ctx.moveTo(17, 10); ctx.lineTo(18, 10)
+                    }
                 } else if (kind.indexOf("audio-") === 0) {
                     ctx.moveTo(3, 8); ctx.lineTo(6, 8); ctx.lineTo(10, 4)
                     ctx.lineTo(10, 16); ctx.lineTo(6, 12); ctx.lineTo(3, 12); ctx.closePath()

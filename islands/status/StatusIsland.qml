@@ -10,6 +10,7 @@ import Quickshell.Services.SystemTray
 import Quickshell.Widgets
 import "../../services/status"
 import "../shared"
+import "../../surfaces/settings"
 
 // Содержимое правого острова. Окна слоя здесь нет.
 // Общая геометрия панели: строка 32 и отступ 8.
@@ -17,6 +18,9 @@ Rectangle {
     id: root
 
     required property var tokens
+    property var bluetoothService: null
+    property var settingsService: null
+    signal bluetoothSettingsRequested()
     property var menuWindow: null
     property var mixerSources: []
     signal mixerSourcesSeen(var sources)
@@ -68,6 +72,7 @@ Rectangle {
     property var selectedNetwork: null
     property string networkError: ""
     onOpenedChanged: {
+        if (opened !== "bluetooth" && bluetoothService) bluetoothService.stopDiscovery()
         clearTrayMenus()
         selectedNetwork = null
         networkError = ""
@@ -230,6 +235,56 @@ Rectangle {
             checked: root.opened === "tray"
             onClicked: root.togglePopup("tray")
         }
+        Row {
+            spacing: 3
+            visible: !!root.bluetoothService && (!root.settingsService || root.settingsService.bluetoothIconVisible)
+            StatusButton {
+                tokens: root.tokens
+                iconName: !root.bluetoothService || !root.bluetoothService.adapter ? "bluetooth-unavailable"
+                    : !root.bluetoothService.powered ? "bluetooth-off"
+                    : root.bluetoothService.connectedCount > 0 ? "bluetooth-connected" : "bluetooth"
+                hint: root.bluetoothService ? root.bluetoothService.statusText : "Bluetooth недоступен"
+                checked: root.opened === "bluetooth"
+                onClicked: root.togglePopup("bluetooth")
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.RightButton
+                    onClicked: root.togglePopup("bluetooth-context")
+                }
+            }
+            Repeater {
+                model: root.bluetoothService ? root.bluetoothService.batteryDevices : []
+                delegate: Item {
+                    id: batteryIndicator
+                    required property var modelData
+                    readonly property string percentage: root.bluetoothService.batteryText(modelData)
+                    width: 9
+                    height: 32
+                    Accessible.role: Accessible.StaticText
+                    Accessible.name: (modelData.name || modelData.address) + ": " + percentage
+                    Rectangle {
+                        x: 3; y: 6
+                        width: 3; height: 20; radius: 1.5
+                        color: root.tokens.color.border
+                        Rectangle {
+                            anchors.bottom: parent.bottom
+                            width: parent.width
+                            height: parent.height * batteryIndicator.modelData.battery
+                            radius: 1.5
+                            color: batteryIndicator.modelData.battery <= 0.15 ? root.tokens.color.secondary : root.tokens.color.accent
+                            Behavior on height { NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast } }
+                        }
+                    }
+                    HoverHandler { id: batteryHover }
+                    PanelTooltip {
+                        tokens: root.tokens
+                        target: batteryIndicator
+                        hovered: batteryHover.hovered
+                        text: (batteryIndicator.modelData.name || batteryIndicator.modelData.address) + " · " + batteryIndicator.percentage
+                    }
+                }
+            }
+        }
         StatusButton {
             tokens: root.tokens
             iconName: network.linked ? (network.label === "wifi" ? "network-wireless-symbolic" : "network-wired-symbolic") : "network-offline-symbolic"
@@ -269,7 +324,7 @@ Rectangle {
         anchor.margins.top: 8
         Region { id: popupGlass; item: popupGlassSurface; radius: root.tokens.radius.small + 12 }
         BackgroundEffect.blurRegion: root.tokens.frosted ? popupGlass : null
-        implicitWidth: 320
+        implicitWidth: root.opened === "bluetooth" ? 360 : 320
         implicitHeight: popupColumn.implicitHeight + 24
         color: "transparent"
         grabFocus: true
@@ -308,12 +363,33 @@ Rectangle {
                 Row {
                     width: parent.width
                     StatusText {
-                        width: parent.width - 32
+                        width: parent.width - 32 - (root.opened === "bluetooth" ? 84 : 0)
                         height: 32
                         verticalAlignment: Text.AlignVCenter
-                        text: root.opened === "tray" ? "System tray" : root.opened === "audio" ? "Sound" : "Network"
+                        text: root.opened === "tray" ? "System tray" : root.opened === "audio" ? "Sound" : root.opened.startsWith("bluetooth") ? "Bluetooth" : "Network"
                         font.family: root.tokens.type.display.family
                         font.pixelSize: root.tokens.type.display.size
+                    }
+                    SettingsSwitch {
+                        tokens: root.tokens
+                        visible: root.opened === "bluetooth"
+                        width: 52
+                        height: 32
+                        text: ""
+                        Accessible.name: "Включить Bluetooth"
+                        checked: !!root.bluetoothService && root.bluetoothService.powered
+                        enabled: !!root.bluetoothService && !!root.bluetoothService.adapter && !root.bluetoothService.busy && root.bluetoothService.bridgeReady
+                        onClicked: {
+                            root.bluetoothService.setPowered(!root.bluetoothService.powered)
+                            checked = Qt.binding(() => root.bluetoothService.powered)
+                        }
+                    }
+                    StatusButton {
+                        tokens: root.tokens
+                        visible: root.opened === "bluetooth"
+                        iconName: "settings"
+                        hint: "Настройки Bluetooth"
+                        onClicked: { root.opened = ""; root.bluetoothSettingsRequested() }
                     }
                     StatusButton {
                         tokens: root.tokens
@@ -321,6 +397,38 @@ Rectangle {
                         hint: "Close"
                         onClicked: root.opened = ""
                     }
+                }
+                StatusButton {
+                    tokens: root.tokens
+                    visible: root.opened === "bluetooth-context"
+                    width: parent.width
+                    text: "Скрыть иконку"
+                    enabled: !!root.settingsService && root.settingsService.ready
+                    onClicked: {
+                        root.settingsService.update({bluetoothIconVisible: false})
+                        root.opened = ""
+                    }
+                }
+                Flickable {
+                    visible: root.opened === "bluetooth"
+                    width: parent.width
+                    height: visible ? Math.min(480, bluetoothColumn.implicitHeight) : 0
+                    contentHeight: bluetoothColumn.implicitHeight
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    Column {
+                        id: bluetoothColumn
+                        width: parent.width
+                        spacing: 8
+                        BluetoothControls {
+                            width: parent.width
+                            tokens: root.tokens
+                            bluetooth: root.bluetoothService
+                            showPowerToggle: false
+                            active: root.opened === "bluetooth"
+                        }
+                    }
+                    ScrollBar.vertical: ScrollBar { }
                 }
                 Grid {
                     id: trayGrid

@@ -42,6 +42,9 @@ ShellRoot {
     Notifications { model: notificationModel }
 
     SettingsService { id: settingsStore }
+    BluetoothService { id: bluetoothStore }
+    readonly property var bluetoothService: bluetoothStore
+    readonly property var settingsService: settingsStore
     readonly property var mixerSources: settingsStore.mixerSources
     property var pendingMixerSources: []
     function noteMixerSources(seen) {
@@ -64,10 +67,6 @@ ShellRoot {
     CaptureService { id: captureStore; settings: settingsStore; notifications: notificationModel }
     function beginCapture(kind) {
         if (lockService.locked) return
-        root.clipboardOpened = false
-        root.launcherOpened = false
-        if (root.startMenuOutput !== "") root.startMenuToggleRequested(root.startMenuOutput)
-        settingsController.close()
         const output = root.screenNamed(Niri.focusedOutput)
         if (output) captureStore.begin(kind, output.name)
     }
@@ -471,6 +470,7 @@ ShellRoot {
 
     SettingsController {
         id: settingsController
+        bluetoothService: bluetoothStore
         companionTokens: naomiTokens
         remindCompanion: kind => companionHost.item ? companionHost.item.remind(kind) : false
         tokens: root.tokenSet

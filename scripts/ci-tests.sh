@@ -28,7 +28,7 @@ case "${1:-}" in
             printf '\n>>> %s\n' "$suite"
             bash "scripts/check-$suite.sh"
         done
-        for test in color-scheme settings panel-modes weather-service settings-window settings-usage naomi-sprite wallpaper-library lockscreen; do
+        for test in bluetooth color-scheme settings panel-modes weather-service settings-window settings-usage naomi-sprite wallpaper-library lockscreen; do
             printf '\n>>> %s\n' "$test"
             python3 "tests/$test.py"
         done

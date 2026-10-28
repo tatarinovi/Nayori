@@ -8,6 +8,7 @@ import "../../services/settings"
 QtObject {
     id: root
     property var companionTokens: tokens
+    property var bluetoothService: null
     required property var tokens
     required property var settingsService
     required property var wallpaperManager
@@ -113,6 +114,8 @@ QtObject {
     property Component windowFactory: Component {
         SettingsWindow {
             id: surface
+            bluetoothService: root.bluetoothService
+            settingsService: root.settingsService
             settingsReady: root.settingsService.ready
             captureSettings: root.settingsService.values
             onCaptureSettingsChangedRequested: patch => root.settingsService.update(patch)

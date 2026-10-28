@@ -126,6 +126,10 @@ Canvas {
         } else if (name === "bluetooth") {
             line(10, 2, 10, 22); line(10, 2, 18, 8); line(18, 8, 5, 18)
             line(10, 22, 18, 16); line(18, 16, 5, 6)
+        } else if (name === "phone") {
+            tile(6, 1, 12, 22, 3)
+            hole(8, 4, 8, 14, 1)
+            hole(11, 20, 2, 1.5, 0.5)
         } else if (name === "mouse") {
             tile(5, 2, 14, 20, 7); hole(11, 5, 2, 6, 1)
         } else if (name === "keyboard" || name === "shortcuts") {
