@@ -281,7 +281,7 @@ PanelWindow {
                             textFormat: Text.PlainText
                             elide: Text.ElideRight
                             color: root.tokens.color.text
-                            font.family: root.tokens.type.body.family
+                            font.family: root.tokens.type.display.family
                             font.pixelSize: 20
                             font.weight: 500
                         }
