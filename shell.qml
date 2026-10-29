@@ -42,6 +42,7 @@ ShellRoot {
     NotificationModel { id: notificationModel }
     Notifications { model: notificationModel }
 
+    NayoriUpdate { id: nayoriUpdate }
     SettingsService { id: settingsStore }
     BluetoothService { id: bluetoothStore }
     readonly property var bluetoothService: bluetoothStore
@@ -474,6 +475,7 @@ ShellRoot {
     SettingsController {
         id: settingsController
         bluetoothService: bluetoothStore
+        updateService: nayoriUpdate
         companionTokens: naomiTokens
         remindCompanion: kind => companionHost.item ? companionHost.item.remind(kind) : false
         tokens: root.tokenSet

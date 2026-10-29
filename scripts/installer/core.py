@@ -614,6 +614,11 @@ class Engine:
             code, commit = self.runner.capture(
                 ["git", "-C", str(self.source), "rev-parse", "HEAD"]
             )
+            dirty_code, dirty = self.runner.capture(
+                ["git", "-C", str(self.source), "status", "--porcelain", "--untracked-files=all"]
+            )
+            if dirty_code or dirty:
+                commit = "unknown"
             version = (
                 datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
                 + "-"

@@ -45,7 +45,7 @@ class FakeRunner(Runner):
     def capture(self, argv):
         self.commands.append(argv)
         if argv[0] == "git":
-            return 0, "fixture-commit"
+            return 0, "" if "status" in argv else "fixture-commit"
         if argv[0] == "niri":
             return Runner().capture(argv) if self.real_niri else (0, "valid")
         if "-Q" in argv:

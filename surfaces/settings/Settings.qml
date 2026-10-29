@@ -54,6 +54,7 @@ FocusScope {
     property int islandRotationSeconds: 15
     property string startIconStyle: "current"
     signal startIconStyleChangedRequested(string style)
+    property var updateService: null
     property string preferredTerminal: "kitty"
     property string preferredFileManager: "io.github.lgse.Strata"
     property var niri: null
@@ -774,7 +775,7 @@ FocusScope {
             SettingsScroll { WorkspacesPage { width: parent.width; tokens: root.tokens; niri: root.niri } }
             SettingsScroll { DefaultsPage { width: parent.width; tokens: root.tokens } }
             SettingsScroll { AutostartPage { width: parent.width; tokens: root.tokens } }
-            SettingsScroll { UpdatesPage { width: parent.width; tokens: root.tokens; preferredTerminal: root.preferredTerminal } }
+            SettingsScroll { UpdatesPage { width: parent.width; tokens: root.tokens; preferredTerminal: root.preferredTerminal; updateService: root.updateService } }
             SettingsScroll { AboutPage { width: parent.width; tokens: root.tokens } }
             SettingsScroll {
                 IntegrationsPage {

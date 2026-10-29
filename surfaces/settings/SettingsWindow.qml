@@ -40,6 +40,7 @@ FloatingWindow {
     property int islandRotationSeconds: 15
     property string startIconStyle: "current"
     signal startIconStyleChangedRequested(string style)
+    property var updateService: null
     property string preferredTerminal: "kitty"
     property string preferredFileManager: "org.gnome.Nautilus"
     property var niri: null
@@ -154,6 +155,7 @@ FloatingWindow {
         islandRotationSeconds: root.islandRotationSeconds
         startIconStyle: root.startIconStyle
         onStartIconStyleChangedRequested: style => root.startIconStyleChangedRequested(style)
+        updateService: root.updateService
         preferredTerminal: root.preferredTerminal
         preferredFileManager: root.preferredFileManager
         niri: root.niri

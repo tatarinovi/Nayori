@@ -8,6 +8,7 @@ import "../../services/settings"
 QtObject {
     id: root
     property var companionTokens: tokens
+    property var updateService: null
     property var bluetoothService: null
     required property var tokens
     required property var settingsService
@@ -152,6 +153,7 @@ QtObject {
             islandRotationSeconds: root.settingsService.islandRotationSeconds
             startIconStyle: root.settingsService.startIconStyle
             onStartIconStyleChangedRequested: style => root.settingsService.update({startIconStyle: style})
+            updateService: root.updateService
             preferredTerminal: root.settingsService.preferredTerminal
             preferredFileManager: root.settingsService.preferredFileManager
             niri: root.niri
