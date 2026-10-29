@@ -6,6 +6,7 @@ case "${1:-}" in
     unit)
         python3 tests/installer.py
         python3 tests/nayori-update.py
+        python3 tests/wireguard.py --unit
         for test in tests/*.cjs; do
             printf '\n>>> %s\n' "$test"
             node "$test"
@@ -30,7 +31,7 @@ case "${1:-}" in
             printf '\n>>> %s\n' "$suite"
             bash "scripts/check-$suite.sh"
         done
-        for test in bluetooth color-scheme settings panel-modes weather-service settings-window settings-usage naomi-sprite wallpaper-library lockscreen; do
+        for test in bluetooth color-scheme settings panel-modes weather-service settings-window settings-usage naomi-sprite wallpaper-library lockscreen wireguard; do
             printf '\n>>> %s\n' "$test"
             python3 "tests/$test.py"
         done

@@ -134,6 +134,12 @@ Column {
         text: root.error
     }
 
+    WireGuardControls {
+        width: parent.width
+        tokens: root.tokens
+        watching: root.scanning
+    }
+
     Repeater {
         model: control.managerPresent ? control.devices : null
         delegate: Column {

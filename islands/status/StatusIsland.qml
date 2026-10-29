@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
-import Quickshell.Networking as QsNet
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Services.Pipewire as QsPw
@@ -21,6 +20,7 @@ Rectangle {
     property var bluetoothService: null
     property var settingsService: null
     signal bluetoothSettingsRequested()
+    signal networkSettingsRequested()
     property var menuWindow: null
     property var mixerSources: []
     signal mixerSourcesSeen(var sources)
@@ -68,15 +68,25 @@ Rectangle {
     }
 
     property string opened: ""
+    property bool networkRetained: false
+    property bool networkKeyboard: false
+    readonly property bool networkPopup: opened === "network" || (opened === "" && networkRetained)
+    property real networkReveal: opened === "network" ? 1 : 0
+    Behavior on networkReveal {
+        enabled: !root.tokens.motion.off && !root.networkKeyboard
+        NumberAnimation {
+            duration: root.tokens.motion.fast
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: root.tokens.motion.easeOut
+        }
+    }
+    onNetworkRevealChanged: if (networkReveal === 0 && opened !== "network") networkRetained = false
     property var trayMenuStack: []
-    property var selectedNetwork: null
-    property string networkError: ""
     onOpenedChanged: {
+        if (opened === "network") networkRetained = true
+        else if (opened !== "" || tokens.motion.off || networkKeyboard) networkRetained = false
         if (opened !== "bluetooth" && bluetoothService) bluetoothService.stopDiscovery()
         clearTrayMenus()
-        selectedNetwork = null
-        networkError = ""
-        passwordField.clear()
     }
     Component {
         id: trayMenuFactory
@@ -108,26 +118,6 @@ Rectangle {
     }
 
     Component.onDestruction: clearTrayMenus()
-
-    function connectNetwork(entry) {
-        networkError = ""
-        if (entry.connected) {
-            entry.disconnect()
-        } else if (!entry.known && entry.security !== undefined
-                   && entry.security !== QsNet.WifiSecurityType.Open
-                   && entry.security !== QsNet.WifiSecurityType.Owe) {
-            if (entry.security !== QsNet.WifiSecurityType.WpaPsk
-                    && entry.security !== QsNet.WifiSecurityType.Wpa2Psk
-                    && entry.security !== QsNet.WifiSecurityType.Sae) {
-                networkError = "This network requires an administrator connection profile."
-                return
-            }
-            selectedNetwork = entry
-            Qt.callLater(function() { passwordField.forceActiveFocus() })
-        } else {
-            entry.connect()
-        }
-    }
 
     function togglePopup(name) {
         opened = opened === name ? "" : name
@@ -290,7 +280,9 @@ Rectangle {
             iconName: network.linked ? (network.label === "wifi" ? "network-wireless-symbolic" : "network-wired-symbolic") : "network-offline-symbolic"
             hint: "Network: " + (network.available ? network.label : "unavailable")
             checked: root.opened === "network"
-            onClicked: root.togglePopup("network")
+            onClicked: { root.networkKeyboard = false; root.togglePopup("network") }
+            Keys.onReturnPressed: { root.networkKeyboard = true; root.togglePopup("network") }
+            Keys.onSpacePressed: { root.networkKeyboard = true; root.togglePopup("network") }
         }
         StatusButton {
             tokens: root.tokens
@@ -317,29 +309,36 @@ Rectangle {
 
     PopupWindow {
         id: popup
-        visible: root.opened !== "" && root.menuWindow !== null
+        visible: (root.opened !== "" || root.networkRetained) && root.menuWindow !== null
         anchor.item: root
         anchor.edges: Edges.Top | Edges.Right
         anchor.gravity: Edges.Top | Edges.Left
         anchor.margins.top: 8
-        Region { id: popupGlass; item: popupGlassSurface; radius: root.tokens.radius.small + 12 }
+        Region { id: popupGlass; item: popupGlassSurface; radius: root.networkPopup ? root.tokens.radius.medium : root.tokens.radius.small + 12 }
         BackgroundEffect.blurRegion: root.tokens.frosted ? popupGlass : null
-        implicitWidth: root.opened === "bluetooth" ? 360 : 320
+        implicitWidth: root.opened === "bluetooth" || root.networkPopup ? 360 : 320
         implicitHeight: popupColumn.implicitHeight + 24
         color: "transparent"
         grabFocus: true
         onVisibleChanged: {
-            if (!visible)
+            if (!visible) {
                 root.opened = ""
-            else
-                Qt.callLater(function() { popupColumn.forceActiveFocus() })
+                root.networkRetained = false
+            } else
+                Qt.callLater(function() {
+                    if (root.opened === "network") networkPanel.forceActiveFocus()
+                    else popupColumn.forceActiveFocus()
+                })
         }
 
         Rectangle {
             id: popupGlassSurface
             anchors.fill: parent
-            radius: root.tokens.radius.small + 12
-            color: root.tokens.material.menu
+            radius: root.networkPopup ? root.tokens.radius.medium : root.tokens.radius.small + 12
+            color: root.networkPopup ? root.tokens.material.dense : root.tokens.material.menu
+            transformOrigin: Item.BottomRight
+            opacity: root.networkPopup ? root.networkReveal : 1
+            scale: root.networkPopup && !root.tokens.motion.off ? 0.97 + root.networkReveal * 0.03 : 1
             border.width: 1
             border.color: root.tokens.color.border
 
@@ -351,16 +350,16 @@ Rectangle {
                 spacing: 8
                 focus: true
                 Keys.onEscapePressed: {
-                    if (root.selectedNetwork) {
-                        root.selectedNetwork = null
-                        passwordField.clear()
-                    } else if (root.trayMenuStack.length)
+                    if (root.opened === "network" && networkPanel.page !== 0)
+                        networkPanel.dismissDetail(true)
+                    else if (root.trayMenuStack.length)
                         root.popTrayMenu()
                     else
                         root.opened = ""
                 }
 
                 Row {
+                    visible: !root.networkPopup
                     width: parent.width
                     StatusText {
                         width: parent.width - 32 - (root.opened === "bluetooth" ? 84 : 0)
@@ -774,123 +773,15 @@ Rectangle {
                         }
                     }
                 }
-                Column {
-                    visible: root.opened === "network"
+                NetworkPanel {
+                    id: networkPanel
                     width: parent.width
-                    spacing: 8
-                    StatusText {
-                        width: parent.width
-                        wrapMode: Text.Wrap
-                        text: !network.available ? "NetworkManager unavailable"
-                              : network.degraded ? "Connection requires attention: " + network.label
-                              : network.linked ? "Connected · " + network.label : "Disconnected"
-                    }
-                    StatusButton {
-                        tokens: root.tokens
-                        width: parent.width
-                        text: !QsNet.Networking.wifiHardwareEnabled ? "Wi-Fi hardware disabled"
-                              : QsNet.Networking.wifiEnabled ? "Wi-Fi on" : "Wi-Fi off"
-                        checked: QsNet.Networking.wifiEnabled
-                        enabled: network.managerPresent && QsNet.Networking.wifiHardwareEnabled
-                        onClicked: QsNet.Networking.wifiEnabled = !QsNet.Networking.wifiEnabled
-                    }
-                    Flickable {
-                        width: parent.width
-                        height: Math.min(260, devicesColumn.implicitHeight)
-                        contentHeight: devicesColumn.implicitHeight
-                        clip: true
-                        boundsBehavior: Flickable.StopAtBounds
-                        Column {
-                            id: devicesColumn
-                            width: parent.width
-                            spacing: 8
-                            Repeater {
-                                model: QsNet.Networking.devices
-                                delegate: Column {
-                                    id: deviceSection
-                                    required property var modelData
-                                    width: devicesColumn.width
-                                    spacing: 4
-                                    StatusText {
-                                        width: parent.width
-                                        elide: Text.ElideRight
-                                        text: deviceSection.modelData.name + (deviceSection.modelData.connected ? " · connected" : "")
-                                        color: root.tokens.color.textMuted
-                                        font.pixelSize: root.tokens.type.small.size
-                                    }
-                                    Repeater {
-                                        model: deviceSection.modelData.networks
-                                        delegate: StatusButton {
-                                            required property var modelData
-                                            tokens: root.tokens
-                                            width: deviceSection.width
-                                            text: modelData.name + (modelData.stateChanging ? " · connecting…" : modelData.connected ? " · connected" : "")
-                                            checked: modelData.connected
-                                            enabled: !modelData.stateChanging
-                                            hint: modelData.connected ? "Disconnect" : "Connect"
-                                            onClicked: root.connectNetwork(modelData)
-                                            Connections {
-                                                target: modelData
-                                                function onConnectionFailed(reason) {
-                                                    root.networkError = "Could not connect · " + QsNet.ConnectionFailReason.toString(reason)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Column {
-                        width: parent.width
-                        spacing: 8
-                        visible: root.selectedNetwork !== null
-                        StatusText {
-                            width: parent.width
-                            text: root.selectedNetwork ? "Password for " + root.selectedNetwork.name : ""
-                            elide: Text.ElideRight
-                        }
-                        TextField {
-                            id: passwordField
-                            width: parent.width
-                            echoMode: TextInput.Password
-                            placeholderText: "Network password"
-                            color: root.tokens.color.text
-                            placeholderTextColor: root.tokens.color.textMuted
-                            font.family: root.tokens.type.body.family
-                            font.pixelSize: root.tokens.type.body.size
-                            selectByMouse: true
-                            Accessible.name: "Network password"
-                            background: Rectangle {
-                                color: root.tokens.color.background
-                                radius: root.tokens.radius.small
-                                border.width: 1
-                                border.color: passwordField.activeFocus ? root.tokens.color.accent : root.tokens.color.border
-                            }
-                            onAccepted: connectAction.clicked()
-                        }
-                        StatusButton {
-                            id: connectAction
-                            tokens: root.tokens
-                            width: parent.width
-                            text: "Connect"
-                            enabled: passwordField.text.length > 0
-                            onClicked: {
-                                if (root.selectedNetwork && passwordField.text.length) {
-                                    root.selectedNetwork.connectWithPsk(passwordField.text)
-                                    passwordField.clear()
-                                    root.selectedNetwork = null
-                                }
-                            }
-                        }
-                    }
-                    StatusText {
-                        width: parent.width
-                        visible: root.networkError !== ""
-                        text: root.networkError
-                        wrapMode: Text.Wrap
-                        color: root.tokens.color.secondary
-                    }
+                    tokens: root.tokens
+                    active: root.networkPopup
+                    visible: active
+                    maxBodyHeight: Math.max(180, Math.min(460, root.menuWindow && root.menuWindow.screen ? root.menuWindow.screen.height - 200 : 460))
+                    onCloseRequested: keyboard => { root.networkKeyboard = keyboard; root.opened = "" }
+                    onSettingsRequested: { root.opened = ""; root.networkSettingsRequested() }
                 }
             }
         }
