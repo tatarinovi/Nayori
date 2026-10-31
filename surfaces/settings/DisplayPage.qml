@@ -264,16 +264,6 @@ Column {
         return primaryName()
     }
 
-    function primaryOptions() {
-        const options = []
-        for (let index = 0; index < monitorModel.length; index++) {
-            const name = monitorModel[index].name
-            if (name)
-                options.push({key: name, label: name})
-        }
-        return options
-    }
-
     function choosePrimary(name) {
         const marked = configuredPrimary()
         const current = marked !== "" ? marked : primaryName()
@@ -311,22 +301,6 @@ Column {
             root.primaryDraft = ""
             root.refreshModel()
         }
-    }
-
-    Choice {
-        title: "Основной монитор"
-        visible: root.monitorModel.length > 1
-        enabled: service.validateAvailable && !service.busy
-        options: root.primaryOptions()
-        current: root.effectivePrimary()
-        onPicked: key => root.choosePrimary(key)
-    }
-    Label {
-        width: parent.width
-        visible: root.primaryDraft !== ""
-        color: root.tokens.color.textMuted
-        font.pixelSize: 13
-        text: "Запишется по кнопке «Применить». При запуске niri поставит фокус на этот экран"
     }
 
     SettingsCard {
@@ -680,6 +654,18 @@ Column {
                 color: root.tokens.color.secondary
                 font.pixelSize: 13
                 text: card.modelData.config && card.modelData.config.lockedReason ? card.modelData.config.lockedReason : "Этот блок Nayori не меняет"
+            }
+            SettingsSwitch {
+                visible: card.modelData.name !== root.effectivePrimary()
+                enabled: !card.locked && service.validateAvailable && !service.busy
+                tokens: root.tokens
+                text: "Основной монитор"
+                description: "При запуске niri поставит фокус на этот экран"
+                onVisibleChanged: if (visible) checked = false
+                onClicked: {
+                    checked = false
+                    root.choosePrimary(card.modelData.name)
+                }
             }
             Choice {
                 title: "Разрешение"
