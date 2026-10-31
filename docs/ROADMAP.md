@@ -78,7 +78,7 @@ include "nayori-accent.kdl"
 
 Меню «Пуск» — `surfaces/panel/StartMenu.qml`, namespace `nayori-start`. Короткое нажатие Super читает `services/system/SuperTap.qml`. IPC: `qs ipc -p /home/katamy/Projects/nayori call start toggle`.
 
-Лаунчер — `surfaces/launcher/`, каталог ярлыков `services/Apps.qml`. Открытие: `qs ipc -p /home/katamy/Projects/nayori call launcher toggle`. Оценка строки своя, запуск — `DesktopEntry.execute()`.
+Лаунчер — `surfaces/launcher/`, каталог ярлыков `services/Apps.qml`, файлы и команды — `services/launcher/`. Открытие: `qs ipc -p /home/katamy/Projects/nayori call launcher toggle`. Оценка ярлыка своя, запуск приложения — `DesktopEntry.execute()`. Команда после `>` уходит списком аргументов.
 
 Видимые острова: слой Overlay, `ExclusionMode.Ignore`, свой `exclusiveZone` не задают. Место для окон задаёт отдельная прозрачная полоса `surfaces/settings/ReservedSpace.qml`: `exclusiveZone` равен отступу, namespace `nayori-reserve-top` и `nayori-reserve-bottom`. В `SettingsService.qml` отступы по умолчанию 0, и при нуле полоса скрыта (`visible: amount > 0`).
 
@@ -118,7 +118,7 @@ Naomi — `surfaces/companion/`, окно `nayori-companion`. В настро�
 
 **Подтверждено.**
 
-- Лаунчер ищет ярлыки `DesktopEntries` (`services/Apps.qml`) и добавляет строку поиска в интернете (`surfaces/launcher/Launcher.qml`, URL Google). Плейсхолдер поля говорит «Найти приложения, файлы, команды…». Индекса файлов и команд в `SearchResults.qml` нет. То же сказано в [PANEL.md](PANEL.md)
+- Лаунчер ищет ярлыки `DesktopEntries` (`services/Apps.qml`), файлы и папки в домашней папке и каталогах XDG (`services/launcher/`) и строку Google. Команда запускается только после `>` и только списком аргументов. Постоянного индекса нет: каждый запрос заново обходит каталоги с лимитом времени. Подробности в [PANEL.md](PANEL.md)
 - `surfaces/settings/DisplayPage.qml`, `MousePage.qml`, `KeyboardPage.qml` и `ShortcutsPage.qml` читают сессию и прямо пишут: безопасная перезапись конфигурации niri с откатом не сделана
 - `WindowsPage.qml` умеет перевести фокус на окно. Правила окон, рамки и зазоры страница не пишет. `AltTabPage.qml` показывает сочетания с Tab и не даёт их менять. `WorkspacesPage.qml` переходит на уже существующий стол и число столов не меняет
 - `LockScreenPage.qml`: добавлены предпросмотр и собственная блокировка Wayland/PAM. Страница «Питание» вызывает IPC `lock.lock`. Экран входа поставляется отдельной темой SDDM; подключение описано в [LOCKSCREEN.md](LOCKSCREEN.md). Агента polkit в дереве нет. Строка `"polkit"` в `services/island/NotificationSources.js` — имя источника уведомления
@@ -145,9 +145,8 @@ Naomi — `surfaces/companion/`, окно `nayori-companion`. В настро�
 **Подтверждено.**
 
 - Безопасная перезапись режимов экрана, мыши, клавиатуры и сочетаний niri с откатом. Четыре страницы настроек пишут, что её нет. Узкая запись `nayori-accent.kdl` и `nayori-overview.kdl` к этому не относится: она уже есть и откатывает только свой `include`
-- Поиск файлов и команд в лаунчере. Плейсхолдер его обещает, каталог `services/Apps.qml` читает только ярлыки
 
-**Рекомендация.** Не брать эти два пункта в работу без отдельного согласия. Ручной список в конце [CANVAS.md](CANVAS.md) и раздел «Контракт рендерера и v0.2» там же описывают проверки и будущий вид фона. v0.2 в дереве нет: рендерер v0.1 принимает статическую картинку.
+**Рекомендация.** Не брать перезапись конфигурации niri в работу без отдельного согласия. Ручной список в конце [CANVAS.md](CANVAS.md) и раздел «Контракт рендерера и v0.2» там же описывают проверки и будущий вид фона. v0.2 в дереве нет: рендерер v0.1 принимает статическую картинку.
 
 ## Лицензионные ворота
 

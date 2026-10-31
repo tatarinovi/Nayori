@@ -1,0 +1,26 @@
+// input header
+input {
+    keyboard {
+        xkb {
+            // layout note
+            layout "us,ru"
+	        options "grp:win_space_toggle"
+        }
+        // repeat stays until edited
+        numlock false
+    }
+
+    touchpad {
+        tap // Enable tap-to-click
+        natural-scroll // Enable natural scrolling
+    }
+
+    mouse {
+        // acceleration note
+        accel-profile "flat"
+        accel-speed 0.0
+    }
+
+    focus-follows-mouse
+    workspace-auto-back-and-forth
+}

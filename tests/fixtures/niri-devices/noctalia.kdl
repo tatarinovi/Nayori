@@ -1,0 +1,4 @@
+// do not touch
+output "NOCT-1" {
+    scale 3
+}

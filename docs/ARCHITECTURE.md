@@ -69,6 +69,7 @@ services/clipboard/
 services/weather/
 services/ui/               маршруты острова, полный экран, автоскрытие
 services/Apps.qml          каталог .desktop для одного хозяина
+services/launcher/         файлы, папки и команда по префиксу >
 islands/workspaces/        левый нижний остров, без своего PanelWindow
 islands/apps/              центр
 islands/status/            правый остров
@@ -99,12 +100,12 @@ surfaces/clipboard/
 
 `FocusWorkspace` и `FocusWindow` вызывают острова по клику. Старт оболочки эти два действия не шлёт. `LoadConfigFile` с `path: null` перечитывает текущий файл. Его вызывает `OverviewRule`, если фрагмент обзора уже подключён, а правило ещё не загружено: один раз за процесс.
 
-Запись конфигурации niri делают два сценария. Оба оставляют `noctalia.kdl` как есть.
+Запись конфигурации niri делают три сценария. Все оставляют `noctalia.kdl` как есть.
 
 - `NiriAccent` при `niriColorIntegration` (по умолчанию включено) пишет уже посчитанный акцент во фрагмент `nayori-accent.kdl` рядом с `config.kdl` и подключает фрагмент из `config.kdl`. Путь: `NIRI_CONFIG`, иначе `$XDG_CONFIG_HOME/niri/config.kdl`, а если переменная пуста — `~/.config/niri/config.kdl`.
 - `OverviewRule` пишет `nayori-overview.kdl` с `layer-rule` для namespace `nayori-overview` (`place-within-backdrop`). Если строка include уже в файле, а правило ещё не загружено, один раз вызывается `Niri.reloadConfig()`.
 
-Оба скрипта после записи вызывают `niri validate` и при ошибке возвращают прежний текст. `services/system/niri_config_view.py` файл только читает и отдельно спрашивает раскладки командой `niri msg keyboard-layouts`. Выход из сеанса в `SessionActions` идёт командой `niri msg action quit --skip-confirmation`. Эти команды в очередь `Niri.qml` не входят. Клавиши оболочка не переписывает.
+Оба скрипта после записи вызывают `niri validate` и при ошибке возвращают прежний текст. Страницы «Экран», «Мышь» и «Клавиатура» пишут в тот же `config.kdl` через `services/system/niri_config_apply.py`, только по кнопке. Старт оболочки этот модуль не вызывает. Перед заменой лежит копия, затем `niri validate -c`. Ошибка проверки или записи возвращает прежний текст. Правка экрана 15 секунд ждёт «Оставить» и сама возвращает копию, если подтверждения нет. Перечитать сессию просит отдельная команда `niri msg action load-config-file`; проверки её не вызывают. `services/system/niri_config_view.py` файл только читает и отдельно спрашивает раскладки командой `niri msg keyboard-layouts`. Выход из сеанса в `SessionActions` идёт командой `niri msg action quit --skip-confirmation`. Эти команды в очередь `Niri.qml` не входят. Сочетания клавиш оболочка не переписывает. Раздел «Клавиатура» по кнопке меняет блок `keyboard`: раскладку, повтор, `track-layout` и `numlock`.
 
 ## Токены и акцент
 
@@ -162,7 +163,7 @@ surfaces/clipboard/
 
 Маршрут верхнего острова между мониторами считает `services/ui/IslandRouting.js`. Имя выхода (`screen.name`) связывает снимок niri, обои и перенос острова. Полный экран читает `FullscreenGuard`: один на основной экран в `shell.qml`, по одному в `ScreenPanels` и в окне Naomi.
 
-Лаунчер ищет по `DesktopEntries` и запускает `execute()`. Оценка строки живёт в `services/Apps.qml`. Меню Пуск создаёт свой экземпляр каталога и свой `SessionActions` для блокировки, выхода и питания.
+Лаунчер ищет приложения по `DesktopEntries` и запускает `execute()`. Оценка строки живёт в `services/Apps.qml`. Файлы и папки ищет `services/launcher/` в домашней папке и каталогах XDG, вне потока интерфейса. Команда появляется только у запроса с префиксом `>` и запускается списком аргументов, без оболочки. Меню Пуск создаёт свой экземпляр каталога и свой `SessionActions` для блокировки, выхода и питания.
 
 Уведомления рисует остров. Обычный запуск имя `org.freedesktop.Notifications` не занимает. Пока настройка приёма не сохранена, `NAYORI_NOTIFICATIONS=1` поднимает второй процесс `services/island/NotificationHost.qml`. Выбор в разделе «Уведомления» после этого важнее переменной. В том процессе окно `nayori-notify-grab` сохраняет картинку уведомления в PNG. История остаётся в памяти основного процесса. Показ, «Не беспокоить» и источники применяет `NotificationPolicy.js`, в том числе к внутренним уведомлениям. Протокол: [ISLAND_INTERACTION.md](ISLAND_INTERACTION.md).
 

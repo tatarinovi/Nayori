@@ -17,6 +17,7 @@ TextField {
     font.pixelSize: tokens.settings.body
     leftPadding: 12
     rightPadding: 12
+    verticalAlignment: TextInput.AlignVCenter
     background: Rectangle {
         radius: field.tokens.radius.small
         color: field.tokens.color.surfaceAlt

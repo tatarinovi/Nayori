@@ -1,0 +1,5 @@
+// header stays
+include "cfg/input.kdl"
+include "cfg/outputs.kdl"
+include "noctalia.kdl"
+// footer stays

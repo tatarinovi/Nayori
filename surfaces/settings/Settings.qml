@@ -190,7 +190,7 @@ FocusScope {
     // Stable IDs support future sections without exposing page indexes over IPC.
     readonly property var sections: [
         {key: "home", page: 0, title: "Обзор", group: "Обзор", description: "Состояние сети, звука и быстрый переход к разделам"},
-        {key: "display", page: 5, title: "Экран", group: "Система", description: "Подключённые мониторы. Режимы вывода niri отсюда не меняются"},
+        {key: "display", page: 5, title: "Экран", group: "Система", description: "Настройте расположение мониторов, выберите режимы вывода и другие параметры"},
         {key: "sound", page: 6, title: "Звук", group: "Система", description: "Устройства PipeWire, громкость и источники микшера"},
         {key: "notifications", page: 30, title: "Уведомления", group: "Система", glyph: "notifications", description: "Системный приём, режим «Не беспокоить» и показ уведомлений отдельных приложений"},
         {key: "power", page: 7, title: "Питание", group: "Система", description: "Блокировка, завершение сеанса, перезагрузка и выключение"},

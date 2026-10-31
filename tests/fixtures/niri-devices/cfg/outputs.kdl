@@ -1,0 +1,19 @@
+// outputs header
+output "DP-1" {
+    // keep inside dp1
+    mode "1920x1080@60" // old refresh
+    scale 1
+    position x=0 y=0
+    transform "normal"
+}
+
+/-output "DP-1" {
+    scale 9
+}
+
+output "HDMI-A-1" {
+    // unusual block
+    mode "1280x720"
+    background-color "#101010"
+    focus-at-startup
+}

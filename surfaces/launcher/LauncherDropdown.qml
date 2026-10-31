@@ -10,48 +10,69 @@ Item {
     property var host: null
 
     readonly property bool live: host !== null
-    readonly property bool webSelected: root.live && root.host.searching
-        && root.host.selectedIndex === root.host.resultCount()
-    implicitWidth: column.width
-    implicitHeight: column.implicitHeight
+    readonly property int bodyMax: 420
+    implicitWidth: column.implicitWidth
+    implicitHeight: Math.min(Math.max(column.implicitHeight, 1), root.bodyMax)
+    height: implicitHeight
 
-    Column {
-        id: column
-        width: parent.width
-        spacing: 0
+    Flickable {
+        id: scroller
+        anchors.fill: parent
+        contentWidth: width
+        contentHeight: column.implicitHeight
+        flickableDirection: Flickable.VerticalFlick
+        boundsBehavior: Flickable.StopAtBounds
+        clip: true
+        interactive: contentHeight > height + 1
 
-        SearchResults {
-            width: column.width
-            tokens: root.tokens
-            entries: root.live ? root.host.catalogResults : []
-            selectedIndex: root.live && root.host.searching && root.host.selectedIndex < root.host.resultCount()
-                ? root.host.selectedIndex : -1
-            emptyText: root.live ? root.host.emptyText : ""
-            trailingRow: root.live && root.host.webOffered
-            trailingSelected: root.webSelected
-            onActivated: function(index) {
-                if (root.live)
-                    root.host.launchIndex(index)
+        Column {
+            id: column
+            width: scroller.width
+            spacing: 0
+
+            SearchResults {
+                width: column.width
+                tokens: root.tokens
+                entries: root.live ? root.host.rows : []
+                selectedIndex: root.live && root.host.searching ? root.host.selectedIndex : -1
+                emptyText: root.live ? root.host.emptyText : ""
+                onActivated: function(index) {
+                    if (root.live)
+                        root.host.launchIndex(index)
+                }
+                onHighlighted: function(index) {
+                    if (root.live && root.host.searching)
+                        root.host.highlightIndex(index)
+                }
+                onSelectionGeometry: function(itemY, itemHeight) {
+                    if (itemHeight <= 0 || scroller.height <= 0)
+                        return
+                    if (itemY < scroller.contentY)
+                        scroller.contentY = itemY
+                    else if (itemY + itemHeight > scroller.contentY + scroller.height)
+                        scroller.contentY = Math.max(0, itemY + itemHeight - scroller.height)
+                }
             }
-            onHighlighted: function(index) {
-                if (root.live && root.host.searching)
-                    root.host.selectedIndex = index
-            }
-        }
 
-        LauncherRow {
-            id: webRow
-            visible: root.live && root.host.webOffered
-            width: column.width
-            tokenSet: root.tokens
-            title: "Поиск в\u00A0интернете"
-            subtitle: "Искать в\u00A0Google"
-            glyph: "search"
-            selected: root.webSelected
-            separator: false
-            Accessible.name: "Поиск в\u00A0интернете"
-            onPicked: if (root.live) root.host.openWebSearch()
-            onHovered: if (root.live) root.host.selectedIndex = root.host.resultCount()
+            Text {
+                width: column.width
+                visible: root.live && root.host.statusText.length > 0
+                text: root.live ? root.host.statusText : ""
+                color: root.tokens.color.textMuted
+                wrapMode: Text.WordWrap
+                font.family: root.tokens.type.small.family
+                font.pixelSize: root.tokens.type.small.size
+                font.weight: root.tokens.type.small.weight
+                font.letterSpacing: root.tokens.type.small.letterSpacing
+                lineHeight: root.tokens.type.small.lineHeight
+                lineHeightMode: Text.ProportionalHeight
+                renderType: Text.NativeRendering
+                textFormat: Text.PlainText
+                leftPadding: root.tokens.spacing.medium
+                rightPadding: root.tokens.spacing.medium
+                topPadding: root.tokens.spacing.small
+                bottomPadding: root.tokens.spacing.small
+            }
         }
     }
 }

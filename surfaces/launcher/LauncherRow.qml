@@ -14,6 +14,10 @@ Item {
     property string iconSource: ""
     // Нарисованный значок вместо значка темы (например, поиск в интернете).
     property string glyph: ""
+    // Короткая подпись типа: приложение, файл, папка, команда, интернет.
+    property string typeLabel: ""
+    // Команда рисуется отдельно от файлов и приложений.
+    property bool distinct: false
     property bool selected: false
     // Тонкий разделитель под строкой. Хост гасит его рядом с выбранной строкой.
     property bool separator: false
@@ -29,7 +33,14 @@ Item {
     height: row.subtitle.length > 0 ? 54 : 46
 
     Accessible.role: Accessible.Button
-    Accessible.name: row.title
+    Accessible.name: {
+        const label = row.typeLabel
+        if (row.distinct && row.subtitle.length > 0)
+            return (label.length > 0 ? label + " " : "") + row.title + ". " + row.subtitle
+        if (label.length > 0)
+            return label + " " + row.title
+        return row.title
+    }
     Accessible.onPressAction: row.picked()
 
     function monogram(name) {
@@ -37,6 +48,17 @@ Item {
         if (text.length === 0)
             return ""
         return text.charAt(0).toUpperCase()
+    }
+
+    Rectangle {
+        x: 2
+        anchors.verticalCenter: parent.verticalCenter
+        width: 2
+        height: 18
+        radius: 1
+        visible: row.distinct
+        color: row.tokenSet.color.secondary
+        antialiasing: true
     }
 
     Rectangle {
@@ -117,11 +139,27 @@ Item {
         ink: row.selected ? row.tokenSet.color.text : row.mutedInk
     }
 
+    Text {
+        id: typeText
+        visible: row.typeLabel.length > 0
+        anchors.right: mark.left
+        anchors.rightMargin: row.tokenSet.spacing.small
+        anchors.verticalCenter: parent.verticalCenter
+        text: row.typeLabel
+        color: row.distinct ? row.tokenSet.color.secondary : row.mutedInk
+        font.family: row.tokenSet.type.small.family
+        font.pixelSize: row.tokenSet.type.small.size - 1
+        font.weight: row.tokenSet.type.small.weight
+        font.letterSpacing: row.tokenSet.type.small.letterSpacing
+        renderType: Text.NativeRendering
+        textFormat: Text.PlainText
+    }
+
     Column {
         id: words
         anchors.left: glyphSlot.right
         anchors.leftMargin: row.tokenSet.spacing.medium
-        anchors.right: mark.left
+        anchors.right: typeText.visible ? typeText.left : mark.left
         anchors.rightMargin: row.tokenSet.spacing.small
         anchors.verticalCenter: parent.verticalCenter
         spacing: 1

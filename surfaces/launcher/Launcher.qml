@@ -5,6 +5,8 @@ import QtQuick.Effects
 import Quickshell.Io
 import "../../tokens"
 import "../../services"
+import "../../services/launcher"
+import "../../services/launcher/SearchModel.js" as SearchModel
 
 // Содержимое лаунчера без своего окна. Хост ставит элемент в слой,
 // который сам создаёт на время открытия, и вызывает open() / focusInput().
@@ -40,26 +42,45 @@ Item {
         ? shortcutHint.width + root.textInset + root.tokens.spacing.small
         : root.tokens.spacing.medium
 
-    readonly property bool searching: catalog.normalizedQuery.length > 0
-    readonly property string webTerms: root.webTermsFor(field.text)
+    readonly property string queryText: field.text
+    readonly property bool commandMode: SearchModel.isCommandQuery(root.queryText)
+    readonly property bool searching: SearchModel.normalize(root.queryText).length > 0
+    readonly property string webTerms: SearchModel.webTerms(root.queryText)
+    readonly property string webUrl: SearchModel.searchUrl(root.webTerms)
     readonly property bool webOffered: root.webTerms.length > 0
-    readonly property bool listWanted: {
-        const list = catalog.results
-        const count = list && typeof list.length === "number" ? list.length : 0
-        return root.searching && (count > 0 || root.webOffered || root.emptyText.length > 0)
-    }
-
+    readonly property var rows: SearchModel.buildRows({
+        query: root.queryText,
+        apps: catalog.results,
+        files: fileSearch.files,
+        commandOk: fileSearch.commandOk,
+        commandPending: fileSearch.commandPending,
+        commandArgv: fileSearch.commandArgv,
+        commandCode: fileSearch.commandCode,
+        commandStatus: fileSearch.status,
+        webTerms: root.webTerms,
+        webUrl: root.webUrl
+    })
+    readonly property string statusText: SearchModel.statusLine({
+        commandMode: root.commandMode,
+        commandBody: SearchModel.commandBody(root.queryText),
+        searching: root.searching,
+        status: fileSearch.status,
+        truncated: fileSearch.truncated,
+        fileQueryLength: SearchModel.fileNeedle(root.queryText).length
+    })
+    readonly property bool listWanted: root.searching && (
+        root.rows.length > 0 || root.statusText.length > 0 || root.emptyText.length > 0
+    )
     readonly property string emptyText: {
-        const list = catalog.results
-        const count = list && typeof list.length === "number" ? list.length : 0
-        if (!catalog.catalogReady || count > 0 || root.webOffered)
-            return ""
-        if (root.searching)
-            return "Ничего не нашлось"
-        if (catalog.applicationCount === 0)
+        if (root.searching && root.rows.length === 0 && root.statusText.length === 0)
+            return SearchModel.copy("empty")
+        if (!root.searching && catalog.catalogReady && catalog.applicationCount === 0)
             return "Нет приложений"
         return ""
     }
+    property bool selectionPinned: false
+    property string selectedKey: ""
+    property bool commandArm: false
 
     implicitWidth: root.panelWidth
     implicitHeight: root.embedded
@@ -79,17 +100,27 @@ Item {
     Apps {
         id: catalog
     }
-    readonly property var catalogResults: catalog.results
+
+    FileSearch {
+        id: fileSearch
+        query: root.opened ? field.text : ""
+        onCommandReady: {
+            if (root.commandArm && root.opened)
+                root.launchCommand()
+        }
+    }
 
     function open() {
-        root.opened = true
-        root.selectedIndex = 0
         field.text = ""
         catalog.query = ""
+        root.commandArm = false
+        root.resetSelection()
+        root.opened = true
         Qt.callLater(root.focusInput)
     }
 
     function close() {
+        root.commandArm = false
         root.opened = false
         field.focus = false
     }
@@ -118,79 +149,61 @@ Item {
     }
 
     function resultCount() {
-        const list = catalog.results
+        const list = root.rows
         if (!list || typeof list.length !== "number")
             return 0
         return list.length
     }
 
-    // «web запрос» — явный поиск, как в angelOS. Остальной текст тоже можно найти в интернете.
-    // Поисковик в Nayori не задан: URL Google, браузер по умолчанию.
-    function webTermsFor(text) {
-        const raw = String(text === undefined || text === null ? "" : text).trim().replace(/\s+/g, " ")
-        if (raw.length === 0)
-            return ""
-        const prefixed = /^web\s+(.+)$/i.exec(raw)
-        if (prefixed)
-            return String(prefixed[1]).trim()
-        if (/^web$/i.test(raw))
-            return ""
-        return raw
+    function resetSelection() {
+        root.selectionPinned = false
+        root.selectedKey = ""
+        root.selectedIndex = 0
     }
 
-    function searchUrl(terms) {
-        const text = String(terms === undefined || terms === null ? "" : terms).trim()
-        if (text.length === 0)
-            return ""
-        return "https://www.google.com/search?q=" + encodeURIComponent(text)
-    }
-
-    function openWebSearch() {
-        const url = root.searchUrl(root.webTerms)
-        if (url.length === 0)
-            return
-        let opened = false
-        try {
-            opened = Qt.openUrlExternally(url)
-        } catch (error) {
-            opened = false
-        }
-        if (!opened) {
-            webLaunch.command = ["xdg-open", url]
-            webLaunch.startDetached()
-        }
-        root.close()
-        root.closeRequested()
-    }
-
-    function activeCount() {
-        if (!root.searching)
-            return 0
-        return root.resultCount() + (root.webOffered ? 1 : 0)
-    }
-
-    function clampSelection() {
-        const count = root.activeCount()
-        if (count <= 0) {
-            root.selectedIndex = 0
-            return
-        }
-        if (root.selectedIndex < 0)
-            root.selectedIndex = 0
-        else if (root.selectedIndex >= count)
-            root.selectedIndex = count - 1
+    function reconcile() {
+        const next = SearchModel.reconcile(root.rows, root.selectedIndex, root.selectedKey, root.selectionPinned)
+        root.selectedIndex = next.index
+        root.selectedKey = next.key
+        root.selectionPinned = next.pinned
     }
 
     function moveSelection(delta) {
-        const count = root.activeCount()
-        if (count <= 0)
+        if (!root.rows || root.rows.length === 0)
             return
-        let next = root.selectedIndex + delta
-        if (next < 0)
-            next = 0
-        if (next >= count)
-            next = count - 1
-        root.selectedIndex = next
+        const next = SearchModel.move(root.rows, root.selectedIndex, delta)
+        root.selectedIndex = next.index
+        root.selectedKey = next.key
+        root.selectionPinned = next.pinned
+        root.commandArm = false
+    }
+
+    function highlightIndex(index) {
+        const next = SearchModel.pinAt(root.rows, index)
+        if (!next.pinned && root.rows.length === 0)
+            return
+        root.selectedIndex = next.index
+        root.selectedKey = next.key
+        root.selectionPinned = next.pinned
+    }
+
+    function openWebSearch() {
+        const plan = SearchModel.activationPlan({kind: "web", url: root.webUrl})
+        if (!plan || plan.action !== "url" || !plan.url)
+            return
+        let opened = false
+        try {
+            opened = Qt.openUrlExternally(plan.url)
+        } catch (error) {
+            opened = false
+        }
+        if (!opened && plan.fallback && plan.fallback.length === 2) {
+            webLaunch.command = plan.fallback
+            webLaunch.startDetached()
+        }
+        root.commandArm = false
+        root.close()
+        root.closeRequested()
     }
 
     function launchId(entryId) {
@@ -198,28 +211,104 @@ Item {
         if (!launchedId)
             return
         root.launched(launchedId)
+        root.commandArm = false
         root.close()
         root.closeRequested()
     }
 
-    function launchIndex(index) {
-        const list = catalog.results
-        if (!list || index < 0 || index >= list.length)
+    function runArgv(argv) {
+        const plan = SearchModel.activationPlan({
+            kind: "command",
+            ok: true,
+            pending: false,
+            argv: argv
+        })
+        if (!plan || plan.action !== "argv" || !plan.argv || plan.argv.length === 0)
             return
-        const card = list[index]
-        const entryId = card && card.id ? String(card.id) : ""
-        root.launchId(entryId)
+        commandLaunch.command = plan.argv
+        commandLaunch.startDetached()
+        root.commandArm = false
+        root.close()
+        root.closeRequested()
+    }
+
+    function openPath(path) {
+        const plan = SearchModel.activationPlan({kind: "file", path: path})
+        if (!plan || plan.action !== "argv")
+            return
+        let opened = false
+        try {
+            const url = SearchModel.fileUrl(path)
+            opened = url.length > 0 && Qt.openUrlExternally(url)
+        } catch (error) {
+            opened = false
+        }
+        if (!opened) {
+            fileLaunch.command = plan.argv
+            fileLaunch.startDetached()
+        }
+        root.commandArm = false
+        root.close()
+        root.closeRequested()
+    }
+
+    // Команда запускается только со строки «команда» и только готовым списком аргументов.
+    function launchCommand() {
+        if (!root.commandMode) {
+            root.commandArm = false
+            return
+        }
+        const list = root.rows
+        const row = list && root.selectedIndex >= 0 && root.selectedIndex < list.length
+            ? list[root.selectedIndex] : null
+        if (row && row.kind !== "command") {
+            root.commandArm = false
+            return
+        }
+        if (fileSearch.commandPending || fileSearch.status === "loading") {
+            root.commandArm = true
+            return
+        }
+        if (!fileSearch.commandOk) {
+            root.commandArm = false
+            return
+        }
+        root.runArgv(fileSearch.commandArgv)
+    }
+
+    function launchIndex(index) {
+        root.highlightIndex(index)
+        root.launchSelected()
     }
 
     function launchSelected() {
-        root.clampSelection()
+        root.reconcile()
         if (!root.searching)
             return
-        if (root.webOffered && root.selectedIndex === root.resultCount()) {
+        const list = root.rows
+        if (!list || root.selectedIndex < 0 || root.selectedIndex >= list.length)
+            return
+        const row = list[root.selectedIndex]
+        if (!row)
+            return
+        if (row.kind === "web") {
+            root.commandArm = false
             root.openWebSearch()
             return
         }
-        root.launchIndex(root.selectedIndex)
+        if (row.kind === "command") {
+            root.launchCommand()
+            return
+        }
+        if (row.kind === "file" || row.kind === "folder") {
+            root.commandArm = false
+            root.openPath(row.path)
+            return
+        }
+        if (row.kind === "application") {
+            root.commandArm = false
+            root.launchId(row.id)
+        }
     }
 
     // Ctrl+K (дополнительно, не подсказывается): вернуть ввод в поле и выделить запрос целиком.
@@ -264,9 +353,11 @@ Item {
     Connections {
         target: catalog
         function onResultsChanged() {
-            root.clampSelection()
+            root.reconcile()
         }
     }
+
+    onRowsChanged: Qt.callLater(root.reconcile)
 
     component KeyHint: Row {
         id: hintPair
@@ -334,6 +425,8 @@ Item {
     }
 
     Process { id: webLaunch }
+    Process { id: fileLaunch }
+    Process { id: commandLaunch }
 
     RectangularShadow {
         anchors.fill: chrome
@@ -579,8 +672,9 @@ Item {
                         Keys.onPressed: function(event) { root.handleKey(event) }
 
                         onTextChanged: {
-                            root.selectedIndex = 0
-                            catalog.query = field.text
+                            root.commandArm = false
+                            root.resetSelection()
+                            catalog.query = SearchModel.isCommandQuery(field.text) ? "" : field.text
                         }
                     }
                 }
@@ -589,7 +683,7 @@ Item {
             Item {
                 id: tail
                 width: column.width
-                visible: !root.embedded && (results.visible || webRow.visible)
+                visible: !root.embedded && (results.visible || scopeNote.visible)
                 implicitHeight: visible
                     ? tailColumn.y + tailColumn.implicitHeight + (root.embedded ? root.tokens.spacing.medium : 0)
                     : 0
@@ -602,95 +696,40 @@ Item {
                     width: parent.width - x * 2
                     spacing: root.tokens.spacing.small
 
-            SearchResults {
-                id: results
-                width: tailColumn.width
-                tokens: root.tokenSet
-                entries: catalog.results
-                selectedIndex: root.searching && root.selectedIndex < root.resultCount() ? root.selectedIndex : -1
-                emptyText: root.emptyText
-                trailingRow: root.webOffered
-                trailingSelected: root.webOffered && root.searching && root.selectedIndex === root.resultCount()
-                onActivated: function(index) { root.launchIndex(index) }
-                onHighlighted: function(index) {
-                    if (root.searching)
-                        root.selectedIndex = index
-                }
-            }
+                    SearchResults {
+                        id: results
+                        width: tailColumn.width
+                        tokens: root.tokenSet
+                        entries: root.rows
+                        selectedIndex: root.searching ? root.selectedIndex : -1
+                        emptyText: root.emptyText
+                        onActivated: function(index) { root.launchIndex(index) }
+                        onHighlighted: function(index) {
+                            if (root.searching)
+                                root.highlightIndex(index)
+                        }
+                    }
 
-            Item {
-                id: webRow
-                visible: root.webOffered
-                width: tailColumn.width
-                implicitHeight: 40
-                height: implicitHeight
-
-                readonly property bool selected: root.searching && root.selectedIndex === root.resultCount()
-
-                Accessible.role: Accessible.Button
-                Accessible.name: "Найти в\u00A0интернете: " + root.webTerms
-                Accessible.onPressAction: root.openWebSearch()
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: root.tokens.radius.small
-                    color: webRow.selected ? root.tokens.color.surface : "transparent"
-                    antialiasing: true
-                }
-
-                Rectangle {
-                    x: 6
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 2
-                    height: 16
-                    radius: 1
-                    color: root.tokens.color.secondary
-                    opacity: webRow.selected ? 1 : 0
-                    antialiasing: true
-                }
-
-                Text {
-                    id: webLabel
-                    x: 14
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "Найти в\u00A0интернете"
-                    color: root.tokens.color.text
-                    font.family: root.tokens.type.body.family
-                    font.pixelSize: root.tokens.type.body.size
-                    font.weight: root.tokens.type.body.weight
-                    font.letterSpacing: root.tokens.type.body.letterSpacing
-                    renderType: Text.NativeRendering
-                    textFormat: Text.PlainText
-                }
-
-                Text {
-                    anchors.left: webLabel.right
-                    anchors.leftMargin: root.tokens.spacing.small
-                    anchors.right: parent.right
-                    anchors.rightMargin: 10
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root.webTerms
-                    color: root.tokens.color.textMuted
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
-                    font.family: root.tokens.type.small.family
-                    font.pixelSize: root.tokens.type.small.size
-                    font.weight: root.tokens.type.small.weight
-                    font.letterSpacing: root.tokens.type.small.letterSpacing
-                    renderType: Text.NativeRendering
-                    textFormat: Text.PlainText
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    acceptedButtons: Qt.LeftButton
-                    cursorShape: Qt.PointingHandCursor
-                    onEntered: root.selectedIndex = root.resultCount()
-                    onPressed: root.selectedIndex = root.resultCount()
-                    onClicked: root.openWebSearch()
-                }
-            }
+                    Text {
+                        id: scopeNote
+                        width: tailColumn.width
+                        visible: root.statusText.length > 0
+                        text: root.statusText
+                        color: root.tokens.color.textMuted
+                        wrapMode: Text.WordWrap
+                        font.family: root.tokens.type.small.family
+                        font.pixelSize: root.tokens.type.small.size
+                        font.weight: root.tokens.type.small.weight
+                        font.letterSpacing: root.tokens.type.small.letterSpacing
+                        lineHeight: root.tokens.type.small.lineHeight
+                        lineHeightMode: Text.ProportionalHeight
+                        renderType: Text.NativeRendering
+                        textFormat: Text.PlainText
+                        leftPadding: root.tokens.spacing.medium
+                        rightPadding: root.tokens.spacing.medium
+                        topPadding: root.tokens.spacing.small
+                        bottomPadding: root.tokens.spacing.small
+                    }
                 }
             }
 
