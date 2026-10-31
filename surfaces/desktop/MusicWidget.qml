@@ -66,7 +66,7 @@ Item {
             spacing: 10
             Rectangle {
                 id: cover
-                width: root.large ? 72 : 52
+                width: root.large ? 72 : 48
                 height: width
                 radius: root.tokens.radius.small
                 color: root.tokens.color.surface
@@ -83,6 +83,8 @@ Item {
                     width: parent.width
                     tokens: root.tokens
                     text: root.title
+                    display: true
+                    font.pixelSize: 16
                     Accessible.name: "Музыка, " + text
                     Accessible.description: root.artist
                 }
@@ -121,7 +123,8 @@ Item {
             }
         }
         Row {
-            spacing: 8
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: root.large ? 20 : 12
             AbstractButton {
                 id: previousButton
                 implicitWidth: 32
@@ -138,12 +141,14 @@ Item {
                     border.color: root.tokens.color.accent
                     opacity: previousButton.enabled ? 1 : 0.4
                 }
-                contentItem: MusicTransportIcon {
-                    name: "prev"
-                    ink: root.tokens.color.text
-                    width: 16
-                    height: 16
-                    anchors.centerIn: parent
+                contentItem: Item {
+                    MusicTransportIcon {
+                        name: "prev"
+                        ink: root.tokens.color.text
+                        width: 16
+                        height: 16
+                        anchors.centerIn: parent
+                    }
                 }
             }
             AbstractButton {
@@ -156,18 +161,20 @@ Item {
                 Accessible.name: root.player && root.player.isPlaying ? "Приостановить" : "Воспроизвести"
                 onClicked: root.player.togglePlaying()
                 background: Rectangle {
-                    radius: root.tokens.radius.small
-                    color: playButton.down || playButton.hovered ? root.tokens.color.accentHover : root.tokens.color.accent
+                    radius: width / 2
+                    color: playButton.down || playButton.hovered ? Qt.alpha(root.tokens.color.accent, 0.28) : "transparent"
                     opacity: playButton.enabled ? 1 : 0.4
-                    border.width: playButton.visualFocus ? 1 : 0
-                    border.color: root.tokens.color.text
+                    border.width: 1
+                    border.color: root.tokens.color.accent
                 }
-                contentItem: MusicTransportIcon {
-                    name: root.player && root.player.isPlaying ? "pause" : "play"
-                    ink: root.tokens.color.accentText
-                    width: 16
-                    height: 16
-                    anchors.centerIn: parent
+                contentItem: Item {
+                    MusicTransportIcon {
+                        name: root.player && root.player.isPlaying ? "pause" : "play"
+                        ink: root.tokens.color.text
+                        width: 16
+                        height: 16
+                        anchors.centerIn: parent
+                    }
                 }
             }
             AbstractButton {
@@ -186,12 +193,14 @@ Item {
                     border.color: root.tokens.color.accent
                     opacity: nextButton.enabled ? 1 : 0.4
                 }
-                contentItem: MusicTransportIcon {
-                    name: "next"
-                    ink: root.tokens.color.text
-                    width: 16
-                    height: 16
-                    anchors.centerIn: parent
+                contentItem: Item {
+                    MusicTransportIcon {
+                        name: "next"
+                        ink: root.tokens.color.text
+                        width: 16
+                        height: 16
+                        anchors.centerIn: parent
+                    }
                 }
             }
         }

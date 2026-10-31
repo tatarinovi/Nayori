@@ -23,6 +23,7 @@ import "services/ui/IslandRouting.js" as IslandRouting
 import "services/island"
 import "services/island/NotificationPolicy.js" as NotificationPolicy
 import "surfaces/canvas"
+import "surfaces/desktop"
 import "surfaces/companion"
 import "services/clipboard"
 import "services/shelf"
@@ -260,32 +261,56 @@ ShellRoot {
         accentSoft: tokens.color.accentSoft
         secondary: tokens.color.secondary
     }
-    Variants {
-        model: wallpaperStore.enabled ? Quickshell.screens : []
-        WallpaperWindow {
-            required property var modelData
-            screen: modelData
-            manager: wallpaperStore
-            tokens: root.tokenSet
-        }
-    }
-    // Blurred copy of each output's canvas wallpaper. The sharp desktop surface
-    // stays on nayori-canvas. This layer is mapped only after niri has loaded
-    // the nayori-overview backdrop rule, and it is not a second desktop.
     OverviewBlur {
         id: overviewBlur
         manager: wallpaperStore
         active: wallpaperStore.enabled
     }
     OverviewRule { id: overviewRule }
+    // The wallpaper and overview draw the faces; a bottom-layer proxy handles input.
     Variants {
-        model: wallpaperStore.enabled && overviewRule.ruleLive ? Quickshell.screens : []
-        OverviewWindow {
+        model: Quickshell.screens
+        Scope {
+            id: desktopOutput
             required property var modelData
-            screen: modelData
-            blur: overviewBlur
-            onImageFailed: function (path) {
-                overviewBlur.revert(modelData.name, path)
+            WallpaperWindow {
+                screen: desktopOutput.modelData
+                manager: wallpaperStore
+                tokens: root.tokenSet
+                widgetHost: desktopInput
+                widgetsReady: settingsStore.ready
+                weatherService: weatherStore
+                music: musicStore
+            }
+            DesktopWidgets {
+                id: desktopInput
+                visible: settingsStore.ready && !Niri.overviewOpen
+                screen: desktopOutput.modelData
+                tokens: root.tokenSet
+                visualBackdrop: wallpaperStore.enabled
+                preferredTerminal: settingsStore.preferredTerminal
+                preferredFileManager: settingsStore.preferredFileManager
+                onEditingRequested: enabled => settingsController.widgetsEditing = enabled
+                layout: settingsStore.desktopWidgets[desktopOutput.modelData.name] || null
+                editing: settingsController.widgetsEditing
+                weatherService: weatherStore
+                music: musicStore
+                onLayoutEdited: next => {
+                    const updated = Object.assign({}, settingsStore.desktopWidgets)
+                    updated[desktopOutput.modelData.name] = next
+                    settingsStore.update({ desktopWidgets: updated })
+                }
+            }
+            OverviewWindow {
+                screen: desktopOutput.modelData
+                blur: overviewBlur
+                tokens: root.tokenSet
+                enabled: wallpaperStore.enabled && overviewRule.ruleLive && Niri.overviewOpen
+                widgetHost: desktopInput
+                widgetsReady: settingsStore.ready
+                weatherService: weatherStore
+                music: musicStore
+                onImageFailed: function(path) { overviewBlur.revert(desktopOutput.modelData.name, path) }
             }
         }
     }

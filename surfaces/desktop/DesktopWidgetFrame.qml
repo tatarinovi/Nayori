@@ -20,20 +20,16 @@ FocusScope {
     signal removeRequested(string id)
     signal noteEdited(string id, string text)
     signal maskDirty()
+    signal menuRequested(string id, real x, real y)
+    signal resizeRequested(string id, int direction)
+    signal moveFinished()
+    property bool moving: false
+    property bool inputOverlay: false
+    readonly property bool inputVisible: editing || moving || dragging || activeFocus || contextArea.containsMouse
 
     readonly property var box: spec ? WidgetLayout.sizeOf(spec) : ({ width: 0, height: 0 })
     readonly property bool card: spec && spec.style === "card"
-    readonly property bool takesInput: {
-        if (!spec)
-            return false
-        if (editing)
-            return true
-        if (spec.type === "note")
-            return true
-        if (spec.type === "music")
-            return !!(music && music.player)
-        return false
-    }
+    readonly property bool takesInput: spec !== null
     property bool dragging: false
     property real dragX: 0
     property real dragY: 0
@@ -59,10 +55,12 @@ FocusScope {
     y: !spec ? 0 : dragging ? dragY : spec.y
     z: dragging ? 10 : 0
     objectName: spec ? "desktop-widget-" + spec.id : "desktop-widget"
-    activeFocusOnTab: editing
+    activeFocusOnTab: true
     Accessible.name: spec ? widgetName(spec.type) : "Виджет"
     Accessible.description: editing ? "Стрелки двигают виджет" : ""
 
+    opacity: inputOverlay && !inputVisible ? 0.001 : 1
+    onInputVisibleChanged: maskDirty()
     onTakesInputChanged: maskDirty()
     onSpecChanged: if (spec && editing && focusId === spec.id && !activeFocus) forceActiveFocus()
     Component.onCompleted: {
@@ -73,7 +71,7 @@ FocusScope {
     onActiveFocusChanged: if (activeFocus && spec) focusId = spec.id
 
     Keys.onPressed: function(event) {
-        if (!editing || !spec || activeFocusItem !== root)
+        if (!editing || !spec || root.Window.activeFocusItem !== root)
             return
         const grid = WidgetLayout.gridSize()
         const fine = event.modifiers & Qt.ShiftModifier
@@ -95,17 +93,17 @@ FocusScope {
 
     Rectangle {
         anchors.fill: parent
-        radius: root.tokens.radius.medium
-        color: root.card ? root.tokens.material.dense : "transparent"
-        border.width: root.card || root.editing ? 1 : 0
-        border.color: root.editing && (root.activeFocus || root.dragging) ? root.tokens.color.accent : root.tokens.color.border
+        radius: 18
+        color: root.card ? (root.tokens.frosted ? root.tokens.material.dense : root.tokens.color.background) : "transparent"
+        border.width: root.card || root.editing || root.moving ? 1 : 0
+        border.color: (root.moving || (root.editing && (root.activeFocus || root.dragging))) ? root.tokens.color.accent : Qt.alpha(root.tokens.color.accent, 0.48)
         antialiasing: true
     }
 
     MouseArea {
         id: dragArea
         anchors.fill: parent
-        enabled: root.editing && root.spec !== null
+        enabled: (root.editing || root.moving) && root.spec !== null
         acceptedButtons: Qt.LeftButton
         hoverEnabled: enabled
         preventStealing: true
@@ -141,18 +139,19 @@ FocusScope {
             if (root.dragging && root.spec)
                 root.commitPosition(root.spec.id, root.dragX, root.dragY, root.snap)
             root.dragging = false
+            if (root.moving) root.moveFinished()
         }
-        onCanceled: root.dragging = false
+        onCanceled: { root.dragging = false; if (root.moving) root.moveFinished() }
     }
 
     Item {
         id: content
         z: 1
         anchors.fill: parent
-        anchors.leftMargin: root.card ? 12 : 0
-        anchors.rightMargin: root.card ? 12 : 0
-        anchors.bottomMargin: root.card ? 12 : 0
-        anchors.topMargin: root.editing ? 40 : (root.card ? 12 : 0)
+        anchors.leftMargin: root.card ? 16 : 0
+        anchors.rightMargin: root.card ? 16 : 0
+        anchors.bottomMargin: root.card ? 16 : 0
+        anchors.topMargin: root.editing ? 40 : (root.card ? 16 : 0)
         clip: true
 
         ClockWidget {
@@ -161,7 +160,8 @@ FocusScope {
             enabled: visible
             tokens: root.tokens
             now: root.now
-            large: root.spec && root.spec.size === "large"
+            size: root.spec ? root.spec.size : "compact"
+            large: root.spec && root.spec.size !== "compact"
         }
         WeatherWidget {
             anchors.fill: parent
@@ -174,7 +174,7 @@ FocusScope {
         MusicWidget {
             anchors.fill: parent
             visible: root.spec && root.spec.type === "music"
-            enabled: visible
+            enabled: visible && !root.editing && !root.moving
             tokens: root.tokens
             music: root.music
             large: root.spec && root.spec.size === "large"
@@ -185,18 +185,38 @@ FocusScope {
             enabled: visible
             tokens: root.tokens
             reader: root.systemReader
+            metrics: root.spec && root.spec.metrics ? root.spec.metrics : ["cpu", "memory", "gpu"]
             large: root.spec && root.spec.size === "large"
         }
         NoteWidget {
             anchors.fill: parent
             visible: root.spec && root.spec.type === "note"
-            enabled: visible
+            enabled: visible && !root.editing && !root.moving
             tokens: root.tokens
             savedText: root.spec && root.spec.type === "note" && root.spec.text ? root.spec.text : ""
             onTextEdited: function(text) {
                 if (root.spec)
                     root.noteEdited(root.spec.id, text)
             }
+        }
+    }
+
+    MouseArea {
+        id: contextArea
+        anchors.fill: parent
+        hoverEnabled: true
+        z: 2
+        acceptedButtons: Qt.RightButton
+        enabled: root.spec !== null
+        onClicked: function(mouse) {
+            const p = mapToItem(root.parent, mouse.x, mouse.y)
+            root.menuRequested(root.spec.id, p.x, p.y)
+        }
+        onWheel: function(wheel) {
+            if (!(wheel.modifiers & Qt.ControlModifier)) { wheel.accepted = false; return }
+            const delta = wheel.angleDelta.y || wheel.angleDelta.x
+            if (delta) root.resizeRequested(root.spec.id, delta > 0 ? 1 : -1)
+            wheel.accepted = true
         }
     }
 

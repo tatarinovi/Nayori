@@ -30,6 +30,10 @@ Column {
         {key: "compact", label: "Компактный"},
         {key: "large", label: "Крупный"}
     ]
+    readonly property var clockSizeOptions: sizeOptions.concat([
+        {key: "extraLarge", label: "Очень крупный"},
+        {key: "huge", label: "Огромный"}
+    ])
     readonly property var styleOptions: [
         {key: "plain", label: "Простой"},
         {key: "card", label: "Карточка"}
@@ -259,7 +263,7 @@ Column {
     function addWidget(type, size, style) {
         const allowed = type === "clock" || type === "weather" || type === "music" || type === "system" || type === "note"
         const name = root.activeScreen
-        if (!allowed || !name)
+        if (!allowed || !name || root.currentItems.length >= 16)
             return
         const map = root.cloneMap(root.desktopWidgets)
         if (!map)
@@ -286,7 +290,7 @@ Column {
     }
 
     function updateItem(id, index, field, value) {
-        if (field === "size" && value !== "compact" && value !== "large")
+        if (field === "size" && value !== "compact" && value !== "large" && value !== "extraLarge" && value !== "huge")
             return
         if (field === "style" && value !== "plain" && value !== "card")
             return
@@ -304,6 +308,8 @@ Column {
         for (let i = 0; i < items.length; ++i) {
             if (!root.sameItem(items[i], id, i, index))
                 continue
+            if (field === "size" && items[i].type !== "clock" && (value === "extraLarge" || value === "huge"))
+                return
             if (items[i][field] === value)
                 return
             items[i][field] = value
@@ -440,7 +446,9 @@ Column {
         visible: root.activeScreen !== ""
         tokens: root.tokens
         title: "Новый виджет"
+        subtitle: root.currentItems.length >= 16 ? "На одном мониторе можно разместить до 16 виджетов" : ""
         Flow {
+            enabled: root.currentItems.length < 16
             width: parent.width
             spacing: 8
             SettingsButton {
@@ -552,8 +560,8 @@ Column {
                     objectName: "widgets-size-" + widgetRow.index
                     width: Math.min(280, parent.width)
                     tokens: root.tokens
-                    model: root.sizeOptions
-                    currentKey: widgetRow.modelData && widgetRow.modelData.size === "large" ? "large" : "compact"
+                    model: widgetRow.modelData && widgetRow.modelData.type === "clock" ? root.clockSizeOptions : root.sizeOptions
+                    currentKey: widgetRow.modelData && widgetRow.modelData.size ? widgetRow.modelData.size : "compact"
                     Accessible.name: "Размер, " + root.typeLabel(widgetRow.modelData && widgetRow.modelData.type)
                     onActivated: key => root.updateItem(widgetRow.modelData && widgetRow.modelData.id, widgetRow.index, "size", key)
                     onFocusReceived: root.reveal(this)

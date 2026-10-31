@@ -125,6 +125,7 @@ PanelWindow {
     NaomiCompanion {
         id: companion
         companionStyle: root.companionStyle
+        artworkAlignment: root.side
         tokens: root.tokens
         anchors.fill: parent
         active: root.visible

@@ -3,8 +3,8 @@
 
 niri 26.04 (8ed0da4) overview accepts backdrop-color, zoom, and workspace-shadow.
 It has no image path. A background layer named nayori-overview is placed in the
-backdrop with place-within-backdrop. The sharp desktop wallpaper stays on
-nayori-canvas and is not this layer.
+backdrop with place-within-backdrop. The sharp wallpaper stays on nayori-canvas; transparent workspace
+backgrounds reveal it while it sits in the backdrop.
 
 The fragment nayori-overview.kdl is included from config.kdl after
 nayori-accent.kdl when that include exists. noctalia.kdl is never written.
@@ -37,9 +37,15 @@ INVALID = "Конфигурация niri не приняла фон обзора
 OUTSIDE = "Фон обзора niri лежит вне каталога конфигурации"
 
 FRAGMENT_TEXT = (
-    "// Blurred Nayori wallpaper for the overview backdrop.\n"
-    "// niri 26.04 has no overview image path. This background layer is\n"
-    "// placed in the backdrop; nayori-canvas stays sharp on the desktop.\n"
+    "// Keep the wallpaper and widget faces stationary behind workspaces.\n"
+    "// Transparent workspace backgrounds are required to see the backdrop.\n"
+    "layout {\n"
+    "    background-color \"transparent\"\n"
+    "}\n"
+    "layer-rule {\n"
+    "    match namespace=\"^nayori-canvas$\"\n"
+    "    place-within-backdrop true\n"
+    "}\n"
     "layer-rule {\n"
     "    match namespace=\"^nayori-overview$\"\n"
     "    place-within-backdrop true\n"
@@ -81,7 +87,7 @@ def read_config(path):
 
 
 def fragment_matches(text):
-    return "namespace=\"^" + NAMESPACE + "$\"" in text and "place-within-backdrop true" in text
+    return text == FRAGMENT_TEXT
 
 
 def parse_includes(text):

@@ -7,6 +7,7 @@ Item {
     id: root
     required property var tokens
     property string style: "current"
+    property string alignment: "center"
     property bool active: true
     property bool animationsEnabled: true
     property bool followPointer: false
@@ -58,6 +59,7 @@ Item {
         id: chibi
         NaomiChibi {
             id: chibiSprite
+            alignment: root.alignment
             active: root.active
             animationsEnabled: root.animationsEnabled && !root.tokens.motion.off
             pet: root.pet

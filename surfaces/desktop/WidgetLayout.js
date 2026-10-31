@@ -8,9 +8,9 @@ var GRID = 24
 var TYPES = { clock: true, weather: true, music: true, system: true, note: true }
 
 var BOX = {
-    clock: { compact: [220, 96], large: [420, 176] },
+    clock: { compact: [220, 116], large: [420, 200], extraLarge: [560, 255], huge: [700, 310] },
     weather: { compact: [248, 156], large: [340, 228] },
-    music: { compact: [300, 132], large: [380, 180] },
+    music: { compact: [300, 160], large: [380, 210] },
     system: { compact: [236, 168], large: [300, 216] },
     note: { compact: [260, 168], large: [340, 240] }
 }
@@ -81,11 +81,37 @@ function extent(value) {
     return Math.floor(n)
 }
 
+function normalizeSize(type, size) {
+    if (type === "clock" && (size === "extraLarge" || size === "huge")) return size
+    return size === "large" ? "large" : "compact"
+}
+
 function sizeOf(item) {
     var type = item && BOX[item.type] ? item.type : "note"
-    var size = item && item.size === "large" ? "large" : "compact"
+    var size = normalizeSize(type, item && item.size)
     var box = BOX[type][size]
     return { width: box[0], height: box[1] }
+}
+
+function normalizeMetrics(metrics) {
+    var list = arrayValue(metrics)
+    var result = []
+    for (var i = 0; i < list.length; i++)
+        if ((list[i] === "cpu" || list[i] === "memory" || list[i] === "gpu") && result.indexOf(list[i]) < 0)
+            result.push(list[i])
+    return result.length ? result : ["cpu", "memory", "gpu"]
+}
+
+function changeItem(items, id, field, value) {
+    var list = normalizeItems(items)
+    for (var i = 0; i < list.length; i++) {
+        var item = list[i]
+        if (item.id !== id) continue
+        if (field === "size") item.size = normalizeSize(item.type, value)
+        if (field === "style") item.style = value === "plain" ? "plain" : "card"
+        if (field === "metrics" && item.type === "system") item.metrics = normalizeMetrics(value)
+    }
+    return list
 }
 
 function copyItem(item) {
@@ -95,18 +121,31 @@ function copyItem(item) {
         type: source.type,
         x: typeof source.x === "number" && isFinite(source.x) ? source.x : coord(source.x),
         y: typeof source.y === "number" && isFinite(source.y) ? source.y : coord(source.y),
-        size: source.size === "large" ? "large" : "compact",
+        size: normalizeSize(source.type, source.size),
         style: source.style === "plain" ? "plain" : "card"
     }
+    if (source.type === "system")
+        next.metrics = normalizeMetrics(source.metrics)
     if (source.type === "note")
         next.text = typeof source.text === "string" ? source.text : ""
     return next
 }
 
+// QML signals can expose a QVariantList as an array-like object rather than a JS Array.
+function arrayValue(value) {
+    if (Array.isArray(value)) return value
+    if (!value || typeof value !== "object" || typeof value.length !== "number" ||
+        !isFinite(value.length) || value.length < 0 || value.length > 10000 || Math.floor(value.length) !== value.length)
+        return []
+    var result = []
+    for (var i = 0; i < value.length; i++) result.push(value[i])
+    return result
+}
+
 function normalizeItems(list) {
     var next = []
     var used = {}
-    var source = Array.isArray(list) ? list : []
+    var source = arrayValue(list)
     var i
     for (i = 0; i < source.length; i++) {
         var raw = source[i]
@@ -117,9 +156,11 @@ function normalizeItems(list) {
             type: raw.type,
             x: coord(raw.x),
             y: coord(raw.y),
-            size: raw.size === "large" ? "large" : "compact",
+            size: normalizeSize(raw.type, raw.size),
             style: raw.style === "plain" ? "plain" : "card"
         }
+        if (item.type === "system")
+            item.metrics = normalizeMetrics(raw.metrics)
         if (item.type === "note")
             item.text = typeof raw.text === "string" ? raw.text : ""
         item.id = uniqueId(used, raw.id)
@@ -158,7 +199,7 @@ function normalize(document) {
 function clamp(items, screenW, screenH) {
     var w = extent(screenW)
     var h = extent(screenH)
-    var list = Array.isArray(items) ? items : []
+    var list = arrayValue(items)
     var next = []
     var i
     for (i = 0; i < list.length; i++) {
@@ -188,7 +229,7 @@ function snapTo(value, grid) {
 }
 
 function move(items, id, x, y, snap, grid) {
-    var list = Array.isArray(items) ? items : []
+    var list = arrayValue(items)
     var next = []
     var i
     for (i = 0; i < list.length; i++) {
@@ -231,9 +272,11 @@ function add(items, spec, screenW, screenH) {
         type: spec.type,
         x: spec.x === undefined || spec.x === null ? 24 + (index % 8) * GRID : coord(spec.x),
         y: spec.y === undefined || spec.y === null ? 24 + (index % 8) * GRID : coord(spec.y),
-        size: spec.size === "large" ? "large" : "compact",
+        size: normalizeSize(spec.type, spec.size),
         style: spec.style === "plain" ? "plain" : "card"
     }
+    if (item.type === "system")
+        item.metrics = normalizeMetrics(spec.metrics)
     if (item.type === "note")
         item.text = typeof spec.text === "string" ? spec.text : ""
     list.push(item)
@@ -243,7 +286,7 @@ function add(items, spec, screenW, screenH) {
 }
 
 function remove(items, id) {
-    var list = Array.isArray(items) ? items : []
+    var list = arrayValue(items)
     var next = []
     var i
     for (i = 0; i < list.length; i++) {
@@ -255,7 +298,7 @@ function remove(items, id) {
 }
 
 function editText(items, id, text) {
-    var list = Array.isArray(items) ? items : []
+    var list = arrayValue(items)
     var value = typeof text === "string" ? text : ""
     var next = []
     var i
@@ -311,9 +354,11 @@ function sameLayout(a, b) {
         var right = bi[i] || {}
         if (left.id !== right.id || left.type !== right.type || left.x !== right.x || left.y !== right.y)
             return false
-        if ((left.size === "large" ? "large" : "compact") !== (right.size === "large" ? "large" : "compact"))
+        if (normalizeSize(left.type, left.size) !== normalizeSize(right.type, right.size))
             return false
         if ((left.style === "plain" ? "plain" : "card") !== (right.style === "plain" ? "plain" : "card"))
+            return false
+        if (left.type === "system" && normalizeMetrics(left.metrics).join(",") !== normalizeMetrics(right.metrics).join(","))
             return false
         if ((left.text || "") !== (right.text || ""))
             return false
@@ -345,6 +390,7 @@ function textField(field) {
 }
 
 function weatherScene(code) {
+    if (code === null || code === undefined || code === "") return ""
     var n = typeof code === "number" ? code : Number(code)
     if (!isFinite(n))
         return ""
@@ -419,6 +465,8 @@ function readWeather(data) {
     for (i = 0; i < days.length && forecast.length < 3; i++) {
         var day = days[i]
         if (!day || typeof day !== "object")
+            continue
+        if (/^\d{4}-\d{2}-\d{2}$/.test(day.date || "") && !forecastLabel(day.date))
             continue
         var max = readNumber(day.maxtempC)
         var min = readNumber(day.mintempC)

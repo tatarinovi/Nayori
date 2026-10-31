@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import Quickshell.Services.UPower
 import "WidgetLayout.js" as WidgetLayout
 
 Item {
@@ -8,9 +7,8 @@ Item {
     required property var tokens
     property var reader: null
     property bool large: false
+    property var metrics: ["cpu", "memory", "gpu"]
 
-    readonly property var battery: UPower.displayDevice
-    readonly property bool batteryReady: battery && battery.ready && battery.isPresent
     readonly property string cpuText: {
         if (!reader || reader.cpuFailed)
             return "Процессор недоступен"
@@ -27,15 +25,9 @@ Item {
             return "Читаем память"
         return WidgetLayout.percentLabel(reader.memory) || "Память недоступна"
     }
-    readonly property string batteryPercentText: batteryReady ? WidgetLayout.batteryPercent(battery.percentage) : ""
-    readonly property string batteryText: {
-        if (!battery || !battery.ready)
-            return "Сведения о\u00A0питании недоступны"
-        if (!battery.isPresent)
-            return "Батареи нет"
-        return batteryPercentText || "Заряд неизвестен"
-    }
-    readonly property string batteryDetail: batteryPercentText !== "" ? (UPower.onBattery ? "От батареи" : "От сети") : ""
+    readonly property string gpuText: reader && reader.gpu !== null && reader.gpu !== undefined
+        ? (WidgetLayout.percentLabel(reader.gpu) || "Нет данных") : "Нет данных"
+    readonly property bool gpuKnown: gpuText.slice(-1) === "%"
     readonly property bool cpuKnown: cpuText.slice(-1) === "%"
     readonly property bool memoryKnown: memoryText.slice(-1) === "%"
 
@@ -46,118 +38,89 @@ Item {
         return isFinite(value) ? Math.max(0, Math.min(1, value / 100)) : 0
     }
 
-    Column {
+    component Meter: Item {
+        id: meter
+        required property var tokens
+        property string title: ""
+        property string value: ""
+        property real amount: 0
+        property bool known: false
+        property bool large: false
+
+        DesktopLabel {
+            id: caption
+            anchors.top: parent.top
+            width: parent.width
+            tokens: meter.tokens
+            text: meter.title
+            muted: true
+            font.pixelSize: 12
+            horizontalAlignment: Text.AlignHCenter
+        }
+        Canvas {
+            id: ring
+            anchors.top: caption.bottom
+            anchors.topMargin: 8
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: Math.min(meter.large ? 68 : 52, parent.width - 8)
+            height: width
+            antialiasing: true
+            property real value: meter.amount
+            property color accent: meter.tokens.color.accent
+            property color track: Qt.alpha(meter.tokens.color.text, 0.16)
+            onValueChanged: requestPaint()
+            onAccentChanged: requestPaint()
+            onTrackChanged: requestPaint()
+            onWidthChanged: requestPaint()
+            Component.onCompleted: requestPaint()
+            onPaint: {
+                const ctx = getContext("2d")
+                ctx.reset()
+                const center = width / 2
+                const radius = Math.max(1, center - 4)
+                ctx.lineWidth = 5
+                ctx.lineCap = "round"
+                ctx.strokeStyle = track
+                ctx.beginPath()
+                ctx.arc(center, center, radius, 0, Math.PI * 2)
+                ctx.stroke()
+                if (meter.known && value > 0) {
+                    ctx.strokeStyle = accent
+                    ctx.beginPath()
+                    ctx.arc(center, center, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * value)
+                    ctx.stroke()
+                }
+            }
+        }
+        DesktopLabel {
+            anchors.top: ring.bottom
+            anchors.topMargin: 7
+            width: parent.width
+            tokens: meter.tokens
+            text: meter.value
+            muted: !meter.known
+            font.pixelSize: meter.known ? 13 : 11
+            horizontalAlignment: Text.AlignHCenter
+            Accessible.name: meter.title + ", " + text
+        }
+    }
+
+    Row {
+        id: meterRow
         anchors.fill: parent
-        spacing: root.large ? 10 : 8
-        Column {
-            width: parent.width
-            spacing: 4
-            Row {
-                width: parent.width
-                spacing: 8
-                DesktopLabel {
-                    width: Math.max(0, parent.width - cpuValue.width - parent.spacing)
-                    tokens: root.tokens
-                    text: "Процессор"
-                }
-                DesktopLabel {
-                    id: cpuValue
-                    tokens: root.tokens
-                    muted: !root.cpuKnown
-                    text: root.cpuText
-                    Accessible.name: "Процессор, " + text
-                }
-            }
-            Rectangle {
-                width: parent.width
-                height: 3
-                radius: 1.5
-                visible: root.cpuKnown
-                color: Qt.alpha(root.tokens.color.text, 0.14)
-                Rectangle {
-                    width: parent.width * root.fraction(root.cpuText)
-                    height: parent.height
-                    radius: parent.radius
-                    color: root.tokens.color.accent
-                }
-            }
-        }
-        Column {
-            width: parent.width
-            spacing: 4
-            Row {
-                width: parent.width
-                spacing: 8
-                DesktopLabel {
-                    width: Math.max(0, parent.width - memoryValue.width - parent.spacing)
-                    tokens: root.tokens
-                    text: "Память"
-                }
-                DesktopLabel {
-                    id: memoryValue
-                    tokens: root.tokens
-                    muted: !root.memoryKnown
-                    text: root.memoryText
-                    Accessible.name: "Память, " + text
-                }
-            }
-            Rectangle {
-                width: parent.width
-                height: 3
-                radius: 1.5
-                visible: root.memoryKnown
-                color: Qt.alpha(root.tokens.color.text, 0.14)
-                Rectangle {
-                    width: parent.width * root.fraction(root.memoryText)
-                    height: parent.height
-                    radius: parent.radius
-                    color: root.tokens.color.accent
-                }
-            }
-        }
-        Column {
-            width: parent.width
-            spacing: 2
-            Row {
-                width: parent.width
-                spacing: 8
-                DesktopLabel {
-                    width: Math.max(0, parent.width - batteryValue.width - parent.spacing)
-                    tokens: root.tokens
-                    text: "Батарея"
-                }
-                DesktopLabel {
-                    id: batteryValue
-                    width: Math.min(implicitWidth, parent.width * 0.72)
-                    horizontalAlignment: Text.AlignRight
-                    tokens: root.tokens
-                    muted: root.batteryPercentText === ""
-                    text: root.batteryText
-                    wrapMode: Text.Wrap
-                    elide: Text.ElideNone
-                    Accessible.name: "Батарея, " + text
-                }
-            }
-            DesktopLabel {
-                width: parent.width
-                visible: root.batteryDetail !== ""
+        spacing: 4
+        Repeater {
+            model: WidgetLayout.normalizeMetrics(root.metrics)
+            Meter {
+                required property string modelData
+                width: (meterRow.width - Math.max(0, WidgetLayout.normalizeMetrics(root.metrics).length - 1) * meterRow.spacing) / WidgetLayout.normalizeMetrics(root.metrics).length
+                height: meterRow.height
                 tokens: root.tokens
-                muted: true
-                text: root.batteryDetail
-                font.pixelSize: root.tokens.type.small.size
-            }
-            Rectangle {
-                width: parent.width
-                height: 3
-                radius: 1.5
-                visible: root.batteryPercentText !== ""
-                color: Qt.alpha(root.tokens.color.text, 0.14)
-                Rectangle {
-                    width: parent.width * root.fraction(root.batteryPercentText)
-                    height: parent.height
-                    radius: parent.radius
-                    color: root.tokens.color.accent
-                }
+                title: modelData === "cpu" ? "CPU" : modelData === "memory" ? "RAM" : "GPU"
+                value: modelData === "cpu" ? (root.cpuKnown ? root.cpuText : "Нет данных") : modelData === "memory" ? (root.memoryKnown ? root.memoryText : "Нет данных") : root.gpuText
+                known: modelData === "cpu" ? root.cpuKnown : modelData === "memory" ? root.memoryKnown : root.gpuKnown
+                amount: root.fraction(value)
+                large: root.large
             }
         }
     }

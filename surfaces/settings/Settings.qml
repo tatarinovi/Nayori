@@ -14,6 +14,8 @@ FocusScope {
     property var bluetoothService: null
     property var settingsService: null
     property var polkitService: null
+    property bool widgetsEditing: false
+    signal widgetsEditingRequested(bool on)
     required property var tokens
     property var captureSettings: ({})
     signal captureSettingsChangedRequested(var patch)
@@ -207,6 +209,7 @@ FocusScope {
         {key: "appearance", page: 2, title: "Внешний вид", group: "Персонализация", description: "Тема, прозрачность, акцент и анимации интерфейса"},
         {key: "wallpapers", page: 4, title: "Обои", group: "Персонализация", description: "Выберите папку и изображение для рабочего стола"},
         {key: "panels", page: 1, title: "Панель задач", group: "Персонализация", description: "Автоскрытие островов, место для окон у краёв экрана и мониторы"},
+        {key: "widgets", page: 32, title: "Виджеты", group: "Персонализация", glyph: "apps", description: "Виджеты на рабочем столе и их расположение"},
         {key: "start", page: 14, title: "Пуск", group: "Персонализация", description: "Значок и приложения кнопки «Пуск»"},
         {key: "island", page: 15, title: "Dynamic Island", group: "Персонализация", description: "Чередование часов и погоды, город и интервал"},
         {key: "lockscreen", page: 16, title: "Экран блокировки", group: "Персонализация", description: "Предпросмотр экрана блокировки с\u00A0обоями и цветами Nayori"},
@@ -230,7 +233,7 @@ FocusScope {
     readonly property bool persistsSettings: {
         const key = section.key
         const naomiSettings = key === "naomi" || key === "naomi-look" || key === "naomi-place"
-        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key === "capture" || key === "notifications" || naomiSettings
+        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key === "capture" || key === "notifications" || key === "widgets" || naomiSettings
     }
     readonly property var categories: [
         {name: "Обзор", caption: "Обзор", glyph: "home"},
@@ -846,6 +849,18 @@ FocusScope {
                     tokens: root.tokens
                     settings: root.settingsService
                     polkit: root.polkitService
+                }
+            }
+            SettingsScroll {
+                WidgetsPage {
+                    width: parent.width
+                    tokens: root.tokens
+                    showHeading: false
+                    desktopWidgets: root.settingsService ? root.settingsService.desktopWidgets : ({})
+                    screens: Quickshell.screens
+                    editing: root.widgetsEditing
+                    onLayoutEdited: layout => { if (root.settingsService) root.settingsService.update({ desktopWidgets: layout }) }
+                    onEditModeChanged: on => root.widgetsEditingRequested(on)
                 }
             }
         }

@@ -181,6 +181,8 @@ def main():
         fragment = (config_dir / "nayori-overview.kdl").read_text(encoding="utf-8")
         if "namespace=\"^nayori-overview$\"" not in fragment or "place-within-backdrop true" not in fragment:
             raise SystemExit("fragment missing backdrop rule")
+        if 'background-color "transparent"' not in fragment or 'namespace="^nayori-canvas$"' not in fragment or fragment.count("place-within-backdrop true") != 2:
+            raise SystemExit("wallpaper backdrop requires a transparent workspace and both layer rules")
         if "backdrop-image" in fragment or moved in fragment:
             raise SystemExit("fragment invented an image path")
         if keybinds.read_bytes() != key_bytes or b"Alt+Space" not in key_bytes:

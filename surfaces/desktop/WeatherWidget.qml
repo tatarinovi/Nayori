@@ -30,7 +30,7 @@ Item {
 
     Column {
         anchors.fill: parent
-        spacing: 6
+        spacing: root.large ? 10 : 5
         DesktopLabel {
             width: parent.width
             visible: root.message !== ""
@@ -46,7 +46,7 @@ Item {
             spacing: 8
             visible: root.message === ""
             Item {
-                width: root.large ? 32 : 22
+                width: root.large ? 54 : 36
                 height: width
                 visible: root.payload && root.payload.weatherCode !== null
                 WeatherGlyph {
@@ -56,7 +56,7 @@ Item {
                 }
             }
             Column {
-                readonly property int glyphSpace: root.payload && root.payload.weatherCode !== null ? (root.large ? 40 : 30) : 0
+                readonly property int glyphSpace: root.payload && root.payload.weatherCode !== null ? (root.large ? 62 : 44) : 0
                 width: Math.max(0, parent.width - glyphSpace)
                 spacing: 2
                 DesktopLabel {
@@ -64,7 +64,7 @@ Item {
                     tokens: root.tokens
                     display: true
                     text: root.temperature !== "" ? root.temperature : "Нет температуры"
-                    font.pixelSize: root.large ? root.tokens.type.display.size * 2 : root.tokens.type.display.size + 8
+                    font.pixelSize: root.large ? 40 : 27
                     lineHeight: 1
                     Accessible.name: "Погода, " + text
                 }
@@ -76,7 +76,7 @@ Item {
                 }
                 DesktopLabel {
                     width: parent.width
-                    visible: root.feels !== ""
+                    visible: root.large && root.feels !== ""
                     tokens: root.tokens
                     muted: true
                     text: root.feels
@@ -84,7 +84,7 @@ Item {
                 }
                 DesktopLabel {
                     width: parent.width
-                    visible: root.humidity !== ""
+                    visible: false
                     tokens: root.tokens
                     muted: true
                     text: root.humidity
@@ -92,15 +92,22 @@ Item {
                 }
             }
         }
+        Rectangle {
+            width: parent.width
+            height: 1
+            visible: root.message === "" && root.payload && root.payload.forecast.length > 0
+            color: Qt.alpha(root.tokens.color.text, 0.16)
+        }
         Row {
             width: parent.width
-            spacing: 12
+            spacing: 0
             visible: root.message === "" && root.payload && root.payload.forecast.length > 0
             Repeater {
                 model: root.payload ? root.payload.forecast : []
                 delegate: Column {
                     id: day
                     required property var modelData
+                    width: parent.width / Math.max(1, root.payload.forecast.length)
                     spacing: 2
                     readonly property string span: {
                         const low = WidgetLayout.temperatureText(modelData.min)
@@ -110,6 +117,8 @@ Item {
                         return high || low
                     }
                     DesktopLabel {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
                         tokens: root.tokens
                         muted: true
                         text: day.modelData.label
@@ -117,6 +126,8 @@ Item {
                         font.pixelSize: root.tokens.type.small.size
                     }
                     DesktopLabel {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
                         tokens: root.tokens
                         text: day.span
                         Accessible.name: (day.modelData.label || "Прогноз") + ", " + text

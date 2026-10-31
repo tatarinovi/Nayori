@@ -19,6 +19,8 @@ QtObject {
     property var _workspaces: []
     property var _windows: []
 
+    property bool _overviewOpen: false
+    readonly property bool overviewOpen: _overviewOpen
     readonly property bool available: _available
     readonly property string error: _error
     readonly property string focusedOutput: _focusedOutput
@@ -231,6 +233,7 @@ QtObject {
         _streamLive = false
         handshakeTimer.stop()
         _available = false
+        _overviewOpen = false
         _error = message.length > 0 ? message : "сокет niri недоступен"
         _focusedOutput = ""
         _keyboardLayouts = []
@@ -326,6 +329,11 @@ QtObject {
     function applyEvent(msg, epoch) {
         if (epoch !== _streamEpoch)
             return
+        if (msg.OverviewOpenedOrClosed !== undefined) {
+            const state = msg.OverviewOpenedOrClosed
+            if (state && typeof state.is_open === "boolean") _overviewOpen = state.is_open
+            return
+        }
         if (msg.KeyboardLayoutsChanged !== undefined) {
             const layouts = msg.KeyboardLayoutsChanged.keyboard_layouts
             if (layouts && Array.isArray(layouts.names) && Number.isInteger(layouts.current_idx)) {

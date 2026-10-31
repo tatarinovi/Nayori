@@ -13,6 +13,11 @@ const saved = {
     "DP-1": { snap: true, items: [clock] },
     "HDMI-A-1": { snap: false, items: [note, { id: "gone", type: "photo", x: 1, y: 1 }] }
 }
+// Qt passes QVariantList through signals as an array-like object.
+const variantList = { 0: clock, length: 1 }
+assert.strictEqual(context.normalizeScreen({ items: variantList }).items.length, 1)
+assert.strictEqual(context.normalizeScreen({ items: "not a list" }).items.length, 0)
+
 const normalized = context.normalize(saved)
 assert.deepStrictEqual(Object.keys(normalized).sort(), ["DP-1", "HDMI-A-1"])
 assert.strictEqual(normalized["HDMI-A-1"].snap, false)
@@ -22,13 +27,29 @@ assert.strictEqual(normalized["DP-1"].items[0].style, "plain")
 assert.strictEqual(normalized["DP-1"].items[0].size, "large")
 assert.strictEqual("color" in normalized["DP-1"].items[0], false)
 
+for (const size of ["large", "extraLarge", "huge"]) {
+    const roundtrip = context.normalize({ "DP-1": { items: [{ ...clock, size }] } })
+    assert.strictEqual(roundtrip["DP-1"].items[0].size, size)
+    assert.ok(context.sizeOf(roundtrip["DP-1"].items[0]).width >= 420)
+}
+assert.strictEqual(context.normalizeItems([{ ...note, size: "huge" }])[0].size, "compact")
+assert.strictEqual(context.sameLayout({ snap: true, items: [clock] }, { snap: true, items: [{ ...clock, size: "huge" }] }), false)
+
+const system = { id: "s", type: "system", x: 1, y: 2, size: "compact", style: "card" }
+assert.strictEqual(context.normalizeItems([system])[0].metrics.join(","), "cpu,memory,gpu")
+const modified = context.changeItem([system], "s", "metrics", ["cpu", "gpu"])
+assert.strictEqual(modified[0].metrics.join(","), "cpu,gpu")
+assert.strictEqual(context.normalizeScreen({ items: modified }).items[0].metrics.join(","), "cpu,gpu")
+assert.strictEqual(context.sameLayout({ snap: true, items: [system] }, { snap: true, items: modified }), false)
+assert.strictEqual(context.normalizeMetrics([]).length, 3)
+
 const connected = ["DP-1"]
 assert.ok(connected.indexOf("HDMI-A-1") < 0)
 assert.ok(normalized["HDMI-A-1"])
 
-assert.deepStrictEqual(context.normalize(null), {})
-assert.deepStrictEqual(context.normalize([]), {})
-assert.deepStrictEqual(context.normalize("DP-1"), {})
+assert.deepStrictEqual(Object.keys(context.normalize(null)), [])
+assert.deepStrictEqual(Object.keys(context.normalize([])), [])
+assert.deepStrictEqual(Object.keys(context.normalize("DP-1")), [])
 
 const messy = context.normalize({
     "DP-1": {
@@ -59,7 +80,7 @@ assert.strictEqual(messy["DP-1"].items[1].style, "card")
 assert.strictEqual(messy["DP-1"].items[2].x, -4)
 assert.strictEqual(messy["DP-1"].items[2].y, 4)
 assert.strictEqual("text" in messy["DP-1"].items[2], false)
-assert.deepStrictEqual(messy["eDP-1"], { snap: true, items: [] })
+assert.strictEqual(JSON.stringify(messy["eDP-1"]), JSON.stringify({ snap: true, items: [] }))
 
 const wide = context.clamp([
     { id: "a", type: "clock", x: 99999, y: -40, size: "compact", style: "card" }
@@ -135,7 +156,7 @@ const serviceShape = context.readWeather({ temp_C: "0", FeelsLikeC: " -2 ", weat
 assert.strictEqual(serviceShape.temperature, 0)
 assert.strictEqual(serviceShape.feelsLike, -2)
 assert.strictEqual(serviceShape.description, "Солнечно")
-assert.deepStrictEqual(serviceShape.forecast, [])
+assert.strictEqual(serviceShape.forecast.length, 0)
 assert.strictEqual(context.temperatureText(serviceShape.feelsLike), "\u2212" + "2°")
 
 const full = context.readWeather({

@@ -32,11 +32,11 @@ case "${1:-}" in
             printf '\n>>> %s\n' "$suite"
             bash "scripts/check-$suite.sh"
         done
-        for test in bluetooth color-scheme settings panel-modes weather-service settings-window settings-usage naomi-sprite wallpaper-library lockscreen wireguard; do
+        for test in bluetooth color-scheme settings panel-modes weather-service settings-window settings-usage desktop-widgets naomi-sprite wallpaper-library lockscreen wireguard; do
             printf '\n>>> %s\n' "$test"
             python3 "tests/$test.py"
         done
-        for fixture in Clipboard NaomiPixel NayoriUpdate PolkitDialog; do
+        for fixture in Clipboard NaomiPixel NayoriUpdate PolkitDialog DesktopWidgetContent; do
             log="$runtime/$fixture.log"
             timeout 20s qs -p "tests/smoke/${fixture}Smoke.qml" --no-color > "$log" 2>&1 || { cat "$log"; exit 1; }
             cat "$log"
@@ -45,6 +45,7 @@ case "${1:-}" in
                 NaomiPixel) marker=NAOMI_PIXEL_PASS ;;
                 NayoriUpdate) marker=UPDATE_SMOKE_PASS ;;
                 PolkitDialog) marker=POLKIT_DIALOG_PASS ;;
+                DesktopWidgetContent) marker=DESKTOP_CONTENT_PASS ;;
             esac
             rg -q "$marker" "$log"
             ! rg -q 'FAIL|Error:|Unable to assign|ReferenceError|TypeError|Failed to load configuration' "$log"

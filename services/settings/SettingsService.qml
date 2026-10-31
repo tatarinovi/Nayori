@@ -4,6 +4,7 @@ import Quickshell.Io
 import "../status/MixerSources.js" as MixerSources
 import "../island/NotificationPolicy.js" as NotificationPolicy
 import "../ui/PanelModes.js" as PanelModes
+import "../../surfaces/desktop/WidgetLayout.js" as WidgetLayout
 
 // Owned by ShellRoot, never by a settings page or window.
 QtObject {
@@ -14,6 +15,7 @@ QtObject {
         "version": 1
     })
     property var values: defaults()
+    readonly property var desktopWidgets: values.desktopWidgets
     readonly property var panelReservations: values.panelReservations
     readonly property var panelModes: values.panelModes
     readonly property bool autoHideTop: values.autoHideTop
@@ -152,6 +154,7 @@ QtObject {
 
     function defaults() {
         return {
+            "desktopWidgets": {},
             "panelModes": {},
             "panelReservations": {},
             "autoHideTop": false,
@@ -210,6 +213,7 @@ QtObject {
 
     function normalize(key, value) {
         const fallback = defaults()[key];
+        if (key === "desktopWidgets") return WidgetLayout.normalize(value);
         if (key === "panelModes") return PanelModes.normalize(value);
         if (key === "panelReservations") return PanelModes.normalizeReservations(value);
         if (key === "mixerSources")

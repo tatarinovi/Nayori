@@ -10,6 +10,7 @@ Item {
     id: root
     required property var tokens
     property string companionStyle: "current"
+    property string artworkAlignment: "center"
     property bool active: true
     property bool animationsEnabled: true
     // Реагировать на курсор: поза поглаживания и реплики на неё.
@@ -59,6 +60,7 @@ Item {
     NaomiArtwork {
         id: art
         style: root.companionStyle
+        alignment: root.artworkAlignment
         tokens: root.tokens
         x: (root.width - width) / 2
         y: root.height - height

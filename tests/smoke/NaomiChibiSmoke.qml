@@ -33,6 +33,12 @@ ShellRoot {
                 sprite.blinkInterval = 300
                 companion.grabToImage(result => result.saveToFile("/tmp/nayori-chibi-smoke.png"))
                 test.check(sprite.headRect.width > 0 && sprite.bubbleAnchor.y > 0, "interaction geometry")
+                companion.artworkAlignment = "right"
+                test.check(Math.abs(sprite.bubbleAnchor.x - 200) < 0.01, "right alignment includes transparent frame margin")
+                companion.artworkAlignment = "left"
+                test.check(Math.abs(sprite.bubbleAnchor.x - 89) < 0.01, "left alignment includes transparent frame margin")
+                companion.artworkAlignment = "center"
+                test.check(Math.abs(sprite.bubbleAnchor.x - 140) < 0.01, "preview remains centered")
             } else if (test.phase === 7) {
                 test.check(sprite.closedEyes, "blink timer closes eyes")
             } else if (test.phase === 9) {

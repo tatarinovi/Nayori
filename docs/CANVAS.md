@@ -61,13 +61,20 @@ Canvas рисует неподвижные обои средствами Qt Quic
 
 ## Обзор
 
-Резкий фон остаётся на `nayori-canvas`. Для обзора niri оболочка строит отдельный слой `nayori-overview`.
+Резкий фон и видимые части виджетов находятся на `nayori-canvas`, закреплённом в backdrop Niri. Прозрачный слой рабочего стола принимает ввод. Для открытого обзора оболочка показывает отдельный слой `nayori-overview` с размытой копией обоев и виджетами.
 
 `OverviewBlur` собирает путь обоев каждого выхода и один раз запускает `python3 services/canvas/overview_blur.py`. Скрипт не висит в фоне. Pillow уменьшает длинную сторону до 480 px, применяет `GaussianBlur` радиуса 18 и пишет PNG в `$XDG_CACHE_HOME/nayori/overview` или `~/.cache/nayori/overview`. Имя файла — SHA-256 пути, mtime и размера. Без Pillow ответ этого выхода — `blur unavailable`, и слой обзора для него не показывается. Повторный опрос пути идёт раз в 2 секунды. Устаревшее поколение ответа отбрасывается. Если новый кадр не открылся, `revert` возвращает предыдущий путь.
 
 `OverviewRule` пишет `nayori-overview.kdl` и добавляет `include` в `config.kdl` niri, после `nayori-accent.kdl`, если тот уже есть. Путь конфигурации: `NIRI_CONFIG` или `$XDG_CONFIG_HOME/niri/config.kdl`. Фрагмент:
 
 ```kdl
+layout {
+    background-color "transparent"
+}
+layer-rule {
+    match namespace="^nayori-canvas$"
+    place-within-backdrop true
+}
 layer-rule {
     match namespace="^nayori-overview$"
     place-within-backdrop true
@@ -76,7 +83,7 @@ layer-rule {
 
 Запись атомарная. Неудачная проверка `niri validate` возвращает прежний текст конфигурации из памяти, запасной файл не хранится. Если правило ещё не загружено, оболочка один раз вызывает `Niri.reloadConfig()`. Поверхность обзора создаётся, только когда `ruleLive` истинно. Сам скрипт композитор не перезагружает.
 
-Окно обзора тоже Background, `ExclusionMode.Ignore`, `exclusiveZone: 0`, пустая маска, без клавиатуры. Картинка — `Image.PreserveAspectCrop`. Промежутки между столами и цвет backdrop по-прежнему задаёт niri. Чужой фон может перекрыть Canvas порядком слоёв. Canvas его не останавливает.
+Окно обзора тоже Background, `ExclusionMode.Ignore`, `exclusiveZone: 0`, пустая маска, без клавиатуры. Оно появляется при открытом обзоре. Правило закрепляет оба фоновых слоя в backdrop и задаёт прозрачную подложку рабочих столов. Картинка — `Image.PreserveAspectCrop`. Промежутки между столами и цвет backdrop по-прежнему задаёт niri. Чужой фон может перекрыть Canvas порядком слоёв. Canvas его не останавливает.
 
 Источники по типам Quickshell: [FileView](https://quickshell.org/docs/v0.3.1/types/Quickshell.Io/FileView/), [Variants](https://quickshell.org/docs/v0.3.1/types/Quickshell/Variants/). Локальные qmltypes и текущая сессия важнее документации другой версии.
 

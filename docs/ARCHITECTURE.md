@@ -173,7 +173,7 @@ surfaces/clipboard/
 
 `WallpaperManager` хранит `canvas.json` и выбирает картинку по имени выхода. На каждый экран, пока фон включён, есть `WallpaperWindow` (`nayori-canvas`, `exclusiveZone: 0`, пустая маска ввода). Файл, режимы, растворение и слой обзора описаны в [CANVAS.md](CANVAS.md).
 
-Обзор — второе фоновое окно. `OverviewBlur` готовит размытую копию обоев в `$XDG_CACHE_HOME/nayori/overview` (иначе `~/.cache/nayori/overview`), пока Canvas включён. `OverviewWindow` (`nayori-overview`) появляется после того, как niri загрузил правило. Резкая картинка остаётся на `nayori-canvas`.
+Обзор — второе фоновое окно. `OverviewBlur` готовит размытую копию обоев в `$XDG_CACHE_HOME/nayori/overview` (иначе `~/.cache/nayori/overview`), пока Canvas включён. При открытии обзора `OverviewWindow` (`nayori-overview`) показывает её вместе с виджетами. Резкая картинка и виджеты находятся на `nayori-canvas`, который закреплён в backdrop; подложка рабочих столов прозрачна. Прозрачный слой рабочего стола обрабатывает ввод.
 
 ## Naomi
 

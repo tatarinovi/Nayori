@@ -186,6 +186,8 @@ ShellRoot {
                     test.check(flick.height > 0, "panels page has a viewport")
                     test.check(flick.contentY >= 0 && flick.contentY <= Math.max(0, flick.contentHeight - flick.height) + 1, "focus stays in scroll range")
                     test.check(test.findItem(view, "panels-autohide") === null, "global autohide block removed")
+                    openKey("widgets")
+                    test.check(currentPage === 32 && test.findItem(view, "widgets-page") !== null, "widgets page opens")
                     currentPage = 2
                     const scheme = test.findItem(view, "colorSchemeSelector")
                     scheme.activated("light")

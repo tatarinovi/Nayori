@@ -20,7 +20,28 @@ Item {
     Component.onCompleted: editor.text = savedText
 
     DesktopLabel {
-        anchors.fill: parent
+        id: heading
+        anchors.top: parent.top
+        width: parent.width
+        tokens: root.tokens
+        display: true
+        text: "Заметка"
+        font.pixelSize: 15
+    }
+    Rectangle {
+        id: divider
+        anchors.top: heading.bottom
+        anchors.topMargin: 8
+        width: parent.width
+        height: 1
+        color: Qt.alpha(root.tokens.color.text, 0.16)
+    }
+    DesktopLabel {
+        anchors.top: divider.bottom
+        anchors.topMargin: 8
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
         visible: editor.text === ""
         tokens: root.tokens
         muted: true
@@ -30,7 +51,12 @@ Item {
     }
     TextEdit {
         id: editor
-        anchors.fill: parent
+        objectName: "desktop-note-editor"
+        anchors.top: divider.bottom
+        anchors.topMargin: 8
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
         color: root.tokens.color.text
         selectionColor: root.tokens.color.accent
         selectedTextColor: root.tokens.color.accentText
