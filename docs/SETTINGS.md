@@ -39,13 +39,20 @@
   "preferredFileManager": "io.github.lgse.Strata",
   "niriColorIntegration": true,
   "strataThemeIntegration": true,
-  "mixerSources": []
+  "mixerSources": [],
+  "notificationsEnabled": true,
+  "notificationReception": null,
+  "notificationSources": [],
+  "notificationsDndUntil": 0,
+  "notificationsDndManual": false
 }
 ```
 
 `topReserved` и `bottomReserved` ограничиваются 0–200 и округляются до шага 4. `weatherRefreshMinutes` — целое от 1 до 180. `islandRotationSeconds` округляется и зажимается в 5–120. `weatherCity` обрезает пробелы по краям. `fullscreenIslandOutput` и `fullscreenCompanionOutput` обрезаются и не длиннее 256 символов. `colorScheme` — `dark` или `light` (по умолчанию `dark`). `surfaceStyle` — `solid` или `frosted`. `accentMode` — `default`, `automatic` или `manual`. `startIconStyle` — `current` или `fox`. `companionStyle` — `current`, `pixel-art`, `layered` или `haori`. `companionScreen` — `primary` или `secondary`. `companionSide` — `left` или `right`. Пустые `preferredTerminal` и `preferredFileManager` возвращаются к значениям по умолчанию.
 
 `manualAccent` принимает `#RGB`, `#RRGGBB` и `#AARRGGBB`. В файл пишется `#RRGGBB` в верхнем регистре, альфа отбрасывается. Иная строка становится `#C0AFD1`.
+
+`notificationsEnabled` — логический, по умолчанию включён. `notificationReception` — `true`, `false` или `null`. `null` и любое иное значение значат, что выбора ещё нет. `notificationsDndManual` — только `true` включает режим до ручного выключения; иное значение выключает его. `notificationsDndUntil` — целое число миллисекунд, абсолютное время окончания. Ноль, отрицательное и нечисловое значение значат, что таймера нет. `notificationSources` — массив до 200 записей `{key, title, desktopEntry, appName, mode}`. `key` начинается с `entry:` или `name:`. `mode` — `normal`, `expanded` или `off`; иное значение становится `normal`. Повторы ключа отбрасываются.
 
 Неизвестный ключ в `defaults()` не появляется из файла сам по себе: известное поле неверного типа получает значение по умолчанию. Поля, которых нет в `defaults()`, остаются в документе и записываются снова. Форматирование JSON при записи может измениться.
 
@@ -77,7 +84,7 @@
 
 История посещений принадлежит `services/settings/SettingsUsage.qml`, не окну. Файл: `$XDG_STATE_HOME/nayori/settings-usage.json`, обычно `~/.local/state/nayori/settings-usage.json`. Запись атомарная, пауза 250 мс, `watchChanges: false`. Удаление файла при остановленной оболочке сбрасывает историю. Повреждённая или чужая версия не перезаписывается, визиты тогда живут только в сеансе. «Обзор» и повтор уже открытой страницы не считаются. «Часто открываемые» на обзоре показывает до четырёх ключей: сначала по числу визитов, при равенстве — по последнему. В известные ключи истории не входит `integrations`. `settings.json` и `canvas.json` эта история не меняет.
 
-Нижняя строка «Изменения сохраняются автоматически.» стоит на `home`, `panels`, `appearance`, `weather`, `start`, `island`, `integrations` и на разделах, чей ключ начинается с `naomi`.
+Нижняя строка «Изменения сохраняются автоматически.» стоит на `home`, `panels`, `appearance`, `weather`, `start`, `island`, `integrations`, `notifications` и на разделах, чей ключ начинается с `naomi`.
 
 ## Разделы
 
@@ -88,6 +95,7 @@
 | `home` | Обзор | Обзор |
 | `display` | Экран | Система |
 | `sound` | Звук | Система |
+| `notifications` | Уведомления | Система |
 | `power` | Питание | Система |
 | `network` | Сеть | Система |
 | `localsend` | LocalSend | Система |
@@ -117,6 +125,20 @@
 `open` оставляет текущий раздел. `openPage` выбирает ключ из таблицы. Неизвестный ключ возвращает `false` и текст «Неизвестный раздел настроек». `canvas openSettings` открывает `wallpapers`. `canvas closeSettings` закрывает окно.
 
 Обои по-прежнему пишет `WallpaperManager` в `canvas.json`. Имя пользователя — `USER`. Аватар читается из `/var/lib/AccountsService/icons/<имя>`. Навигация и id окна на диск не сохраняются.
+
+### Уведомления
+
+Раздел `notifications` пишет показ, системный приём, режим «Не беспокоить» и список приложений. История уведомлений в файл не входит: она по-прежнему живёт в памяти и пропадает при перезапуске.
+
+«Показывать уведомления» — `notificationsEnabled`. Выключенный переключатель не сохраняет новые уведомления и не показывает их ни в свёрнутом, ни в развёрнутом острове. Уже сохранённые записи остаются. Это относится и к внутренним уведомлениям Nayori, например к захвату экрана.
+
+«Принимать системные уведомления» запускает и останавливает `services/island/Notifications.qml`. Пока `notificationReception` равен `null`, приём включается только при `NAYORI_NOTIFICATIONS=1`. После выбора в настройках решает сохранённое значение, переменная его не перебивает. Страница показывает «Приём выключен», «Запуск приёма…» или «Приём работает». Если имя `org.freedesktop.Notifications` занято или D-Bus недоступен, остаётся текст ошибки сервиса и подсказка включить приём снова. Nayori чужое имя не отбирает.
+
+«Не беспокоить» включается на 15 минут, 1 час, 2 часа, на число минут от 1 до 1440 или до ручного выключения. Срок хранится в `notificationsDndUntil` как абсолютное время. Ручной режим — `notificationsDndManual: true` и нулевой срок. На странице видно «до ЧЧ:ММ» или «Пока не выключите». «Выключить» сбрасывает оба поля. Если срок прошёл, пока Nayori не работала, при следующем запуске режим уже выключен.
+
+Во время режима уведомление сохраняется в истории развёрнутого острова и не попадает в свёрнутый. После окончания оно там тоже не появляется. Просмотр и прочтение остаются отдельными признаками.
+
+Приложение попадает в `notificationSources` при первом уведомлении. Источник определяется по `desktopEntry`, а если его нет — по имени приложения. Для каждого источника три режима: «Обычный показ», «Только в развёрнутом острове», «Отключено». Отключённые новые уведомления в историю не пишутся. Смена режима сразу меняет свёрнутый остров; уже сохранённую историю она не удаляет.
 
 ### Звук
 
@@ -185,7 +207,7 @@
 
 Команда активирует существующее окно. Если Nayori не запущена, скрипт запускает один экземпляр `qs -p <каталог> --no-duplicate --daemonize`, ждёт IPC до 10 секунд и открывает настройки. При холодном запуске появляются и панели. Автозапуск системы не меняется. Параллельные запросы сериализуются через `flock -w 12`. Ошибки и неизвестный ключ дают ненулевой код.
 
-Скрипт принимает ключи из своего `case`: `home`, `panels`, `appearance`, `wallpapers`, `weather`, `display`, `sound`, `power`, `network`, `localsend`, `bluetooth`, `mouse`, `keyboard`, `shortcuts`, `start`, `island`, `lockscreen`, `windows`, `alttab`, `workspaces`, `defaults`, `autostart`, `updates`, `about`. Ключей `naomi`, `naomi-look`, `naomi-place` и `integrations` в этом списке нет. Их открывает прямой IPC.
+Скрипт принимает ключи из своего `case`: `home`, `panels`, `appearance`, `wallpapers`, `weather`, `display`, `sound`, `notifications`, `power`, `network`, `localsend`, `bluetooth`, `mouse`, `keyboard`, `shortcuts`, `start`, `island`, `lockscreen`, `windows`, `alttab`, `workspaces`, `defaults`, `autostart`, `updates`, `about`. Ключей `naomi`, `naomi-look`, `naomi-place` и `integrations` в этом списке нет. Их открывает прямой IPC.
 
 ```sh
 qs ipc -p /home/katamy/Projects/nayori call settings open

@@ -1,9 +1,11 @@
 // Чистая логика журнала уведомлений. Без QML и таймеров: время приходит аргументом.
 //
-// У записи три независимых признака:
-//   seen   — показана ли она в свёрнутом острове; страница «Уведомления» считает такие записи просмотренными;
-//   read   — прочитана ли она в списке (раскрыта, нажата или удалена); от этого зависят точка и фильтр;
-//   closed — приложение само её закрыло, deleted — удалил пользователь.
+// У записи независимые признаки:
+//   seen    — показана ли она в свёрнутом острове; страница «Уведомления» считает такие записи просмотренными;
+//   read    — прочитана ли она в списке (раскрыта, нажата или удалена); от этого зависят точка и фильтр;
+//   quiet   — поступила в режиме «Не беспокоить»; в свёрнутый остров не возвращается;
+//   compact — можно ли показывать её в свёрнутом острове при текущем режиме источника;
+//   closed  — приложение само её закрыло, deleted — удалил пользователь.
 //
 // Свёрнутый остров не использует таймер: самое раннее непросмотренное уведомление
 // закреплено в центре (pinned), остальные непросмотренные показываются значками справа.
@@ -13,24 +15,35 @@ function create() { return { records: [], pageOpen: false } }
 
 function find(s, id) { return s.records.find(function(r) { return r.id === id }) }
 
-function receive(s, data, now) {
+function receive(s, data, now, options) {
+    const opts = options || {}
     let r = find(s, data.id)
     if (r && r.deleted) return
     if (r) {
         // Обновление приложением: служебные признаки и время поступления остаются.
-        const keep = { read: r.read, seen: r.seen, closed: r.closed, deleted: r.deleted, time: r.time }
+        // quiet липкий: уведомление из режима «Не беспокоить» не становится видимым в свёрнутом острове.
+        const quiet = !!r.quiet || !!opts.quiet
+        const compact = quiet ? false : opts.compact !== false
+        const keep = { read: r.read, seen: r.seen, closed: r.closed, deleted: r.deleted, time: r.time, quiet: quiet, compact: compact }
         Object.assign(r, data, keep)
         // Закрытое приложением уведомление, пришедшее снова, снова открыто.
         r.closed = false
+        r.quiet = quiet
+        r.compact = compact
         return
     }
     const time = typeof now === 'number' ? now : (typeof data.time === 'number' ? data.time : 0)
-    r = Object.assign({}, data, { time: time, read: false, seen: s.pageOpen, closed: false, deleted: false })
+    const quiet = !!opts.quiet
+    r = Object.assign({}, data, {
+        time: time, read: false, seen: s.pageOpen, closed: false, deleted: false,
+        quiet: quiet, compact: !quiet && opts.compact !== false
+    })
     s.records.unshift(r)
 }
 
 function live(r) { return !r.deleted && !r.closed }
-function unseen(s) { return s.records.filter(function(r) { return live(r) && !r.seen }) }
+function showsCollapsed(r) { return live(r) && !r.seen && !r.quiet && r.compact !== false }
+function unseen(s) { return s.records.filter(showsCollapsed) }
 
 // Самое раннее из непросмотренных: оно остаётся в центре, пока страницу не откроют.
 function pinned(s) {

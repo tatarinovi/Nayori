@@ -27,6 +27,14 @@ with tempfile.TemporaryDirectory(prefix="ns-") as directory:
     saved = json.loads(path.read_text())
     assert saved["weatherCity"] == "Москва" and saved["autoHideApps"]
     assert saved["weatherRefreshMinutes"] == 30
+    assert saved["notificationsEnabled"] is False
+    assert saved["notificationReception"] is True
+    assert saved["notificationsDndManual"] is False
+    assert saved["notificationsDndUntil"] == 4102444800000
+    assert saved["notificationSources"][0]["mode"] == "expanded"
+    assert saved["notificationSources"][0]["desktopEntry"] == "org.telegram.desktop"
+    assert saved["notificationSources"][1]["key"] == "name:Захват экрана"
+    assert saved["notificationSources"][1]["mode"] == "off"
     assert saved["companionStyle"] == "layered"
     assert saved["companionEnabled"] is True
     assert saved["companionDesktopOnly"] is True

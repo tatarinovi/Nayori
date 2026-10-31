@@ -11,7 +11,12 @@ ShellRoot {
         visible: true
         implicitWidth: 900; implicitHeight: 522
         Tokens { id: theme }
-        NotificationModel { id: records }
+        property var discoveredSources: []
+        NotificationModel {
+            id: records
+            onSourcesChangedRequested: list => scene.discoveredSources = list
+        }
+        DoNotDisturb { id: dndClock }
         QtObject {
             id: testPlayer
             property bool isPlaying: true
@@ -156,6 +161,59 @@ ShellRoot {
                 island.expanded = false
                 island.expanded = true
                 verify(!island.notificationPage)
+                island.expanded = false
+                records.notificationsEnabled = true
+                records.doNotDisturb = false
+                records.sources = []
+                records.view("left", false, false)
+                records.view("right", false, false)
+                records.receive({id: 30, appName: "Telegram", desktopEntry: "org.telegram.desktop", summary: "Обычное", body: "Текст", actions: []})
+                compare(records.current.id, 30)
+                verify(scene.discoveredSources.some(source => source.key === "entry:org.telegram.desktop"))
+                records.sources = scene.discoveredSources.map(source => source.key === "entry:org.telegram.desktop" ? Object.assign({}, source, {mode: "expanded"}) : source)
+                compare(records.current, null)
+                compare(records.records.length, 1)
+                compare(records.unreadCount, 1)
+                records.sources = records.sources.map(source => Object.assign({}, source, {mode: "normal"}))
+                compare(records.current.id, 30)
+                records.doNotDisturb = true
+                records.receive({id: 31, appName: "Telegram", desktopEntry: "org.telegram.desktop", summary: "Тихое", body: "Скрыто", actions: []})
+                compare(records.current.id, 30)
+                records.doNotDisturb = false
+                compare(records.current.id, 30)
+                compare(records.records.filter(record => record.id === 31)[0].summary, "Тихое")
+                records.notificationsEnabled = false
+                records.receive({id: 32, appName: "Почта", summary: "Нет", body: "Не сохранять", actions: []})
+                compare(records.records.filter(record => record.id === 32).length, 0)
+                records.receive({id: 31, summary: "Не менять", body: "Текст"})
+                compare(records.records.filter(record => record.id === 31)[0].summary, "Тихое")
+                records.notificationsEnabled = true
+                records.receive({id: 30, summary: "Обновлённое", body: "Текст"})
+                compare(records.records.filter(record => record.id === 30)[0].summary, "Обновлённое")
+                compare(records.current.id, 30)
+                records.receive({id: 33, appName: "Захват экрана", summary: "Снимок", body: "Готово", actions: []})
+                verify(records.records.some(record => record.id === 33))
+                const capture = scene.discoveredSources.find(source => source.key === "name:Захват экрана")
+                records.sources = scene.discoveredSources.map(source => source.key === capture.key ? Object.assign({}, source, {mode: "off"}) : source)
+                records.receive({id: 34, appName: "Захват экрана", summary: "Ещё", body: "Нет", actions: []})
+                compare(records.records.filter(record => record.id === 34).length, 0)
+                records.view("left", true, true)
+                compare(records.current, null)
+                records.view("left", false, false)
+                records.view("right", true, false)
+                compare(records.current, null)
+                compare(records.unreadCount > 0, true)
+                dndClock.manual = true
+                verify(dndClock.active)
+                dndClock.manual = false
+                dndClock.until = 0
+                verify(!dndClock.active)
+                dndClock.until = dndClock.now - 1000
+                verify(!dndClock.active)
+                dndClock.until = dndClock.now + 350
+                verify(dndClock.active)
+                wait(700)
+                verify(!dndClock.active)
                 console.log("NOTIFICATION_UI_PASS")
                 Qt.quit()
             }

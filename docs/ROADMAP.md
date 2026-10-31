@@ -108,7 +108,7 @@ Naomi — `surfaces/companion/`, окно `nayori-companion`. В настро�
 
 `services/niri/Niri.qml` открывает `NIRI_SOCKET` и читает события. Клик по столу и окну шлёт фокус. Старт оболочки эти вызовы не делает.
 
-Уведомления — `services/island/Notifications.qml`. Приём включается только при `NAYORI_NOTIFICATIONS=1` на запуске. Если имя D-Bus занято, процесс его не отбирает. Журнал живёт в памяти процесса: в `services/island/` записи в файл нет. Карточки и очередь — в [ISLAND_INTERACTION.md](ISLAND_INTERACTION.md).
+Уведомления — `services/island/Notifications.qml`. Пока в настройках нет выбора, приём включается при `NAYORI_NOTIFICATIONS=1` на запуске. Сохранённый переключатель важнее переменной. Если имя D-Bus занято, процесс его не отбирает. Журнал живёт в памяти процесса: в `services/island/` записи в файл нет. Показ, «Не беспокоить» и источники описаны в [ISLAND_INTERACTION.md](ISLAND_INTERACTION.md) и [SETTINGS.md](SETTINGS.md).
 
 Погода — один `services/weather/WeatherService.qml` на оболочку. Город и интервал лежат в `settings.json`.
 
@@ -136,7 +136,7 @@ Naomi — `surfaces/companion/`, окно `nayori-companion`. В настро�
 - `surfaces/control/`, `surfaces/desktop/`, `character/Presence.qml`
 - Снимок `/tmp/nayori-bar-v01.png` как описание текущего низа. Часы стоят в верхнем острове, трей остаётся в `islands/status/`
 
-[ARCHITECTURE.md](ARCHITECTURE.md) описывает уведомления как режим `NAYORI_NOTIFICATIONS=1`, без захвата чужого имени, и собственный экран блокировки Wayland/PAM с отдельной темой SDDM.
+[ARCHITECTURE.md](ARCHITECTURE.md) описывает уведомления как приём без захвата чужого имени: переменная действует, пока пользователь не выбрал приём в настройках. Там же описан собственный экран блокировки Wayland/PAM с отдельной темой SDDM.
 
 ## Что еще не закрыто
 

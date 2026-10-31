@@ -21,6 +21,7 @@ import "services/ui/StartRouting.js" as StartRouting
 import "services/status/MixerSources.js" as MixerSources
 import "services/ui/IslandRouting.js" as IslandRouting
 import "services/island"
+import "services/island/NotificationPolicy.js" as NotificationPolicy
 import "surfaces/canvas"
 import "surfaces/companion"
 import "services/clipboard"
@@ -39,9 +40,6 @@ ShellRoot {
     readonly property var islandAudio: audioReaction
     readonly property var islandNotifications: notificationModel
     AudioReaction { id: audioReaction }
-    NotificationModel { id: notificationModel }
-    Notifications { model: notificationModel }
-
     NayoriUpdate { id: nayoriUpdate }
     SettingsService { id: settingsStore }
     BluetoothService { id: bluetoothStore }
@@ -49,6 +47,17 @@ ShellRoot {
     readonly property var settingsService: settingsStore
     readonly property var mixerSources: settingsStore.mixerSources
     property var pendingMixerSources: []
+    property var pendingNotificationSources: []
+    function rememberNotificationSources(list) {
+        const base = settingsStore.ready ? settingsStore.notificationSources : pendingNotificationSources
+        const merged = NotificationPolicy.mergeSources(base, list)
+        if (!settingsStore.ready) {
+            pendingNotificationSources = merged.list
+            return
+        }
+        if (!NotificationPolicy.same(settingsStore.notificationSources, merged.list))
+            settingsStore.update({ notificationSources: merged.list })
+    }
     function noteMixerSources(seen) {
         pendingMixerSources = Array.isArray(seen) ? seen : []
         if (!settingsStore.ready)
@@ -60,9 +69,33 @@ ShellRoot {
     Connections {
         target: settingsStore
         function onReadyChanged() {
-            if (settingsStore.ready)
-                root.noteMixerSources(root.pendingMixerSources)
+            if (!settingsStore.ready)
+                return
+            root.noteMixerSources(root.pendingMixerSources)
+            if (root.pendingNotificationSources.length) {
+                const pending = root.pendingNotificationSources
+                root.pendingNotificationSources = []
+                root.rememberNotificationSources(pending)
+            }
         }
+    }
+    DoNotDisturb {
+        id: notificationDnd
+        manual: settingsStore.notificationsDndManual
+        until: settingsStore.notificationsDndUntil
+    }
+    NotificationModel {
+        id: notificationModel
+        notificationsEnabled: settingsStore.notificationsEnabled
+        doNotDisturb: notificationDnd.active
+        sources: settingsStore.notificationSources
+        onSourcesChangedRequested: list => root.rememberNotificationSources(list)
+    }
+    Notifications {
+        id: systemNotifications
+        model: notificationModel
+        settingsReady: settingsStore.ready
+        reception: settingsStore.notificationReception
     }
     ClipboardService { id: clipboardStore }
     readonly property var shelfService: shelfStore
@@ -480,6 +513,7 @@ ShellRoot {
         remindCompanion: kind => companionHost.item ? companionHost.item.remind(kind) : false
         tokens: root.tokenSet
         settingsService: settingsStore
+        notificationBridge: systemNotifications
         wallpaperManager: wallpaperStore
         niri: Niri
         accentStatus: root.accentStatus

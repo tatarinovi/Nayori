@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import "../../services/ui/PanelModes.js" as PanelModes
+import "../../services/island/NotificationPolicy.js" as NotificationPolicy
 import QtQuick
 import Quickshell
 import "../../services/settings"
@@ -19,6 +20,7 @@ QtObject {
     property string strataError: ""
     property string strataNotice: ""
     property var remindCompanion: null
+    property var notificationBridge: null
     property SettingsUsage usage: SettingsUsage { }
 
     property string userName: Quickshell.env("USER") || ""
@@ -35,7 +37,7 @@ QtObject {
         bluetooth: 10, mouse: 11, keyboard: 12, shortcuts: 13, start: 14,
         island: 15, lockscreen: 16, windows: 17, alttab: 18, workspaces: 19,
         defaults: 20, autostart: 21, updates: 22, about: 23, integrations: 24, naomi: 25,
-        "naomi-look": 26, "naomi-place": 27, capture: 28, "naomi-remind": 29
+        "naomi-look": 26, "naomi-place": 27,         capture: 28, "naomi-remind": 29, notifications: 30
     })
 
     function open() { return show("") }
@@ -183,6 +185,22 @@ QtObject {
             onCompanionSideChangedRequested: side => root.settingsService.update({companionSide: side})
             remindCompanion: root.remindCompanion
             animationsEnabled: root.settingsService.animationsEnabled
+            notificationsEnabled: root.settingsService.notificationsEnabled
+            onNotificationsEnabledChangedRequested: enabled => root.settingsService.update({notificationsEnabled: enabled})
+            receptionEnabled: root.notificationBridge ? root.notificationBridge.enabled : false
+            receptionAvailable: root.notificationBridge ? root.notificationBridge.available : false
+            receptionError: root.notificationBridge ? root.notificationBridge.diagnostic : ""
+            onReceptionChangedRequested: enabled => root.settingsService.update({notificationReception: enabled})
+            notificationSources: root.settingsService.notificationSources
+            onSourceModeRequested: (key, mode) => {
+                const next = NotificationPolicy.setMode(root.settingsService.notificationSources, key, mode)
+                if (next.changed) root.settingsService.update({notificationSources: next.list})
+            }
+            dndManual: root.settingsService.notificationsDndManual
+            dndUntil: root.settingsService.notificationsDndUntil
+            onDndUntilRequested: until => root.settingsService.update({notificationsDndManual: false, notificationsDndUntil: until})
+            onDndManualRequested: root.settingsService.update({notificationsDndManual: true, notificationsDndUntil: 0})
+            onDndClearRequested: root.settingsService.update({notificationsDndManual: false, notificationsDndUntil: 0})
             settingsMessage: root.settingsService.message
             canRecover: root.settingsService.canRecover
             canRetry: root.settingsService.canRetry

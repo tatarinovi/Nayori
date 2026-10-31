@@ -1,14 +1,20 @@
 import QtQuick
 import "NotificationQueue.js" as Queue
 import "NotificationList.js" as List
+import "NotificationPolicy.js" as Policy
 
-// Журнал уведомлений в памяти. Логика — в NotificationQueue.js, здесь только привязка к QML.
+// Журнал уведомлений в памяти. Логика — в NotificationQueue.js и NotificationPolicy.js.
 QtObject {
     id: root
     property var state: Queue.create()
     property int revision: 0
     property var expandedViews: ({})
     property var openPages: ({})
+    property bool notificationsEnabled: true
+    property bool doNotDisturb: false
+    property var sources: []
+    property var sourceList: []
+    signal sourcesChangedRequested(var sources)
     // Записи от нового к старому. Копии: изменения списка видны привязкам.
     readonly property var records: { if (revision < 0) return []; return state.records.filter(r => !r.deleted).map(r => Object.assign({}, r)) }
     readonly property int unreadCount: { if (revision < 0) return 0; return Queue.unreadCount(state) }
@@ -23,7 +29,42 @@ QtObject {
     signal dismissRequested(int notificationId)
     // Нажатие на уведомление: открыть приложение и выполнить действие по умолчанию.
     signal activateRequested(var record)
-    function receive(data) { Queue.receive(state, data, Date.now()); revision++ }
+
+    function refreshCompact() {
+        const list = sourceList
+        state.records.forEach(record => {
+            record.compact = !record.quiet && Policy.modeOf(list, record) === "normal"
+        })
+    }
+    function adoptSources() {
+        const merged = Policy.mergeSources(sources, sourceList)
+        sourceList = merged.list
+        refreshCompact()
+        revision++
+        if (merged.changed) sourcesChangedRequested(merged.list)
+    }
+    onSourcesChanged: adoptSources()
+    Component.onCompleted: adoptSources()
+
+    function receive(data) {
+        const existing = Queue.find(state, data && data.id)
+        const who = Policy.identity(data, existing && !existing.deleted ? existing : null)
+        const noted = Policy.noteSource(sourceList, who)
+        if (noted.changed) {
+            sourceList = noted.list
+            sourcesChangedRequested(noted.list)
+        }
+        const decision = Policy.admit({
+            enabled: notificationsEnabled,
+            dnd: doNotDisturb,
+            sources: sourceList,
+            record: who
+        })
+        if (decision.drop) return
+        Queue.receive(state, data, Date.now(), { quiet: decision.quiet })
+        refreshCompact()
+        revision++
+    }
     function close(id) { Queue.close(state, id, false); revision++ }
     function remove(id) { Queue.close(state, id, true); revision++; dismissRequested(id) }
     function removeGroup(key) {

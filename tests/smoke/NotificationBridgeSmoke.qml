@@ -11,5 +11,6 @@ ShellRoot {
         function view(open: bool): void { notificationModel.view("test",open,open) }
         function remove(id: int): void { notificationModel.remove(id) }
         function markRead(id: int): void { notificationModel.markRead(id) }
+        function setEnabled(on: bool): void { bridge.enabled = on }
     }
 }

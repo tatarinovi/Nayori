@@ -89,6 +89,19 @@ FocusScope {
     property var remindCompanion: null
     property bool animationsEnabled: true
     signal animationsChangedRequested(bool enabled)
+    property bool notificationsEnabled: true
+    signal notificationsEnabledChangedRequested(bool enabled)
+    property bool receptionEnabled: false
+    property bool receptionAvailable: false
+    property string receptionError: ""
+    signal receptionChangedRequested(bool enabled)
+    property var notificationSources: []
+    signal sourceModeRequested(string key, string mode)
+    property bool dndManual: false
+    property double dndUntil: 0
+    signal dndUntilRequested(double until)
+    signal dndManualRequested()
+    signal dndClearRequested()
     property bool niriColorIntegration: true
     signal niriColorIntegrationChangedRequested(bool enabled)
     property bool strataThemeIntegration: true
@@ -179,6 +192,7 @@ FocusScope {
         {key: "home", page: 0, title: "Обзор", group: "Обзор", description: "Состояние сети, звука и быстрый переход к разделам"},
         {key: "display", page: 5, title: "Экран", group: "Система", description: "Подключённые мониторы. Режимы вывода niri отсюда не меняются"},
         {key: "sound", page: 6, title: "Звук", group: "Система", description: "Устройства PipeWire, громкость и источники микшера"},
+        {key: "notifications", page: 30, title: "Уведомления", group: "Система", glyph: "notifications", description: "Системный приём, режим «Не беспокоить» и показ уведомлений отдельных приложений"},
         {key: "power", page: 7, title: "Питание", group: "Система", description: "Блокировка, завершение сеанса, перезагрузка и выключение"},
         {key: "network", page: 8, title: "Сеть", group: "Система", description: "Wi\u2011Fi, Ethernet и подключения NetworkManager"},
         {key: "localsend", page: 9, title: "LocalSend", group: "Система", description: "Запуск LocalSend, если приложение установлено"},
@@ -212,7 +226,7 @@ FocusScope {
     readonly property bool persistsSettings: {
         const key = section.key
         const naomiSettings = key === "naomi" || key === "naomi-look" || key === "naomi-place"
-        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key === "capture" || naomiSettings
+        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key === "capture" || key === "notifications" || naomiSettings
     }
     readonly property var categories: [
         {name: "Обзор", caption: "Обзор", glyph: "home"},
@@ -801,6 +815,25 @@ FocusScope {
                 }
             }
             NaomiSection { section: "remind"; activePage: 29 }
+            SettingsScroll {
+                NotificationsPage {
+                    width: parent.width
+                    tokens: root.tokens
+                    notificationsEnabled: root.notificationsEnabled
+                    onNotificationsEnabledChangedRequested: enabled => root.notificationsEnabledChangedRequested(enabled)
+                    receptionEnabled: root.receptionEnabled
+                    receptionAvailable: root.receptionAvailable
+                    receptionError: root.receptionError
+                    onReceptionChangedRequested: enabled => root.receptionChangedRequested(enabled)
+                    sources: root.notificationSources
+                    onSourceModeRequested: (key, mode) => root.sourceModeRequested(key, mode)
+                    dndManual: root.dndManual
+                    dndUntil: root.dndUntil
+                    onDndUntilRequested: until => root.dndUntilRequested(until)
+                    onDndManualRequested: root.dndManualRequested()
+                    onDndClearRequested: root.dndClearRequested()
+                }
+            }
         }
         Rectangle {
             id: footer

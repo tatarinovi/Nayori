@@ -164,7 +164,7 @@ surfaces/clipboard/
 
 Лаунчер ищет по `DesktopEntries` и запускает `execute()`. Оценка строки живёт в `services/Apps.qml`. Меню Пуск создаёт свой экземпляр каталога и свой `SessionActions` для блокировки, выхода и питания.
 
-Уведомления рисует остров. Обычный запуск имя `org.freedesktop.Notifications` не занимает. При `NAYORI_NOTIFICATIONS=1` компонент `Notifications` поднимает второй процесс `services/island/NotificationHost.qml`. В том процессе окно `nayori-notify-grab` сохраняет картинку уведомления в PNG. История остаётся в памяти основного процесса. Протокол: [ISLAND_INTERACTION.md](ISLAND_INTERACTION.md).
+Уведомления рисует остров. Обычный запуск имя `org.freedesktop.Notifications` не занимает. Пока настройка приёма не сохранена, `NAYORI_NOTIFICATIONS=1` поднимает второй процесс `services/island/NotificationHost.qml`. Выбор в разделе «Уведомления» после этого важнее переменной. В том процессе окно `nayori-notify-grab` сохраняет картинку уведомления в PNG. История остаётся в памяти основного процесса. Показ, «Не беспокоить» и источники применяет `NotificationPolicy.js`, в том числе к внутренним уведомлениям. Протокол: [ISLAND_INTERACTION.md](ISLAND_INTERACTION.md).
 
 Буфер: сервис в оболочке, окно на экранах, пока журнал открыт. Поведение: [CLIPBOARD.md](CLIPBOARD.md).
 

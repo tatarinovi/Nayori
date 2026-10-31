@@ -76,6 +76,19 @@ FloatingWindow {
     property var remindCompanion: null
     property bool animationsEnabled: true
     signal animationsChangedRequested(bool enabled)
+    property bool notificationsEnabled: true
+    signal notificationsEnabledChangedRequested(bool enabled)
+    property bool receptionEnabled: false
+    property bool receptionAvailable: false
+    property string receptionError: ""
+    signal receptionChangedRequested(bool enabled)
+    property var notificationSources: []
+    signal sourceModeRequested(string key, string mode)
+    property bool dndManual: false
+    property double dndUntil: 0
+    signal dndUntilRequested(double until)
+    signal dndManualRequested()
+    signal dndClearRequested()
     signal islandRotationEnabledChangedRequested(bool enabled)
     signal islandRotationSecondsChangedRequested(int seconds)
     signal preferredTerminalChangedRequested(string terminalId)
@@ -191,6 +204,19 @@ FloatingWindow {
         remindCompanion: root.remindCompanion
         animationsEnabled: root.animationsEnabled
         onAnimationsChangedRequested: enabled => root.animationsChangedRequested(enabled)
+        notificationsEnabled: root.notificationsEnabled
+        onNotificationsEnabledChangedRequested: enabled => root.notificationsEnabledChangedRequested(enabled)
+        receptionEnabled: root.receptionEnabled
+        receptionAvailable: root.receptionAvailable
+        receptionError: root.receptionError
+        onReceptionChangedRequested: enabled => root.receptionChangedRequested(enabled)
+        notificationSources: root.notificationSources
+        onSourceModeRequested: (key, mode) => root.sourceModeRequested(key, mode)
+        dndManual: root.dndManual
+        dndUntil: root.dndUntil
+        onDndUntilRequested: until => root.dndUntilRequested(until)
+        onDndManualRequested: root.dndManualRequested()
+        onDndClearRequested: root.dndClearRequested()
         onIslandRotationEnabledChangedRequested: enabled => root.islandRotationEnabledChangedRequested(enabled)
         onIslandRotationSecondsChangedRequested: seconds => root.islandRotationSecondsChangedRequested(seconds)
         onPreferredTerminalChangedRequested: terminalId => root.preferredTerminalChangedRequested(terminalId)

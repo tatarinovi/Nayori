@@ -23,6 +23,11 @@ ShellRoot {
     property int intervalRequests: 0
     property int closeRequests: 0
     property bool interactionsChecked: false
+    property int receptionRequests: 0
+    property int dndRequests: 0
+    property bool receptionEnabled: false
+    property bool receptionAvailable: false
+    property string receptionError: ""
     property int capturePage: 0
     readonly property var capturePages: viewRef ? viewRef.sections.map(section => section.page) : [0]
     property int sizeIndex: 0
@@ -308,7 +313,44 @@ ShellRoot {
                     test.check(refresh.value === originalMinutes && test.intervalRequests === 1, "service updates interval without user signal loop")
                     input.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
                     test.check(test.closeRequests === 1, "unhandled Escape closes settings")
+                    openKey("notifications")
+                    displayedPage = 30
+                    test.check(section.key === "notifications", "notifications section")
+                    const sourceMode = test.findItem(view, "notificationSourceMode")
+                    test.check(sourceMode && sourceMode.currentKey === "expanded", "saved source mode")
+                    test.check(test.findItem(view, "notificationSourceTitle").text === "Telegram", "saved source title")
+                    test.check(!test.findItem(view, "notificationSourcesEmpty").visible, "known sources hide the empty state")
+                    test.receptionEnabled = true
+                    test.receptionError = "Сервис уведомлений занят или D-Bus недоступен; приём Nayori выключен."
+                    const receptionStatus = test.findItem(view, "notificationReceptionStatus")
+                    test.check(receptionStatus.text.indexOf("занят") >= 0, "busy service explains the error")
+                    test.check(test.findItem(view, "notificationReceptionHint").visible, "retry hint is visible")
+                    test.receptionError = ""
+                    test.receptionEnabled = false
+                    test.check(receptionStatus.text === "Приём выключен", "stopped reception has no error")
+                    const reception = test.findItem(view, "notificationReceptionToggle")
+                    reception.forceActiveFocus()
+                    input.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+                    test.check(test.receptionRequests === 1 && settings.notificationReception === true, "reception toggle saves the choice")
+                    settings.update({notificationReception: false})
+                    test.check(test.receptionRequests === 1, "service does not repeat the reception toggle")
+                    const quarter = test.findItem(view, "notificationDnd15")
+                    const started = Date.now()
+                    quarter.clicked()
+                    test.check(test.dndRequests === 1 && !settings.notificationsDndManual, "fifteen minutes is timed")
+                    test.check(settings.notificationsDndUntil >= started + 15 * 60000 - 2000 && settings.notificationsDndUntil <= Date.now() + 15 * 60000 + 2000, "timer stores an absolute end")
+                    test.check(test.findItem(view, "notificationDndStatus").visible && test.findItem(view, "notificationDndStatus").text.indexOf("до ") === 0, "end time is shown")
+                    const clearDnd = test.findItem(view, "notificationDndOff")
+                    clearDnd.clicked()
+                    test.check(test.dndRequests === 2 && settings.notificationsDndUntil === 0 && !settings.notificationsDndManual, "dnd can be turned off early")
+                    test.check(!test.findItem(view, "notificationDndStatus").visible, "finished dnd hides the end time")
+                    const manualDnd = test.findItem(view, "notificationDndManual")
+                    manualDnd.clicked()
+                    test.check(settings.notificationsDndManual && settings.notificationsDndUntil === 0 && test.findItem(view, "notificationDndStatus").text === "Пока не выключите", "manual dnd has no deadline")
+                    clearDnd.clicked()
+                    test.check(!settings.notificationsDndManual && settings.notificationsDndUntil === 0, "manual dnd turns off")
                     currentPage = 0
+                    displayedPage = 0
                     focusInput()
                     frequentKeys = ["appearance", "shortcuts", "lockscreen", "island"]
                     test.interactionsChecked = true
@@ -342,6 +384,31 @@ ShellRoot {
                 onSurfaceStyleChangedRequested: style => {
                     test.surfaceStyleRequests++;
                     settings.update({surfaceStyle: style});
+                }
+                notificationsEnabled: settings.notificationsEnabled
+                onNotificationsEnabledChangedRequested: enabled => settings.update({notificationsEnabled: enabled})
+                receptionEnabled: test.receptionEnabled
+                receptionAvailable: test.receptionAvailable
+                receptionError: test.receptionError
+                onReceptionChangedRequested: enabled => {
+                    test.receptionRequests++;
+                    test.receptionEnabled = enabled;
+                    settings.update({notificationReception: enabled});
+                }
+                notificationSources: settings.notificationSources
+                dndManual: settings.notificationsDndManual
+                dndUntil: settings.notificationsDndUntil
+                onDndUntilRequested: until => {
+                    test.dndRequests++;
+                    settings.update({notificationsDndManual: false, notificationsDndUntil: until});
+                }
+                onDndManualRequested: {
+                    test.dndRequests++;
+                    settings.update({notificationsDndManual: true, notificationsDndUntil: 0});
+                }
+                onDndClearRequested: {
+                    test.dndRequests++;
+                    settings.update({notificationsDndManual: false, notificationsDndUntil: 0});
                 }
                 animationsEnabled: settings.animationsEnabled
                 onAnimationsChangedRequested: function(enabled) {
@@ -510,6 +577,18 @@ ShellRoot {
                     test.check(settings.fullscreenIslandOutput === "HDMI-A-1", "fullscreen island output keeps a name");
                     settings.update({fullscreenIslandOutput: "   "});
                     test.check(settings.fullscreenIslandOutput === "", "blank fullscreen island output clears");
+                    if (test.scenario === "normalize") {
+                        test.check(settings.notificationsEnabled === true && settings.notificationReception === null, "notification defaults");
+                        test.check(settings.notificationsDndUntil === 0 && settings.notificationsDndManual === false && settings.notificationSources.length === 0, "dnd defaults");
+                        settings.update({notificationReception: "yes", notificationsEnabled: "no", notificationsDndUntil: -5, notificationsDndManual: 1,
+                            notificationSources: [{key: "bad", mode: "off"}, {key: "entry:org.telegram.desktop", title: "Telegram", mode: "nope"}, {key: "name:Захват экрана", mode: "off", appName: "Захват экрана"}]});
+                        test.check(settings.notificationReception === null, "invalid reception stays unset");
+                        test.check(settings.notificationsEnabled === true, "invalid global switch stays on");
+                        test.check(settings.notificationsDndUntil === 0 && settings.notificationsDndManual === false, "invalid dnd clears");
+                        test.check(settings.notificationSources.length === 2, "invalid source is dropped");
+                        test.check(settings.notificationSources[0].mode === "normal" && settings.notificationSources[1].mode === "off", "source modes are normalized");
+                        test.check(settings.notificationSources[1].key === "name:Захват экрана", "name source is kept");
+                    }
                     test.check(settings.islandRotationEnabled === true && settings.islandRotationSeconds === 15, "rotation defaults");
                     test.check(settings.preferredTerminal === "kitty" && settings.preferredFileManager === "io.github.lgse.Strata", "app defaults");
                     test.check(settings.niriColorIntegration === true && settings.strataThemeIntegration === true, "integration defaults");
@@ -558,6 +637,9 @@ ShellRoot {
                     test.check(!settings.companionSystemLines, "system lines restored after restart");
                     test.check(settings.companionScreen === "secondary" && settings.companionSide === "left", "Naomi placement restored after restart");
                     test.check(settings.panelReservations["DP-1"].top === 64 && settings.panelReservations["DP-2"].bottom === 24, "per-output reservations survive restart");
+                    test.check(settings.notificationsEnabled === false && settings.notificationReception === true, "notification switches survive restart");
+                    test.check(settings.notificationsDndUntil === 4102444800000 && settings.notificationsDndManual === false, "dnd deadline survives restart");
+                    test.check(settings.notificationSources[0].mode === "expanded" && settings.notificationSources[1].key === "name:Захват экрана", "notification sources survive restart");
                     test.check(!settings.dirty && test.changes === 1, "no write loop on load");
                     test.finish();
                 } else if (test.scenario === "revert") {
@@ -682,7 +764,15 @@ ShellRoot {
                         "animationsEnabled": false,
                         "autoHideTop": true,
                         "panelModes": {"DP-1": {top: "hidden", apps: "always"}, "DP-2": {top: "auto", status: "hidden"}},
-                        "panelReservations": {"DP-1": {top: 64, bottom: 72}, "DP-2": {top: 0, bottom: 24}}
+                        "panelReservations": {"DP-1": {top: 64, bottom: 72}, "DP-2": {top: 0, bottom: 24}},
+                        "notificationsEnabled": false,
+                        "notificationReception": true,
+                        "notificationsDndManual": false,
+                        "notificationsDndUntil": 4102444800000,
+                        "notificationSources": [
+                            {key: "entry:org.telegram.desktop", title: "Telegram", desktopEntry: "org.telegram.desktop", appName: "Telegram", mode: "expanded"},
+                            {key: "name:Захват экрана", title: "Захват экрана", desktopEntry: "", appName: "Захват экрана", mode: "off"}
+                        ]
                     });
                     test.check(settings.weatherCity === "Москва" && settings.topReserved === 200 && !settings.animationsEnabled, "immediate normalized state");
                     settings.update({

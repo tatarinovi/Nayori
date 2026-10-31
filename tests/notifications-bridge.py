@@ -31,6 +31,39 @@ with tempfile.TemporaryDirectory(prefix='nayori-bridge-test-') as directory:
         assert state()['records'][0]['summary']=='Updated' and state()['current'] is None
         fresh=notify(title='Remove'); time.sleep(.1); ipc('remove',fresh); time.sleep(.1)
         assert all(r['id']!=fresh for r in state()['records'])
+        ipc('setEnabled', 'false')
+        for _ in range(80):
+            if not state().get('running'): break
+            time.sleep(.05)
+        else: raise RuntimeError('host did not stop: '+str(state()))
+        stopped = state()
+        assert stopped['running'] is False and stopped['available'] is False and stopped['diagnostic'] == '', stopped
+        for _ in range(40):
+            owner = subprocess.run(['busctl','--user','call','org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus','NameHasOwner','s','org.freedesktop.Notifications'], env=env, capture_output=True, text=True)
+            if owner.stdout.strip() == 'b false': break
+            time.sleep(.05)
+        else: raise RuntimeError('name stayed taken: '+owner.stdout+' '+owner.stderr)
+        other = subprocess.Popen(['qs','-p',str(root/'services/island/NotificationHost.qml'),'--no-color'], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            for _ in range(80):
+                if other.poll() is not None: raise RuntimeError('competing host exited')
+                owner = subprocess.run(['busctl','--user','call','org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus','GetConnectionUnixProcessID','s','org.freedesktop.Notifications'], env=env, capture_output=True, text=True)
+                if owner.stdout.strip() == f'u {other.pid}': break
+                time.sleep(.05)
+            else: raise RuntimeError('competing host did not own the name')
+            ipc('setEnabled', 'true')
+            for _ in range(80):
+                current = state()
+                if 'занят' in current.get('diagnostic',''): break
+                if bridge.poll() is not None: raise RuntimeError(pathlib.Path(log.name).read_text())
+                time.sleep(.05)
+            else: raise RuntimeError('missing busy error: '+str(state()))
+            conflict = state()
+            assert conflict['available'] is False and conflict['running'] is False, conflict
+            owner = subprocess.check_output(['busctl','--user','call','org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus','GetConnectionUnixProcessID','s','org.freedesktop.Notifications'], env=env, text=True).strip()
+            assert owner == f'u {other.pid}', owner
+        finally:
+            other.terminate(); other.wait(timeout=5)
         print('NOTIFICATION_BRIDGE_PASS')
     finally:
         bridge.terminate(); bridge.wait(timeout=5)

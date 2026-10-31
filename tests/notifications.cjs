@@ -1,7 +1,8 @@
 const fs = require('fs'), vm = require('vm'), assert = require('assert')
 function moduleAt(file) { const c = {}; vm.createContext(c); vm.runInContext(fs.readFileSync(file, 'utf8'), c); return c }
 const list = moduleAt('services/island/NotificationList.js'), src = moduleAt('services/island/NotificationSources.js'),
-    row = moduleAt('services/island/IslandRow.js'), q = moduleAt('services/island/NotificationQueue.js')
+    row = moduleAt('services/island/IslandRow.js'), q = moduleAt('services/island/NotificationQueue.js'),
+    policy = moduleAt('services/island/NotificationPolicy.js')
 
 // --- Время по-русски ---
 const at = (y, mo, d, h, mi, s = 0) => new Date(y, mo - 1, d, h, mi, s).getTime()
@@ -122,4 +123,106 @@ assert.deepEqual(row.size(448, 290), { main: 350, total: 640 }); assert.deepEqua
 assert(row.controlsVisible({ player: {} }, 20)); assert(row.controlsVisible({ player: null, held: {}, alive: true, pausedFor: 5 }, 20))
 assert(!row.controlsVisible({ player: null, held: {}, alive: true, pausedFor: 21 }, 20)); assert(!row.controlsVisible({ player: null, held: {}, alive: false, pausedFor: 1 }, 20))
 assert(!row.controlsVisible({ player: null, held: null, alive: false, pausedFor: 0 }, 20))
+
+// --- Политика показа ---
+assert.equal(policy.sourceKey({ desktopEntry: ' org.telegram.desktop ', appName: 'Telegram' }), 'entry:org.telegram.desktop')
+assert.equal(policy.sourceKey({ appName: ' Захват экрана ' }), 'name:Захват экрана')
+assert.equal(policy.sourceKey({ appName: 'Только имя', desktopEntry: '' }), 'name:Только имя')
+assert.equal(policy.sourceKey({}), '')
+assert.equal(policy.sourceKey({ desktopEntry: 'bad\nentry', appName: 'Имя' }), 'name:Имя')
+const noted = policy.noteSource([], { desktopEntry: 'org.telegram.desktop', appName: 'Telegram' })
+assert(noted.changed && noted.list[0].mode === 'normal' && noted.list[0].key === 'entry:org.telegram.desktop')
+const renamed = policy.noteSource(noted.list, { desktopEntry: 'org.telegram.desktop', appName: 'Telegram Desktop' })
+assert(renamed.changed && renamed.list[0].title === 'Telegram Desktop' && renamed.list[0].mode === 'normal')
+assert(!policy.noteSource(renamed.list, { desktopEntry: 'org.telegram.desktop', appName: 'Telegram Desktop' }).changed)
+const internal = policy.noteSource(renamed.list, { appName: 'Захват экрана' })
+assert.equal(internal.list[1].key, 'name:Захват экрана')
+assert.equal(policy.modeOf(internal.list, { appName: 'Незнакомое' }), 'normal')
+const modes = policy.setMode(internal.list, 'entry:org.telegram.desktop', 'expanded')
+assert(modes.changed && modes.list[0].mode === 'expanded' && modes.list[1].mode === 'normal')
+assert.equal(policy.setMode(modes.list, 'missing', 'off').changed, false)
+assert.equal(policy.normalizeSources([{ key: 'nope', mode: 'off' }, { key: 'entry:a', mode: 'later' }, { key: 'name:Имя', mode: 'off', appName: 'Имя' }]).map(s => s.mode).join(), 'normal,off')
+assert(policy.same(modes.list, modes.list.map(s => Object.assign({}, s))))
+const kept = policy.mergeSources(modes.list, [{ key: 'entry:org.telegram.desktop', title: 'Telegram', mode: 'off' }, { key: 'name:Почта', title: 'Почта', appName: 'Почта', mode: 'normal' }])
+assert.equal(kept.list[0].mode, 'expanded', 'сохранённый режим важнее')
+assert(kept.list.some(s => s.key === 'name:Почта'))
+const atPolicy = 1_700_000_000_000
+assert(!policy.dndActive(false, 0, atPolicy) && !policy.dndActive(false, atPolicy - 1, atPolicy))
+assert(policy.dndActive(false, atPolicy + 60_000, atPolicy))
+assert(policy.dndActive(true, 0, atPolicy), 'ручной режим без срока')
+assert.equal(policy.untilFromMinutes(atPolicy, 15), atPolicy + 15 * 60_000)
+assert.equal(policy.untilFromMinutes(atPolicy, 0), atPolicy + 60_000)
+assert.equal(policy.untilFromMinutes(atPolicy, 5000), atPolicy + 1440 * 60_000)
+assert.equal(policy.untilLabel(atPolicy + 60_000, atPolicy).slice(0, 3), 'до ')
+assert.equal(policy.untilLabel(atPolicy - 1, atPolicy), '')
+assert.equal(policy.admit({ enabled: false, sources: [], record: { appName: 'A' } }).drop, true)
+assert.equal(policy.admit({ enabled: true, dnd: true, sources: [], record: { appName: 'A' } }).quiet, true)
+assert.equal(policy.admit({ enabled: true, sources: modes.list, record: { desktopEntry: 'org.telegram.desktop', appName: 'Telegram' } }).mode, 'expanded')
+assert.equal(policy.admit({ enabled: true, sources: policy.setMode(modes.list, 'name:Захват экрана', 'off').list, record: { appName: 'Захват экрана' } }).drop, true)
+
+// Как модель: обнаружить источник, затем принять или отбросить. quiet липкий, compact зависит от режима.
+function deliver(s, settings, data, now) {
+    const existing = q.find(s, data.id)
+    const who = policy.identity(data, existing && !existing.deleted ? existing : null)
+    const noted = policy.noteSource(settings.sources, who)
+    settings.sources = noted.list
+    const decision = policy.admit({ enabled: settings.enabled, dnd: settings.dnd, sources: settings.sources, record: who })
+    if (!decision.drop) q.receive(s, data, now, { quiet: decision.quiet })
+    s.records.forEach(r => { r.compact = !r.quiet && policy.modeOf(settings.sources, r) === 'normal' })
+    return decision
+}
+{
+    const s = q.create()
+    const settings = { enabled: true, dnd: false, sources: [] }
+    deliver(s, settings, { id: 1, appName: 'Telegram', desktopEntry: 'org.telegram.desktop', summary: 'Обычное' }, 10)
+    assert.equal(q.pinned(s).id, 1)
+    assert.equal(q.unreadCount(s), 1)
+    assert.equal(settings.sources[0].key, 'entry:org.telegram.desktop')
+    settings.sources = policy.setMode(settings.sources, 'entry:org.telegram.desktop', 'expanded').list
+    s.records.forEach(r => { r.compact = !r.quiet && policy.modeOf(settings.sources, r) === 'normal' })
+    assert.equal(q.pinned(s), null, 'режим «только развёрнутый» сразу убирает свёрнутый остров')
+    assert.equal(s.records.length, 1)
+    settings.sources = policy.setMode(settings.sources, 'entry:org.telegram.desktop', 'normal').list
+    s.records.forEach(r => { r.compact = !r.quiet && policy.modeOf(settings.sources, r) === 'normal' })
+    assert.equal(q.pinned(s).id, 1)
+    settings.dnd = true
+    deliver(s, settings, { id: 2, appName: 'Telegram', desktopEntry: 'org.telegram.desktop', summary: 'Тихое' }, 20)
+    assert.equal(q.pinned(s).id, 1, 'тихое не занимает свёрнутый остров')
+    assert.equal(q.unreadCount(s), 2)
+    settings.dnd = false
+    s.records.forEach(r => { r.compact = !r.quiet && policy.modeOf(settings.sources, r) === 'normal' })
+    assert.equal(q.pinned(s).id, 1, 'после режима тихое не появляется')
+    deliver(s, settings, { id: 2, summary: 'Обновление после режима' }, 30)
+    assert.equal(q.find(s, 2).summary, 'Обновление после режима')
+    assert.equal(q.find(s, 2).quiet, true)
+    assert.equal(q.pinned(s).id, 1)
+    deliver(s, settings, { id: 1, summary: 'Живое обновление' }, 40)
+    assert.equal(q.find(s, 1).summary, 'Живое обновление')
+    assert.equal(q.find(s, 1).seen, false)
+    assert.equal(q.pinned(s).id, 1)
+    settings.sources = policy.setMode(settings.sources, 'entry:org.telegram.desktop', 'off').list
+    deliver(s, settings, { id: 3, appName: 'Telegram', desktopEntry: 'org.telegram.desktop', summary: 'Скрыто' }, 50)
+    assert(!q.find(s, 3))
+    deliver(s, settings, { id: 1, summary: 'Не записывать' }, 60)
+    assert.equal(q.find(s, 1).summary, 'Живое обновление', 'отключённый источник не обновляет запись')
+    settings.enabled = false
+    settings.sources = policy.setMode(settings.sources, 'entry:org.telegram.desktop', 'normal').list
+    deliver(s, settings, { id: 4, appName: 'Почта', summary: 'Нет' }, 70)
+    assert(!q.find(s, 4))
+    assert.equal(s.records.filter(r => !r.deleted).length, 2, 'общий выключатель не стирает историю')
+    deliver(s, settings, { id: 1, summary: 'Тоже нет' }, 80)
+    assert.equal(q.find(s, 1).summary, 'Живое обновление')
+    settings.enabled = true
+    deliver(s, settings, { id: 5, appName: 'Захват экрана', summary: 'Снимок' }, 90)
+    assert.equal(policy.sourceKey(q.find(s, 5)), 'name:Захват экрана')
+    assert.equal(q.pending(s).some(r => r.id === 5) || q.pinned(s).id === 5, true)
+    settings.sources = policy.setMode(settings.sources, 'name:Захват экрана', 'off').list
+    deliver(s, settings, { id: 6, appName: 'Захват экрана', summary: 'Ещё' }, 100)
+    assert(!q.find(s, 6), 'внутреннее уведомление тоже подчиняется режиму')
+    q.page(s, true)
+    assert(s.records.filter(r => !r.deleted).every(r => r.seen) && q.unreadCount(s) > 0, 'просмотр не делает прочитанным')
+    assert.equal(q.pinned(s), null)
+    q.page(s, false)
+    assert.equal(q.pinned(s), null, 'просмотренное и тихое не возвращаются')
+}
 console.log('NOTIFICATIONS_LOGIC_PASS')

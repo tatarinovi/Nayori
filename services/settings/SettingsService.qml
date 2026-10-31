@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "../status/MixerSources.js" as MixerSources
+import "../island/NotificationPolicy.js" as NotificationPolicy
 import "../ui/PanelModes.js" as PanelModes
 
 // Owned by ShellRoot, never by a settings page or window.
@@ -47,6 +48,12 @@ QtObject {
     readonly property bool niriColorIntegration: values.niriColorIntegration
     readonly property bool strataThemeIntegration: values.strataThemeIntegration
     readonly property var mixerSources: values.mixerSources
+    readonly property bool notificationsEnabled: values.notificationsEnabled
+    // null — пользователь ещё не выбирал приём, тогда решает NAYORI_NOTIFICATIONS.
+    readonly property var notificationReception: values.notificationReception
+    readonly property var notificationSources: values.notificationSources
+    readonly property var notificationsDndUntil: values.notificationsDndUntil
+    readonly property bool notificationsDndManual: values.notificationsDndManual
     property bool ready: false
     property bool dirty: false
     property bool saving: false
@@ -187,7 +194,12 @@ QtObject {
             "captureMic": false,
             "captureSystemAudio": true,
             "captureCursor": true,
-            "mixerSources": []
+            "mixerSources": [],
+            "notificationsEnabled": true,
+            "notificationReception": null,
+            "notificationSources": [],
+            "notificationsDndUntil": 0,
+            "notificationsDndManual": false
         };
     }
 
@@ -197,6 +209,16 @@ QtObject {
         if (key === "panelReservations") return PanelModes.normalizeReservations(value);
         if (key === "mixerSources")
             return MixerSources.normalize(value);
+        if (key === "notificationSources")
+            return NotificationPolicy.normalizeSources(value);
+        if (key === "notificationReception")
+            return value === true || value === false ? value : null;
+        if (key === "notificationsEnabled")
+            return typeof value === "boolean" ? value : true;
+        if (key === "notificationsDndManual")
+            return value === true;
+        if (key === "notificationsDndUntil")
+            return typeof value === "number" && isFinite(value) && value > 0 ? Math.round(value) : 0;
         if (key === "captureShotDir" || key === "captureVideoDir")
             return typeof value === "string" && /^(\/|~\/)/.test(value.trim()) && !/[\x00-\x1f]/.test(value) && value.length < 4096 ? value.trim() : fallback;
         if (key === "captureFps") return value === 30 || value === 60 ? value : fallback;
@@ -311,7 +333,7 @@ QtObject {
                 continue;
 
             const value = normalize(key, patch[key]);
-            const unchanged = (key === "panelModes" || key === "panelReservations") ? JSON.stringify(next[key]) === JSON.stringify(value) : key === "mixerSources" ? MixerSources.same(next[key], value) : next[key] === value;
+            const unchanged = (key === "panelModes" || key === "panelReservations") ? JSON.stringify(next[key]) === JSON.stringify(value) : key === "mixerSources" ? MixerSources.same(next[key], value) : key === "notificationSources" ? NotificationPolicy.same(next[key], value) : next[key] === value;
             if (unchanged)
                 continue;
 
