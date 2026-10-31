@@ -7,6 +7,7 @@ case "${1:-}" in
         python3 tests/installer.py
         python3 tests/nayori-update.py
         python3 tests/wireguard.py --unit
+        python3 tests/polkit-status.py
         for test in tests/*.cjs; do
             printf '\n>>> %s\n' "$test"
             node "$test"
@@ -35,7 +36,7 @@ case "${1:-}" in
             printf '\n>>> %s\n' "$test"
             python3 "tests/$test.py"
         done
-        for fixture in Clipboard NaomiPixel NayoriUpdate; do
+        for fixture in Clipboard NaomiPixel NayoriUpdate PolkitDialog; do
             log="$runtime/$fixture.log"
             timeout 20s qs -p "tests/smoke/${fixture}Smoke.qml" --no-color > "$log" 2>&1 || { cat "$log"; exit 1; }
             cat "$log"
@@ -43,6 +44,7 @@ case "${1:-}" in
                 Clipboard) marker=CLIPBOARD_SMOKE_PASS ;;
                 NaomiPixel) marker=NAOMI_PIXEL_PASS ;;
                 NayoriUpdate) marker=UPDATE_SMOKE_PASS ;;
+                PolkitDialog) marker=POLKIT_DIALOG_PASS ;;
             esac
             rg -q "$marker" "$log"
             ! rg -q 'FAIL|Error:|Unable to assign|ReferenceError|TypeError|Failed to load configuration' "$log"

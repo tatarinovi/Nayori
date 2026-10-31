@@ -72,7 +72,7 @@ Column {
         property bool sampleLine: true
         function remind(kind) { return previewNaomi.remind(kind) }
         width: root.width
-        height: (root.companionStyle === "pixel-art" ? 400 : 534) + 154
+        height: (root.companionStyle === "chibi" ? 200 : root.companionStyle === "pixel-art" ? 400 : 534) + 154
         radius: root.tokens.radius.small
         color: root.tokens.color.background
         border.color: root.tokens.color.border
@@ -86,7 +86,7 @@ Column {
             height: illustrationHeight + 128
             anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 16 }
             illustrationWidth: 280
-            illustrationHeight: root.companionStyle === "pixel-art" ? 400 : 534
+            illustrationHeight: root.companionStyle === "chibi" ? 200 : root.companionStyle === "pixel-art" ? 400 : 534
             greet: frame.greet
             active: root.previewActive
             animationsEnabled: root.animationsEnabled
@@ -128,7 +128,10 @@ Column {
                 visible: !root.animationsEnabled
                 width: parent.width
                 tokens: root.tokens
-                text: "Анимации выключены в разделе «Внешний вид». Naomi отображается без движения, но по-прежнему говорит и реагирует на поглаживание"
+                objectName: "settingsNaomiMotionNote"
+                text: root.companionReactToPointer
+                    ? "Анимации выключены в\u00A0разделе «Внешний вид». Naomi отображается без движения, но по-прежнему говорит и реагирует на поглаживание"
+                    : "Анимации выключены в\u00A0разделе «Внешний вид». Naomi отображается без движения, но по-прежнему говорит"
                 color: root.tokens.color.textMuted
                 font.pixelSize: 13
                 wrapMode: Text.WordWrap
@@ -148,7 +151,7 @@ Column {
                 objectName: "settingsNaomiStyle"
                 tokens: root.tokens
                 width: Math.min(parent.width, 520)
-                model: [{key: "current", label: "Текущий"}, {key: "pixel-art", label: "Pixel art"}, {key: "layered", label: "Naomi v3"}, {key: "haori", label: "Хаори"}]
+                model: [{key: "current", label: "Текущий"}, {key: "pixel-art", label: "Pixel art"}, {key: "layered", label: "Naomi v3"}, {key: "haori", label: "Хаори"}, {key: "chibi", label: "Чиби"}]
                 currentKey: root.companionStyle
                 onActivated: key => root.companionStyleChangedRequested(key)
             }
@@ -156,7 +159,9 @@ Column {
             SettingsLabel {
                 width: parent.width
                 tokens: root.tokens
-                text: root.companionStyle === "layered"
+                text: root.companionStyle === "chibi"
+                    ? "Пиксельная Naomi моргает и слегка дышит. При выключенных анимациях остаётся неподвижной."
+                    : root.companionStyle === "layered"
                     ? "Naomi дышит, слегка покачивает головой и волосами и моргает. Цвета исходного рисунка."
                     : root.companionStyle === "haori"
                     ? "Naomi дышит, слегка покачивает головой, волосами и лентами хаори и моргает. С полуночи до шести утра лицо сонное. На реплику приоткрывает рот. Пока её гладят, закрывает глаза, на щеках появляется румянец, и она мягко кивает. Волосы и ленты отвечают с опозданием. Цвета исходного рисунка."
@@ -250,8 +255,8 @@ Column {
                 tokens: root.tokens
                 text: "Только на рабочем столе"
                 description: root.companionDesktopOnly
-                    ? "Naomi видна над обоями и скрыта за окнами приложений."
-                    : "Naomi показывается поверх всех окон. Отключите, чтобы она оставалась за окнами."
+                    ? "Naomi видна над обоями и скрыта за окнами приложений"
+                    : "Naomi поверх окон приложений и под меню, лаунчером и панелью. Включение прячет её за окнами"
                 checked: root.companionDesktopOnly
                 enabled: root.companionEnabled
                 onClicked: root.companionDesktopOnlyChangedRequested(checked)

@@ -70,7 +70,7 @@ Rectangle {
     property bool islandRotationEnabled: true
     property int islandRotationSeconds: 15
     property real closedWidth: compact.compactWidth
-    readonly property real closedHeight: 48
+    readonly property real closedHeight: tokens.panel.height
     readonly property real expandedWidth: 680
     readonly property real expandedHeight: 490
     property bool ready: false

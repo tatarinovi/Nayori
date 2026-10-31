@@ -12,8 +12,10 @@ ColumnLayout {
     property var notifications: null
     property var record: ({})
     readonly property var actions: List.visibleActions(record)
-    readonly property bool canReply: !!record.hasReply && !record.closed
-    readonly property bool wanted: (actions.length > 0 || canReply) && !record.closed
+    // live === false и запись с диска: исходного уведомления уже нет, кнопки и ответ недоступны.
+    readonly property bool actionsLive: record.live !== false && record.loadedFromDisk !== true
+    readonly property bool canReply: !!record.hasReply && !record.closed && actionsLive
+    readonly property bool wanted: actionsLive && !record.closed && (actions.length > 0 || !!record.hasReply)
     property bool replying: false
     visible: wanted
     spacing: 6

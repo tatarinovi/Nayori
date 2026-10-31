@@ -13,6 +13,7 @@ ShellRoot {
         // Exercise visits arriving before asynchronous initial read completes.
         usage.record("sound");
         usage.record("sound");
+        usage.record("integrations");
         usage.record("display");
         usage.record("home");
         usage.record("not-a-section");
@@ -28,7 +29,7 @@ ShellRoot {
                 return;
             }
             if (root.ticks < 10) return;
-            if (usage.counts.sound < 2 || usage.counts.display < 1 || usage.counts.home || usage.counts["not-a-section"] || usage.topKeys(1)[0] !== "sound") {
+            if (usage.counts.sound < 2 || usage.counts.display < 1 || usage.counts.integrations < 1 || usage.counts.home || usage.counts["not-a-section"] || usage.topKeys(1)[0] !== "sound") {
                 console.error("USAGE_FAIL counts", JSON.stringify(usage.counts)); Qt.quit(); return;
             }
             if (usage.recentKeys(1)[0] !== "display" || usage.recentKeys(0).length !== 0) {

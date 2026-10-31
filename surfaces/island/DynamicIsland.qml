@@ -64,7 +64,12 @@ Rectangle {
     property bool testMode: false
     property var audioReaction: null
     property var notifications: null
-    readonly property var notification: notifications ? notifications.current : null
+    NotificationCollapsed {
+        id: collapsedBanner
+        notifications: root.notifications
+    }
+    // Самое новое подходящее уведомление, 30 с. Срок не делает его прочитанным.
+    readonly property var notification: collapsedBanner.current
     readonly property bool showingNotification: notification !== null && expansionProgress < 0.01
     property bool drawChrome: true
     property bool active: true
@@ -92,7 +97,7 @@ Rectangle {
         else if (heldPlayer) pauseHold.restart()
     }
     Timer { id: pauseHold; interval: 10000 }
-    readonly property var pending: notifications ? notifications.pending : []
+    readonly property var pending: collapsedBanner.pending
     readonly property var rowPlan: RowPlan.plan({
         yielded: contentYielded || expansionProgress >= 0.01,
         volume: showingVolume, notification: showingNotification,

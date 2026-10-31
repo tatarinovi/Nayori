@@ -12,6 +12,7 @@ FloatingWindow {
     property var companionTokens: tokens
     property var bluetoothService: null
     property var settingsService: null
+    property var polkitService: null
     required property var tokens
     property var captureSettings: ({})
     signal captureSettingsChangedRequested(var patch)
@@ -54,6 +55,7 @@ FloatingWindow {
     property string manualAccent: "#C0AFD1"
     signal manualAccentChangedRequested(string color)
     property string accentStatus: ""
+    property string niriAccentError: ""
     property color accentPreview: "#C0AFD1"
     property var accentCandidates: []
     signal accentResetRequested()
@@ -136,6 +138,7 @@ FloatingWindow {
     Settings {
         bluetoothService: root.bluetoothService
         settingsService: root.settingsService
+        polkitService: root.polkitService
         id: settings
         captureSettings: root.captureSettings
         onCaptureSettingsChangedRequested: patch => root.captureSettingsChangedRequested(patch)
@@ -182,6 +185,7 @@ FloatingWindow {
         manualAccent: root.manualAccent
         onManualAccentChangedRequested: color => root.manualAccentChangedRequested(color)
         accentStatus: root.accentStatus
+        niriAccentError: root.niriAccentError
         accentPreview: root.accentPreview
         accentCandidates: root.accentCandidates
         onAccentResetRequested: root.accentResetRequested()

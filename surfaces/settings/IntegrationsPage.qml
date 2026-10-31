@@ -10,6 +10,7 @@ Column {
     property bool strataThemeIntegration: true
     property string strataError: ""
     property string strataNotice: ""
+    property string niriAccentError: ""
     signal niriColorIntegrationChangedRequested(bool enabled)
     signal strataThemeIntegrationChangedRequested(bool enabled)
     spacing: 16
@@ -29,6 +30,14 @@ Column {
         description: "Пять цветов акцента в\u00A0nayori-accent.kdl. Файл noctalia.kdl не изменяется"
         checked: root.niriColorIntegration
         onClicked: root.niriColorIntegrationChangedRequested(checked)
+    }
+    Label {
+        objectName: "niriAccentError"
+        width: parent.width
+        color: root.tokens.color.secondary
+        font.pixelSize: 13
+        visible: root.niriAccentError !== ""
+        text: root.niriAccentError
     }
     SettingsToggle {
         objectName: "strataThemeIntegration"

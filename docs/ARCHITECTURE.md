@@ -165,7 +165,7 @@ surfaces/clipboard/
 
 Лаунчер ищет приложения по `DesktopEntries` и запускает `execute()`. Оценка строки живёт в `services/Apps.qml`. Файлы и папки ищет `services/launcher/` в домашней папке и каталогах XDG, вне потока интерфейса. Команда появляется только у запроса с префиксом `>` и запускается списком аргументов, без оболочки. Меню Пуск создаёт свой экземпляр каталога и свой `SessionActions` для блокировки, выхода и питания.
 
-Уведомления рисует остров. Обычный запуск имя `org.freedesktop.Notifications` не занимает. Пока настройка приёма не сохранена, `NAYORI_NOTIFICATIONS=1` поднимает второй процесс `services/island/NotificationHost.qml`. Выбор в разделе «Уведомления» после этого важнее переменной. В том процессе окно `nayori-notify-grab` сохраняет картинку уведомления в PNG. История остаётся в памяти основного процесса. Показ, «Не беспокоить» и источники применяет `NotificationPolicy.js`, в том числе к внутренним уведомлениям. Протокол: [ISLAND_INTERACTION.md](ISLAND_INTERACTION.md).
+Уведомления рисует остров. Обычный запуск имя `org.freedesktop.Notifications` не занимает. Пока настройка приёма не сохранена, `NAYORI_NOTIFICATIONS=1` поднимает второй процесс `services/island/NotificationHost.qml`. Выбор в разделе «Уведомления» после этого важнее переменной. В том процессе окно `nayori-notify-grab` сохраняет картинку уведомления в PNG. Список, история и прочтение живут в `$XDG_STATE_HOME/nayori/notifications.json`, иначе в `~/.local/state/nayori/notifications.json`. В файл не попадают картинки и действия. Записи старше 90 дней удаляются. Показ, «Не беспокоить» и источники применяет `NotificationPolicy.js`, в том числе к внутренним уведомлениям. Протокол: [ISLAND_INTERACTION.md](ISLAND_INTERACTION.md).
 
 Буфер: сервис в оболочке, окно на экранах, пока журнал открыт. Поведение: [CLIPBOARD.md](CLIPBOARD.md).
 
@@ -190,6 +190,10 @@ surfaces/clipboard/
 - Плагинного хоста и каталога плагинов нет.
 - Экран блокировки использует `WlSessionLock` и PAM. `SessionActions` вызывает IPC `lock.lock`; сигналы logind и сон обрабатывает `services/lock/LockService.qml`. Тема SDDM использует тот же `AuthView` и снимок рассчитанных цветов и обоев. Установка — в [LOCKSCREEN.md](LOCKSCREEN.md).
 
+
+## Подтверждение действий
+
+`PolkitService` в `shell.qml` по умолчанию не регистрирует агент: ключ `polkitAgent` выключен. После включения он проверяет имя `org.freedesktop.PolicyKit1.AuthenticationAgent` на шинах и только потом создаёт `Quickshell.Services.Polkit.PolkitAgent`. Регистрация и проверка пароля остаются у polkit и `polkit-agent-helper-1`. Чужой агент не останавливается. Диалог стоит на первом экране `Quickshell.screens`, как блокировка. Подробности — [POLKIT.md](POLKIT.md).
 
 ## Bluetooth
 

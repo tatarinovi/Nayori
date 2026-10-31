@@ -54,6 +54,7 @@ QtObject {
     readonly property var notificationSources: values.notificationSources
     readonly property var notificationsDndUntil: values.notificationsDndUntil
     readonly property bool notificationsDndManual: values.notificationsDndManual
+    readonly property bool polkitAgent: values.polkitAgent === true
     property bool ready: false
     property bool dirty: false
     property bool saving: false
@@ -199,7 +200,8 @@ QtObject {
             "notificationReception": null,
             "notificationSources": [],
             "notificationsDndUntil": 0,
-            "notificationsDndManual": false
+            "notificationsDndManual": false,
+            "polkitAgent": false
         };
     }
 
@@ -241,7 +243,7 @@ QtObject {
             return value === "current" || value === "fox" ? value : fallback;
 
         if (key === "companionStyle")
-            return value === "current" || value === "pixel-art" || value === "layered" || value === "haori" ? value : fallback;
+            return value === "current" || value === "pixel-art" || value === "layered" || value === "haori" || value === "chibi" ? value : fallback;
 
         if (key === "companionScreen")
             return value === "primary" || value === "secondary" ? value : fallback;
@@ -277,6 +279,9 @@ QtObject {
 
         if (key === "niriColorIntegration" || key === "strataThemeIntegration")
             return typeof value === "boolean" ? value : fallback;
+
+        if (key === "polkitAgent")
+            return value === true;
 
         if (key === "manualAccent" || key === "captureColor") {
             if (typeof value !== "string")

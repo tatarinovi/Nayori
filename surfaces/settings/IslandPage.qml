@@ -36,9 +36,12 @@ Column {
          text: "Остров и кнопка «Пуск» читают эти значения из настроек Nayori" 
     }
     SettingsToggle {
+        objectName: "islandRotationToggle"
         tokens: root.tokens
-        text: "Смена страниц острова"
-        description: "Остров сам переключает страницы через заданный интервал"
+        text: "Чередовать часы и погоду"
+        description: root.islandRotationEnabled
+            ? "Чередуются часы и погода, если город задан и ответ пришёл без ошибки. Музыка, громкость, уведомление, лаунчер и раскрытый остров останавливают чередование"
+            : "На острове остаются часы. Погода не сменяет их сама"
         checked: root.islandRotationEnabled
         onClicked: root.islandRotationEnabledChangedRequested(checked)
     }
@@ -56,7 +59,7 @@ Column {
         palette.button: root.tokens.color.surfaceAlt
         palette.highlight: root.tokens.color.accent
         palette.highlightedText: root.tokens.color.accentText
-        Accessible.name: "Интервал смены страниц острова в секундах"
+        Accessible.name: "Интервал чередования часов и погоды, секунды"
         font.family: root.tokens.type.body.family
         font.pixelSize: root.tokens.settings.body
         onValueModified: root.islandRotationSecondsChangedRequested(value)

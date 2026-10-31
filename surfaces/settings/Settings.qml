@@ -13,6 +13,7 @@ FocusScope {
     property var companionTokens: tokens
     property var bluetoothService: null
     property var settingsService: null
+    property var polkitService: null
     required property var tokens
     property var captureSettings: ({})
     signal captureSettingsChangedRequested(var patch)
@@ -67,6 +68,7 @@ FocusScope {
     property string manualAccent: "#C0AFD1"
     signal manualAccentChangedRequested(string color)
     property string accentStatus: ""
+    property string niriAccentError: ""
     property color accentPreview: "#C0AFD1"
     property var accentCandidates: []
     signal accentResetRequested()
@@ -193,6 +195,7 @@ FocusScope {
         {key: "display", page: 5, title: "Экран", group: "Система", description: "Настройте расположение мониторов, выберите режимы вывода и другие параметры"},
         {key: "sound", page: 6, title: "Звук", group: "Система", description: "Устройства PipeWire, громкость и источники микшера"},
         {key: "notifications", page: 30, title: "Уведомления", group: "Система", glyph: "notifications", description: "Системный приём, режим «Не беспокоить» и показ уведомлений отдельных приложений"},
+        {key: "polkit", page: 31, title: "Подтверждение", group: "Система", glyph: "system", description: "Диалог, когда система просит подтвердить действие"},
         {key: "power", page: 7, title: "Питание", group: "Система", description: "Блокировка, завершение сеанса, перезагрузка и выключение"},
         {key: "network", page: 8, title: "Сеть", group: "Система", description: "Wi\u2011Fi, Ethernet и подключения NetworkManager"},
         {key: "localsend", page: 9, title: "LocalSend", group: "Система", description: "Запуск LocalSend, если приложение установлено"},
@@ -204,8 +207,8 @@ FocusScope {
         {key: "wallpapers", page: 4, title: "Обои", group: "Персонализация", description: "Выберите папку и изображение для рабочего стола"},
         {key: "panels", page: 1, title: "Панель задач", group: "Персонализация", description: "Автоскрытие островов, место для окон у краёв экрана и мониторы"},
         {key: "start", page: 14, title: "Пуск", group: "Персонализация", description: "Значок и приложения кнопки «Пуск»"},
-        {key: "island", page: 15, title: "Dynamic Island", group: "Персонализация", description: "Смена страниц острова, город и интервал погоды"},
-        {key: "lockscreen", page: 16, title: "Экран блокировки", group: "Персонализация", description: "В Nayori нет своего экрана блокировки"},
+        {key: "island", page: 15, title: "Dynamic Island", group: "Персонализация", description: "Чередование часов и погоды, город и интервал"},
+        {key: "lockscreen", page: 16, title: "Экран блокировки", group: "Персонализация", description: "Предпросмотр экрана блокировки с\u00A0обоями и цветами Nayori"},
         {key: "weather", page: 3, title: "Погода", group: "Персонализация", description: "Город для прогноза в Dynamic Island", sidebar: false},
         {key: "windows", page: 17, title: "Окна", group: "Окна и столы", description: "Фокус окон и ограничения конфигурации niri"},
         {key: "alttab", page: 18, title: "Alt+Tab", group: "Окна и столы", description: "Переключение окон в этой сессии niri"},
@@ -394,7 +397,7 @@ FocusScope {
                 anchors { top: brandMark.bottom; topMargin: 18; left: parent.left; right: parent.right; margins: 6 }
                 height: 44
                 hoverEnabled: true
-                Accessible.name: "Поиск по всем настройкам"
+                Accessible.name: "Найти раздел"
                 Accessible.description: "Ctrl+F"
                 onClicked: root.searchOpen ? root.closeSearch(true) : root.openSearch()
                 Keys.onDownPressed: {
@@ -544,7 +547,8 @@ FocusScope {
             anchors { top: identity.bottom; topMargin: 22; left: parent.left; leftMargin: 12; right: parent.right; rightMargin: 12 }
             tokens: root.tokens
             placeholderText: "Найти раздел"
-            Accessible.name: "Поиск по всем настройкам"
+            Accessible.name: "Найти раздел"
+            Accessible.description: "По названию, пути и описанию раздела"
             onTextEdited: root.navQuery = text
             Keys.onDownPressed: root.focusNav(0)
             Keys.onEscapePressed: function(event) {
@@ -796,6 +800,7 @@ FocusScope {
                     width: parent.width
                     tokens: root.tokens
                     niriColorIntegration: root.niriColorIntegration
+                    niriAccentError: root.niriAccentError
                     strataThemeIntegration: root.strataThemeIntegration
                     strataError: root.strataError
                     strataNotice: root.strataNotice
@@ -832,6 +837,14 @@ FocusScope {
                     onDndUntilRequested: until => root.dndUntilRequested(until)
                     onDndManualRequested: root.dndManualRequested()
                     onDndClearRequested: root.dndClearRequested()
+                }
+            }
+            SettingsScroll {
+                PolkitPage {
+                    width: parent.width
+                    tokens: root.tokens
+                    settings: root.settingsService
+                    polkit: root.polkitService
                 }
             }
         }

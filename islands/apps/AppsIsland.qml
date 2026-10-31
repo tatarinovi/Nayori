@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Widgets
 import "../../services/niri"
+import "../../services/ui/PanelGeometry.js" as PanelGeometry
 import "../shared"
 
 // Остров открытых окон. Без PanelWindow: размер из содержимого,
@@ -15,7 +16,7 @@ Rectangle {
     property string outputName: ""
 
     readonly property int pad: tokens.spacing.small
-    readonly property int slot: 40
+    readonly property int slot: PanelGeometry.appsIconSlot()
     readonly property int gap: 4
     // Одна строка внутри высоты острова (slot + pad * 2 = 56).
     // Пять знаков — ширина нынешней заглушки без метки лаунчера.

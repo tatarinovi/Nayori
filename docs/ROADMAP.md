@@ -108,7 +108,7 @@ Naomi — `surfaces/companion/`, окно `nayori-companion`. В настро�
 
 `services/niri/Niri.qml` открывает `NIRI_SOCKET` и читает события. Клик по столу и окну шлёт фокус. Старт оболочки эти вызовы не делает.
 
-Уведомления — `services/island/Notifications.qml`. Пока в настройках нет выбора, приём включается при `NAYORI_NOTIFICATIONS=1` на запуске. Сохранённый переключатель важнее переменной. Если имя D-Bus занято, процесс его не отбирает. Журнал живёт в памяти процесса: в `services/island/` записи в файл нет. Показ, «Не беспокоить» и источники описаны в [ISLAND_INTERACTION.md](ISLAND_INTERACTION.md) и [SETTINGS.md](SETTINGS.md).
+Уведомления — `services/island/Notifications.qml`. Пока в настройках нет выбора, приём включается при `NAYORI_NOTIFICATIONS=1` на запуске. Сохранённый переключатель важнее переменной. Если имя D-Bus занято, процесс его не отбирает. Список, история и прочтение пишутся в `$XDG_STATE_HOME/nayori/notifications.json`, иначе в `~/.local/state/nayori/notifications.json`. Записи старше 90 дней удаляются. Картинки и действия в файл не попадают. Показ, «Не беспокоить» и источники описаны в [ISLAND_INTERACTION.md](ISLAND_INTERACTION.md) и [SETTINGS.md](SETTINGS.md).
 
 Погода — один `services/weather/WeatherService.qml` на оболочку. Город и интервал лежат в `settings.json`.
 
@@ -121,7 +121,7 @@ Naomi — `surfaces/companion/`, окно `nayori-companion`. В настро�
 - Лаунчер ищет ярлыки `DesktopEntries` (`services/Apps.qml`), файлы и папки в домашней папке и каталогах XDG (`services/launcher/`) и строку Google. Команда запускается только после `>` и только списком аргументов. Постоянного индекса нет: каждый запрос заново обходит каталоги с лимитом времени. Подробности в [PANEL.md](PANEL.md)
 - `surfaces/settings/DisplayPage.qml`, `MousePage.qml`, `KeyboardPage.qml` и `ShortcutsPage.qml` читают сессию и прямо пишут: безопасная перезапись конфигурации niri с откатом не сделана
 - `WindowsPage.qml` умеет перевести фокус на окно. Правила окон, рамки и зазоры страница не пишет. `AltTabPage.qml` показывает сочетания с Tab и не даёт их менять. `WorkspacesPage.qml` переходит на уже существующий стол и число столов не меняет
-- `LockScreenPage.qml`: добавлены предпросмотр и собственная блокировка Wayland/PAM. Страница «Питание» вызывает IPC `lock.lock`. Экран входа поставляется отдельной темой SDDM; подключение описано в [LOCKSCREEN.md](LOCKSCREEN.md). Агента polkit в дереве нет. Строка `"polkit"` в `services/island/NotificationSources.js` — имя источника уведомления
+- `LockScreenPage.qml`: добавлены предпросмотр и собственная блокировка Wayland/PAM. Страница «Питание» вызывает IPC `lock.lock`. Экран входа поставляется отдельной темой SDDM; подключение описано в [LOCKSCREEN.md](LOCKSCREEN.md). Агент polkit описан в [POLKIT.md](POLKIT.md): по умолчанию выключен и не заменяет чужой. Строка `"polkit"` в `services/island/NotificationSources.js` — имя источника уведомления
 - `LocalSendPage.qml` ищет установленное приложение и запускает его. Своего протокола передачи в дереве нет
 - Конец [CANVAS.md](CANVAS.md) оставляет ручные проверки диалога, двух мониторов, отключения выхода и кликов по рабочему столу. Этим проходом они не повторялись
 

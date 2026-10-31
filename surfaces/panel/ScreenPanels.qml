@@ -14,6 +14,7 @@ import "../capture"
 import "../../services/niri"
 import "../../services/ui"
 import "../../services/ui/IslandRouting.js" as IslandRouting
+import "../../services/ui/PanelGeometry.js" as PanelGeometry
 import "../../services/ui/Overlap.js" as Overlap
 import "../../services/ui/PanelModes.js" as PanelModes
 
@@ -55,8 +56,8 @@ Scope {
         && panelScreen !== shellState.probeScreen
         && screenName === shellState.fullscreenIslandOutput
     readonly property bool relocated: relocationHost && shellState.primaryFullscreen && !fullscreen
-    // 8 px над капсулой, 48 px капсула, 8 px под ней.
-    readonly property int islandBand: tokens.spacing.small * 2 + tokens.panel.height
+    // Отступ окна, капсула и такой же зазор под ней. Та же формула, что у кнопки «По размеру панелей».
+    readonly property int islandBand: PanelGeometry.topReserve(tokens.spacing.small, tokens.panel.height)
     property real arrival: relocated ? 1 : 0
     property bool arrivalReady: false
     Behavior on arrival {

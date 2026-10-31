@@ -13,9 +13,19 @@ FocusScope {
     property string filterMode: "all"
     property var expandedGroups: ({})
     property double now: Date.now()
+    property bool showingHistory: false
     readonly property var groups: List.group(List.filter(notifications ? notifications.records : [], filterMode, Sources.systemSources()))
     signal closeRequested()
-    Keys.onEscapePressed: closeRequested()
+    Keys.onEscapePressed: function(event) {
+        if (root.showingHistory) {
+            if (historyPane.confirming) historyPane.confirming = false
+            else root.showingHistory = false
+            event.accepted = true
+            return
+        }
+        root.closeRequested()
+        event.accepted = true
+    }
     Timer { interval: 30000; running: root.visible; repeat: true; onTriggered: root.now = Date.now() }
     function toggleGroup(group) {
         const next = Object.assign({}, expandedGroups)
@@ -27,6 +37,7 @@ FocusScope {
         anchors.fill: parent
         spacing: 12
         RowLayout {
+            visible: !root.showingHistory
             Layout.fillWidth: true
             spacing: 6
             Repeater {
@@ -42,16 +53,67 @@ FocusScope {
                 }
             }
             Item { Layout.fillWidth: true }
+            AbstractButton {
+                id: historyButton
+                objectName: "notificationHistoryButton"
+                visible: !root.showingHistory
+                implicitWidth: Math.max(36, historyButtonLabel.implicitWidth + 40)
+                implicitHeight: 36
+                hoverEnabled: true
+                focusPolicy: Qt.StrongFocus
+                Accessible.name: "История"
+                Layout.alignment: Qt.AlignVCenter
+                onClicked: root.showingHistory = true
+                background: Rectangle {
+                    radius: root.tokens.radius.small
+                    color: historyButton.down ? root.tokens.color.surface : historyButton.hovered ? root.tokens.color.surfaceAlt : Qt.alpha(root.tokens.color.background, 0.28)
+                    border.width: historyButton.visualFocus ? 2 : 1
+                    border.color: historyButton.visualFocus ? root.tokens.color.accent : Qt.alpha(root.tokens.color.border, 0.45)
+                }
+                contentItem: RowLayout {
+                    spacing: 6
+                    Item { Layout.preferredWidth: 8 }
+                    Glyph {
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.preferredWidth: 14
+                        Layout.preferredHeight: 14
+                        implicitWidth: 14
+                        implicitHeight: 14
+                        name: "list"
+                        ink: historyButton.hovered ? root.tokens.color.text : root.tokens.color.textMuted
+                    }
+                    IslandLabel {
+                        id: historyButtonLabel
+                        tokens: root.tokens
+                        text: "История"
+                        font.pixelSize: 12
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+                    Item { Layout.preferredWidth: 8 }
+                }
+            }
             IslandAction {
+                visible: !root.showingHistory
                 tokens: root.tokens
                 text: "Очистить всё"
                 enabled: !!root.notifications && root.notifications.records.length > 0
                 onClicked: root.notifications.clear()
             }
         }
-        Item {
+        NotificationHistory {
+            id: historyPane
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            Layout.fillHeight: root.showingHistory
+            visible: root.showingHistory
+            tokens: root.tokens
+            notifications: root.notifications
+            now: root.now
+            onBackRequested: root.showingHistory = false
+        }
+        Item {
+            visible: !root.showingHistory
+            Layout.fillWidth: true
+            Layout.fillHeight: !root.showingHistory
             IslandLabel {
                 anchors.centerIn: parent
                 tokens: root.tokens

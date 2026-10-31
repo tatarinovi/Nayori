@@ -12,7 +12,7 @@ import "../shared"
 import "../../surfaces/settings"
 
 // Содержимое правого острова. Окна слоя здесь нет.
-// Общая геометрия панели: строка 32 и отступ 8.
+// Общая геометрия панели: строка panel.control и отступ spacing.small.
 Rectangle {
     id: root
 
@@ -28,7 +28,7 @@ Rectangle {
     readonly property int pad: tokens.spacing.small
 
     implicitWidth: cluster.implicitWidth + pad * 2
-    implicitHeight: 32 + pad * 2
+    implicitHeight: tokens.panel.control + pad * 2
     width: implicitWidth
     height: implicitHeight
     radius: tokens.radius.small + pad

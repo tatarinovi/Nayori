@@ -28,6 +28,7 @@ import "services/clipboard"
 import "services/shelf"
 import "services/lock"
 import "surfaces/lock"
+import "surfaces/polkit"
 import "surfaces/clipboard"
 import "services/capture"
 import "surfaces/capture"
@@ -86,6 +87,7 @@ ShellRoot {
     }
     NotificationModel {
         id: notificationModel
+        storeEnabled: true
         notificationsEnabled: settingsStore.notificationsEnabled
         doNotDisturb: notificationDnd.active
         sources: settingsStore.notificationSources
@@ -204,21 +206,16 @@ ShellRoot {
         return "#C0AFD1"
     }
     readonly property string accentStatus: {
-        const niriError = niriAccent.error
-        let wallpaper = ""
-        if (settingsStore.accentMode === "automatic" && accentExtractor.ready
-                && accentExtractor.sourcePath === root.accentFilePath(accentExtractor.source)) {
-            if (accentExtractor.error !== "")
-                wallpaper = accentExtractor.error
-            else if (accentExtractor.fallbackUsed)
-                wallpaper = "На обоях нет выразительного цвета, акцент Nayori остаётся"
-        }
-        if (niriError === "")
-            return wallpaper
-        if (wallpaper === "")
-            return niriError
-        return wallpaper + " " + niriError
+        if (settingsStore.accentMode !== "automatic" || !accentExtractor.ready
+                || accentExtractor.sourcePath !== root.accentFilePath(accentExtractor.source))
+            return ""
+        if (accentExtractor.error !== "")
+            return accentExtractor.error
+        if (accentExtractor.fallbackUsed)
+            return "На обоях нет выразительного цвета, акцент Nayori остаётся"
+        return ""
     }
+    readonly property string niriAccentError: niriAccent.error
     readonly property var accentCandidates: (settingsStore.accentMode === "automatic" || settingsStore.accentMode === "manual")
         ? accentExtractor.candidates : []
     readonly property bool neutralDerived: (settingsStore.accentMode === "automatic" || settingsStore.accentMode === "manual")
@@ -355,6 +352,17 @@ ShellRoot {
         primaryOutput: root.probeScreen ? root.probeScreen.name : ""
         outputNames: Quickshell.screens.map(screen => screen.name)
         settled: settingsStore.ready && (settingsStore.accentMode !== "automatic" || accentExtractor.ready)
+    }
+    // Выключенный агент не регистрируется. Включение — только polkitAgent в настройках.
+    PolkitService {
+        id: polkitStore
+        enabled: settingsStore.ready && settingsStore.polkitAgent
+        primaryName: root.probeScreen ? root.probeScreen.name : ""
+    }
+    PolkitDialog {
+        tokens: root.tokenSet
+        service: polkitStore
+        suspended: lockService.locked
     }
     property bool launcherOpened: false
     readonly property bool settingsOpened: settingsController.opened
@@ -513,10 +521,12 @@ ShellRoot {
         remindCompanion: kind => companionHost.item ? companionHost.item.remind(kind) : false
         tokens: root.tokenSet
         settingsService: settingsStore
+        polkitService: polkitStore
         notificationBridge: systemNotifications
         wallpaperManager: wallpaperStore
         niri: Niri
         accentStatus: root.accentStatus
+        niriAccentError: root.niriAccentError
         accentCandidates: root.accentCandidates
         strataError: strataTheme.error
         strataNotice: strataTheme.notice

@@ -48,7 +48,9 @@ Column {
             objectName: "notificationEnabledToggle"
             tokens: root.tokens
             text: "Показывать уведомления"
-            description: "Новые уведомления не попадают в историю и на остров. Уже сохранённые остаются"
+            description: root.notificationsEnabled
+                ? "Новые уведомления сохраняются в\u00A0истории и появляются в\u00A0свёрнутом острове"
+                : "Новые уведомления не попадают в\u00A0историю и на остров. Уже сохранённые остаются"
             checked: root.notificationsEnabled
             onClicked: root.notificationsEnabledChangedRequested(checked)
         }

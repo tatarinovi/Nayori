@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import "../../services/ui/PanelGeometry.js" as PanelGeometry
 
 // Independent visibility modes for each part of this output.
 Rectangle {
@@ -149,9 +150,13 @@ Rectangle {
             width: parent.width
             spacing: 8
             SettingsButton {
+                objectName: "panelsFitReservation"
                 tokens: card.tokens
                 text: "По размеру панелей"
-                onClicked: card.reservationRequested(64, 72)
+                onClicked: {
+                    const fit = PanelGeometry.fit(card.tokens)
+                    card.reservationRequested(fit.top, fit.bottom)
+                }
                 onActiveFocusChanged: if (activeFocus) card.itemFocused(this)
             }
             SettingsButton {

@@ -38,7 +38,7 @@ Rectangle {
     }
 
     implicitWidth: cluster.implicitWidth + 16
-    implicitHeight: 48
+    implicitHeight: tokens.panel.height
     width: implicitWidth
     height: implicitHeight
     radius: tokens.radius.small + 8

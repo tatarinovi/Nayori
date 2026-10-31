@@ -22,12 +22,12 @@ with tempfile.TemporaryDirectory(prefix="nayori-usage-") as directory:
     run(normal)
     path = normal / "settings-usage.json"
     saved = json.loads(path.read_text())
-    assert saved["counts"] == {"sound": 2, "display": 2}, saved
+    assert saved["counts"] == {"sound": 2, "display": 2, "integrations": 1}, saved
     saved["future"] = {"nested": True}
     path.write_text(json.dumps(saved))
     run(normal)
     saved = json.loads(path.read_text())
-    assert saved["counts"] == {"sound": 4, "display": 4} and saved["future"] == {"nested": True}, saved
+    assert saved["counts"] == {"sound": 4, "display": 4, "integrations": 2} and saved["future"] == {"nested": True}, saved
     for name, text in [("corrupt", "{broken"), ("unsupported", '{"version":99,"future":true}')]:
         folder = base / name
         folder.mkdir()

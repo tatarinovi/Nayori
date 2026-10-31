@@ -91,7 +91,7 @@ ShellRoot {
                 compare(records.pending[0].appName, "Система")
                 const sourceLabel = findChild(island, "compactNotificationSource")
                 verify(sourceLabel.visible)
-                verify(sourceLabel.text.indexOf("Telegram") >= 0)
+                verify(sourceLabel.text.indexOf("Система") >= 0)
                 compare(findChild(island, "compactNotificationText").text, "Текст уведомления")
                 const tail = findChild(island, "compactTail")
                 verify(tail.visible)
@@ -109,7 +109,7 @@ ShellRoot {
                 const notificationText = findChild(island, "compactNotificationText")
                 const shortWidth = island.closedWidth
                 verify(!notificationText.overflowing)
-                records.receive({id:1, body:"Длинное уведомление\nсо всеми\r\nподробностями. ".repeat(12)})
+                records.receive({id:5, body:"Длинное уведомление\nсо всеми\r\nподробностями. ".repeat(12)})
                 wait(400)
                 verify(island.closedWidth > shortWidth)
                 verify(Math.abs(island.closedWidth - 520) < 1)
@@ -117,7 +117,7 @@ ShellRoot {
                 verify(notificationText.text.indexOf("\n") === -1 && notificationText.text.indexOf("\r") === -1)
                 stage.grabToImage(function(result) { result.saveToFile("/tmp/nayori-notifications-long.png") })
                 wait(100)
-                records.receive({id:1, body:"Текст уведомления"})
+                records.receive({id:5, body:"Текст уведомления"})
                 island.expanded = true
                 verify(!notificationText.scrolling)
                 verify(!mediaControls.visible)
