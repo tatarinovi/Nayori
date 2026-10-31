@@ -353,6 +353,23 @@ s2 = fresh(); ev.idle(s2, 'away', true); ev.idle(s2, 'long', true); go(s2, 1)
 ev.idle(s2, 'long', false); ev.idle(s2, 'away', false)
 assert.deepEqual(go(s2, 60), [], 'возвращение сразу за репликой про бездействие не наслаивается')
 
+// Any MPRIS playback counts as presence, independently of Yandex Music reactions.
+s2 = fresh()
+ev.mediaPlayback(s2, true)
+ev.idle(s2, 'away', true); ev.idle(s2, 'long', true); ev.idle(s2, 'away', false)
+assert.deepEqual(go(s2, 2), [], 'playing media suppresses absence and return')
+ev.mediaPlayback(s2, false)
+ev.idle(s2, 'away', true); ev.idle(s2, 'away', false)
+assert.deepEqual(kindsOf(go(s2, 1)), ['return'], 'return works after actual absence without playback')
+s2 = fresh()
+ev.idle(s2, 'away', true); ev.idle(s2, 'away', false)
+ev.mediaPlayback(s2, true)
+assert.deepEqual(go(s2, 2), [], 'starting playback cancels a queued stale return')
+s2 = fresh()
+ev.idle(s2, 'away', true)
+ev.mediaPlayback(s2, true); ev.idle(s2, 'away', false)
+assert.deepEqual(go(s2, 2), [], 'playback clears a previous absence without a false return')
+
 // Окна: терминал, игра, число окон. Исходные окна и висящее «много окон» поводом не считаются.
 s2 = ev.create(sysData, lines); go(s2, 25)
 ev.windows(s2, winList(8, [win(20, 'kitty'), win(21, 'steam_app_1')]), true)

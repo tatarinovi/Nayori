@@ -9,6 +9,7 @@ node tests/island-routing.cjs
 node tests/naomi-companion.cjs
 node tests/naomi-interactions.cjs
 node tests/naomi-personality.cjs
+node tests/naomi-presence.cjs
 python3 tests/naomi-layers.py
 # Quickshell qmltypes omit dynamic model values and Loader item members.
 /usr/lib/qt6/bin/qmllint --missing-property disable --uncreatable-type disable -I /usr/lib/qt6/qml \
@@ -45,6 +46,10 @@ timeout 40s qs -p tests/smoke/NaomiCompanionSmoke.qml --no-color > "$runtime/nao
 cat "$runtime/naomi.log"
 rg -q NAOMI_COMPANION_PASS "$runtime/naomi.log"
 ! rg -q 'NAOMI_FAIL|FAIL!|Error:|Unable to assign|ReferenceError|TypeError|Failed to load configuration' "$runtime/naomi.log"
+timeout 12s qs -p tests/smoke/NaomiChibiSmoke.qml --no-color > "$runtime/naomi-chibi.log" 2>&1
+cat "$runtime/naomi-chibi.log"
+rg -q NAOMI_CHIBI_PASS "$runtime/naomi-chibi.log"
+! rg -q 'NAOMI_CHIBI_FAIL|ReferenceError|TypeError|Unable to assign|Failed to load configuration' "$runtime/naomi-chibi.log"
 dbus-run-session -- python3 tests/notification-host.py
 dbus-run-session -- python3 tests/notifications-bridge.py
 git diff --check

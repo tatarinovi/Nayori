@@ -100,6 +100,7 @@ ShellRoot {
 
             Settings {
                 id: view
+                settingsService: settings
 
                 width: test.sizes[test.sizeIndex].width
                 height: test.sizes[test.sizeIndex].height
@@ -219,6 +220,13 @@ ShellRoot {
                     test.check(settings.companionStyle === "layered" && naomiPreview.illustrationHeight === 534,
                         "third layered appearance selected through settings")
                     styleControl.activated("pixel-art")
+                    openKey("naomi-remind")
+                    const eyesInterval = test.findItem(view, "reminderEyesMinutes")
+                    test.check(eyesInterval && eyesInterval.value === 20, "default eye reminder interval")
+                    eyesInterval.forceActiveFocus()
+                    input.keyClick(Qt.Key_Up, Qt.NoModifier, -1)
+                    test.check(settings.values.reminderEyesMinutes === 25, "reminder interval saved through settings")
+                    settings.update({reminderEyesMinutes: 20})
                     openKey("naomi")
                     const companionControl = test.findItem(view, "settingsCompanionToggle")
                     companionControl.forceActiveFocus()

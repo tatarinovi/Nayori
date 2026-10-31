@@ -23,6 +23,7 @@ Item {
         id: picture
         anchors.fill: parent
         sourceComponent: root.style === "layered" ? layered
+            : root.style === "chibi" ? chibi
             : root.style === "haori" ? haori
             : root.style === "pixel-art" ? pixel
             : current
@@ -51,6 +52,26 @@ Item {
             pet: root.pet
             petLean: root.petLean
             onPointerMoved: (x,y) => root.pointerMoved(x,y)
+        }
+    }
+    Component {
+        id: chibi
+        NaomiChibi {
+            id: chibiSprite
+            active: root.active
+            animationsEnabled: root.animationsEnabled && !root.tokens.motion.off
+            pet: root.pet
+            readonly property bool pointerInside: chibiPointer.hovered
+            HoverHandler {
+                id: chibiPointer
+                enabled: root.followPointer || root.pointerTracking
+                onPointChanged: {
+                    if (!hovered || chibiSprite.headRect.width <= 0) return
+                    const zone = Pet.zone(), h = chibiSprite.headRect
+                    root.pointerMoved(zone.x + (point.position.x-h.x)/h.width*zone.w,
+                                      zone.y + (point.position.y-h.y)/h.height*zone.h)
+                }
+            }
         }
     }
     Component {

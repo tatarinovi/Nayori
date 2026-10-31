@@ -25,6 +25,10 @@ QtObject {
     // Нагрузка CPU 0..1 (раз в секунду, из surfaces/island/Cpu.qml) и «пользователь не двигал мышь минуту».
     property real cpuLoad: 0
     property bool userIdle: false
+    property bool reminderPresent: true
+    property bool reminderTracking: true
+    property var reminderIntervals: ({ water: 60, eyes: 20, move: 60 })
+    onReminderIntervalsChanged: Reminders.configure(remindState, reminderIntervals)
     property bool optionalQuiet: false
     property bool pointerInside: false
     // Тики идут таймером. В тестах выключают и вызывают advance(dt) сами.
@@ -108,6 +112,7 @@ QtObject {
     function systemNetwork(state) { SystemEvents.network(systemState, state) }
     function systemUpdate(running) { SystemEvents.update(systemState, running) }
     function systemIdle(level, isIdle) { SystemEvents.idle(systemState, level, isIdle) }
+    function systemMediaPlayback(playing) { SystemEvents.mediaPlayback(systemState, playing) }
     // Разобрать вывод проверки процессов pacman/paru/yay/topgrade и db.lck; true — идёт обновление.
     function scanUpdate(text) { return SystemEvents.scanUpdate(text) }
     // Вручную показать системную реплику (qs ipc call naomi trigger cpu): всегда, поверх облака,
@@ -168,8 +173,9 @@ QtObject {
             Dialogue.armShared(talkState, "reminder")
         }
         const remLine = Reminders.tick(remindState, dt, {
-            active: root.active,
-            cloud: blockedBefore || root.optionalQuiet || pointerQuiet || Dialogue.blocksShared(talkState, "reminder") ? "busy" : Dialogue.slot(talkState),
+            active: root.reminderTracking,
+            present: root.reminderPresent,
+            cloud: !root.active || blockedBefore || root.optionalQuiet || pointerQuiet || Dialogue.blocksShared(talkState, "reminder") ? "busy" : Dialogue.slot(talkState),
             rnd: Math.random
         })
         const blocked = Reminders.blocking(remindState)
@@ -207,7 +213,7 @@ QtObject {
         // Пока ничего не происходит, хватает редких тиков: нужны лишь таймеры реплик.
         interval: root.petting || root.pointerInside || root.pet > 0.002 ? 33 : 250
         repeat: true
-        running: root.automatic && root.active
+        running: root.automatic && (root.active || root.reminderTracking)
         onTriggered: {
             const now = Date.now()
             root.advance(Math.min(1, (now - root.lastTick) / 1000))
@@ -216,6 +222,7 @@ QtObject {
     }
     Component.onCompleted: {
         syncSystem()
+        Reminders.configure(remindState, reminderIntervals)
         if (active && greet && Session.canGreet(Date.now())) greetTimer.start()
     }
 }

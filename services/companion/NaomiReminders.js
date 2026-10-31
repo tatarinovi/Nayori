@@ -1,16 +1,16 @@
 // Напоминания Naomi в том же облаке, что и реплики. Время идёт шагом dt, как у NaomiDialogue.js.
-// Первая вода — через 15 минут сессии, глаза — через 30, разминка — через 60. На старте не говорим.
+// Сроки считаются по времени присутствия; отсчёт отдыха идёт независимо.
 // «позже» пропускает только этот раз: следующий срок уже стоит и не сдвигается.
 // Глаза — 2 минуты, разминка — 3. Вода без длительности. Пока идёт отсчёт, новое облако не открываем.
 
 const ORDER = ["water", "eyes", "move"]
-const INTERVAL = { water: 15 * 60, eyes: 30 * 60, move: 60 * 60 }
+const INTERVAL = { water: 60 * 60, eyes: 20 * 60, move: 60 * 60 }
 const DURATION = { water: 0, eyes: 2 * 60, move: 3 * 60 }
 const GAP = 45
 
 function create(lines) {
     return {
-        lines: lines || {}, t: 0,
+        lines: lines || {}, t: 0, workTime: 0, intervals: Object.assign({}, INTERVAL),
         next: { water: INTERVAL.water, eyes: INTERVAL.eyes, move: INTERVAL.move },
         queue: [], phase: "idle", kind: "", line: "", remain: 0,
         ackUntil: 0, gapUntil: 0, halfSaid: false, recent: {}
@@ -100,12 +100,26 @@ function okay(s, rnd) {
     return beginAck(s, rnd, "ack")
 }
 
+// When an interval changes, keep the accumulated active time in the current period.
+function configure(s, minutes) {
+    if (!s || !minutes) return
+    ORDER.forEach(function(kind) {
+        const v = Number(minutes[kind])
+        if (!isFinite(v) || v < 5 || v > 180) return
+        const next = Math.round(v) * 60
+        const previous = s.intervals[kind]
+        if (next === previous) return
+        s.next[kind] = Math.max(s.workTime, s.next[kind] - previous + next)
+        s.intervals[kind] = next
+    })
+}
+
 function arm(s) {
     for (let i = 0; i < ORDER.length; i++) {
         const kind = ORDER[i]
-        const step = INTERVAL[kind]
-        if (!(step > 0) || s.t + 1e-9 < s.next[kind]) continue
-        const jumps = Math.floor((s.t - s.next[kind]) / step) + 1
+        const step = s.intervals[kind]
+        if (!(step > 0) || s.workTime + 1e-9 < s.next[kind]) continue
+        const jumps = Math.floor((s.workTime - s.next[kind]) / step) + 1
         s.next[kind] += jumps * step
         if (s.queue.indexOf(kind) < 0) s.queue.push(kind)
     }
@@ -132,6 +146,7 @@ function tick(s, dt, env) {
     if (!s || env.active === false) return ""
     const step = Math.max(0, Number(dt) || 0)
     s.t += step
+    if (env.present !== false) s.workTime += step
     let spoken = ""
     if (s.phase === "count") {
         s.remain -= step
@@ -151,8 +166,8 @@ function tick(s, dt, env) {
         s.line = ""
         s.gapUntil = s.t + GAP
     }
-    arm(s)
-    const shown = tryShow(s, env)
+    if (env.present !== false) arm(s)
+    const shown = env.present === false ? "" : tryShow(s, env)
     if (shown) spoken = shown
     return spoken
 }

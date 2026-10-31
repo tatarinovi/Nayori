@@ -45,10 +45,11 @@ e = E.create(cfg,L); e.time = 100; e.pointerInside = true; E.offer(e,'hoverStill
 due = E.tick(e,1,{...env,cloud:'free',optionalQuiet:false,petting:false}); assert(due && due.kind==='hoverStill')
 e = E.create(cfg,L); e.time=100; e.pointerInside=false; E.offer(e,'hoverStill',{}); assert.equal(E.tick(e,1,{hour:14}),null)
 
-// Reminder stages, unchanged intervals/durations, dismiss/queue gaps and no inferred completion.
+// Reminder stages, active-time intervals, dismiss/queue gaps and no inferred completion.
 let r = R.create(L)
-assert.equal(r.next.water,900); assert.equal(r.next.eyes,1800); assert.equal(r.next.move,3600)
-assert.equal(R.tick(r,899,{cloud:'free'}),''); assert(R.tick(r,1,{cloud:'free'})); assert.equal(r.kind,'water')
+assert.equal(r.next.water,3600); assert.equal(r.next.eyes,1200); assert.equal(r.next.move,3600)
+assert.equal(R.tick(r,1199,{cloud:'free'}),''); assert(R.tick(r,1,{cloud:'free'})); assert.equal(r.kind,'eyes')
+R.later(r); R.tick(r,45,{cloud:'free'}); R.request(r,'water',{cloud:'free'}); assert.equal(r.kind,'water')
 assert(R.okay(r,()=>0)); assert.equal(r.phase,'ack'); R.tick(r,10,{cloud:'free'})
 R.request(r,'eyes',{cloud:'busy'}); assert.equal(r.queue[0],'eyes')
 assert.equal(R.tick(r,44,{cloud:'free'}),''); assert(R.tick(r,1,{cloud:'free'})); R.okay(r,()=>0)

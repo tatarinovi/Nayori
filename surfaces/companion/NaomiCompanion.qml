@@ -19,8 +19,10 @@ Item {
     property bool greet: true
     // Комментировать системные события (CPU, окна, батарея, сеть, обновление). Предпросмотр в настройках — нет.
     property bool systemLines: false
+    property bool reminderTracking: active
+    property var reminderIntervals: ({ water: 60, eyes: 20, move: 60 })
     property real illustrationWidth: 280
-    property real illustrationHeight: companionStyle === "pixel-art" ? 400 : 534
+    property real illustrationHeight: companionStyle === "chibi" ? 200 : companionStyle === "pixel-art" ? 400 : 534
 
     // Место сверху под облачко: всё, что выше иллюстрации.
     readonly property real bubbleSpace: Math.max(0, height - illustrationHeight)
@@ -46,6 +48,8 @@ Item {
         active: root.active
         greet: root.greet
         systemLines: root.systemLines
+        reminderTracking: root.reminderTracking
+        reminderIntervals: root.reminderIntervals
         reactToPointer: root.reactToPointer
         reducedMotion: root.tokens.motion.off || !root.animationsEnabled
         pointerInside: art.pointerInside

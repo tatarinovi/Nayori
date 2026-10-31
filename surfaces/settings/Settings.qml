@@ -149,6 +149,7 @@ FocusScope {
             companionSide: root.companionSide
             onCompanionSideChangedRequested: side => root.companionSideChangedRequested(side)
             remindCompanion: root.remindCompanion
+            settingsService: root.settingsService
             onRevealRequested: item => naomiSection.reveal(item)
         }
     }

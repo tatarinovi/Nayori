@@ -9,6 +9,7 @@ import Quickshell.Wayland
 import "../../services/niri"
 import "../../services/status"
 import "../../services/companion/NaomiSystemData.js" as SystemData
+import "../../services/companion/NaomiPresence.js" as Presence
 import "../island"
 
 // Тонкая обвязка: источники данных, которые уже есть в проекте, подаются в NaomiController.
@@ -16,7 +17,7 @@ import "../island"
 //   CPU — тот же Cpu.qml, что у лисы острова (/proc/stat раз в секунду);
 //   окна — singleton Niri (EventStream);   батарея — Quickshell.Services.UPower (displayDevice);
 //   интернет — тот же Network.qml, что у панели (Quickshell.Networking);
-//   ввод — IdleMonitor (ext-idle-notify): минута и десять минут без действий;
+//   ввод — IdleMonitor (ext-idle-notify): две и десять минут без действий;
 //   обновление — раз в несколько секунд читает процессы pacman/paru/yay/topgrade и db.lck. Ничего не запускает.
 QtObject {
     id: root
@@ -24,6 +25,21 @@ QtObject {
     // Читать источники, требующие работы (CPU, ввод, процессы). Окна, батарея и сеть читаются всегда:
     // так базовое состояние верно, когда реплики включают.
     property bool enabled: true
+    property bool presenceEnabled: true
+    property bool sessionLocked: false
+    readonly property bool mediaPlaying: musicSnapshot.some(p => p.isPlaying === true)
+    onMediaPlayingChanged: {
+        root.controller.systemMediaPlayback(mediaPlaying)
+        // Playback ending while already idle is not evidence that the user just left.
+        if (!mediaPlaying && root.enabled && root.presence.isIdle) playbackAway.restart()
+        else playbackAway.stop()
+    }
+    property Timer playbackAway: Timer {
+        interval: SystemData.data.idleAway * 1000
+        onTriggered: if (root.enabled && root.presence.isIdle && !root.mediaPlaying)
+            root.controller.systemIdle("away", true)
+    }
+    property Binding presenceBinding: Binding { target: root.controller; property: "reminderPresent"; value: Presence.present(root.sessionLocked, root.presence.isIdle, root.mediaPlaying) }
 
     // --- CPU ---
     property Cpu cpu: Cpu { active: root.enabled }
@@ -83,19 +99,22 @@ QtObject {
     onNetStateChanged: root.controller.systemNetwork(netState)
 
     // --- ввод ---
-    property IdleMonitor away: IdleMonitor {
-        enabled: root.enabled
+    property IdleMonitor presence: IdleMonitor {
+        enabled: root.presenceEnabled
         timeout: SystemData.data.idleAway
         respectInhibitors: false
-        onIsIdleChanged: root.controller.systemIdle("away", isIdle)
+        onIsIdleChanged: {
+            if (!isIdle) root.playbackAway.stop()
+            if (root.enabled && !root.mediaPlaying) root.controller.systemIdle("away", isIdle)
+        }
     }
     property IdleMonitor long: IdleMonitor {
         enabled: root.enabled
         timeout: SystemData.data.idleLong
         respectInhibitors: false
-        onIsIdleChanged: root.controller.systemIdle("long", isIdle)
+        onIsIdleChanged: if (!root.mediaPlaying) root.controller.systemIdle("long", isIdle)
     }
-    property Binding idleBinding: Binding { target: root.controller; property: "userIdle"; value: root.away.isIdle }
+    property Binding idleBinding: Binding { target: root.controller; property: "userIdle"; value: root.presence.isIdle && !root.mediaPlaying }
 
     // --- обновление системы (только чтение) ---
     readonly property string probeScript: "[ -e '" + SystemData.data.pacmanLock + "' ] && echo LOCK; "
@@ -114,6 +133,7 @@ QtObject {
     }
 
     Component.onCompleted: {
+        root.controller.systemMediaPlayback(root.mediaPlaying)
         pushWindows()
         pushBattery()
         root.controller.systemNetwork(netState)

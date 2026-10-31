@@ -169,6 +169,9 @@ QtObject {
             "companionDesktopOnly": false,
             "companionReactToPointer": true,
             "companionSystemLines": true,
+            "reminderWaterMinutes": 60,
+            "reminderEyesMinutes": 20,
+            "reminderMoveMinutes": 60,
             "fullscreenCompanionOutput": "",
             "companionScreen": "primary",
             "companionSide": "right",
@@ -229,6 +232,9 @@ QtObject {
         if (key === "captureCountdown") return value === 0 || value === 3 || value === 5 ? value : fallback;
         if (key === "topReserved" || key === "bottomReserved")
             return typeof value === "number" && isFinite(value) ? Math.max(0, Math.min(200, Math.round(value / 4) * 4)) : fallback;
+
+        if (key === "reminderWaterMinutes" || key === "reminderEyesMinutes" || key === "reminderMoveMinutes")
+            return typeof value === "number" && isFinite(value) ? Math.max(5, Math.min(180, Math.round(value))) : fallback;
 
         if (key === "weatherRefreshMinutes")
             return typeof value === "number" && isFinite(value) && Math.floor(value) === value && value >= 1 && value <= 180 ? value : fallback;

@@ -8,7 +8,7 @@ PanelWindow {
     id: root
     required property var tokens
     property string companionStyle: "current"
-    readonly property int designHeight: companionStyle === "pixel-art" ? 400 : 534
+    readonly property int designHeight: companionStyle === "chibi" ? 200 : companionStyle === "pixel-art" ? 400 : 534
     property int bottomInset: 88
     property bool animationsEnabled: true
     // true: за окнами, над обоями; false: поверх окон (но под меню, лаунчером и панелью)
@@ -19,6 +19,8 @@ PanelWindow {
     // Комментировать системные события (нагрузка, окна, батарея, сеть, обновление, бездействие, ночь).
     // false — источники отключаются, реплики не копятся. Приветствие и поглаживание не зависят.
     property bool systemLines: true
+    property bool sessionLocked: false
+    property var reminderIntervals: ({ water: 60, eyes: 20, move: 60 })
     // Нижний угол: "left" или "right".
     property string side: "right"
     FullscreenGuard { id: fullscreenGuard; screen: root.screen; tokens: root.tokens }
@@ -90,6 +92,7 @@ PanelWindow {
     // Источники системных событий: CPU, niri, UPower, сеть, ввод, процессы обновления.
     NaomiSystemSources {
         controller: companion.controller
+        sessionLocked: root.sessionLocked
         enabled: root.systemLines && root.visible
     }
 
@@ -129,6 +132,8 @@ PanelWindow {
         animationsEnabled: root.animationsEnabled
         reactToPointer: root.reactToPointer
         systemLines: root.systemLines
+        reminderTracking: !root.sessionLocked
+        reminderIntervals: root.reminderIntervals
         followPointer: false
         illustrationWidth: root.illustrationWidth
         illustrationHeight: root.illustrationHeight

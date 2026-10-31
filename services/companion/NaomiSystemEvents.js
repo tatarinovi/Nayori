@@ -213,11 +213,22 @@ function update(s, running) {
     u.known = true
 }
 
+// Media playback is presence even when the mouse and keyboard are idle.
+// Starting playback clears stale absence/return events without announcing a return.
+function mediaPlayback(s, playing) {
+    s.mediaPlaying = !!playing
+    if (s.mediaPlaying) {
+        s.away = false
+        s.queue = s.queue.filter(e => e.kind !== "return" && e.kind !== "idle")
+    }
+}
+
 // --- бездействие ---
 
-// level: "long" (десять минут без ввода) или "away" (минута без ввода); idle — наступило ли бездействие.
-// Конец минутного бездействия — первое действие пользователя, возвращение.
+// level: "long" (десять минут) или "away" (две минуты без ввода и воспроизведения).
+// Конец отсутствия — первое действие пользователя, возвращение.
 function idle(s, level, isIdle) {
+    if (s.mediaPlaying) return
     if (level === "long") {
         if (isIdle) offer(s, "idle", {})
     } else if (level === "away") {

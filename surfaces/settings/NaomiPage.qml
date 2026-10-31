@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Controls
 import Quickshell
 import "../companion"
 import "../../services/companion/NaomiLines.js" as Lines
@@ -9,6 +10,7 @@ Column {
     id: root
     required property var tokens
     property var companionTokens: tokens
+    property var settingsService: null
     property string companionStyle: "current"
     signal companionStyleChangedRequested(string style)
     property bool companionEnabled: false
@@ -342,6 +344,59 @@ Column {
                 if (typeof live === "function")
                     live(kind)
                 remindFrame.remind(kind)
+            }
+            SettingsLabel {
+                width: parent.width
+                tokens: root.tokens
+                text: "Интервалы напоминаний"
+                font.pixelSize: 18
+            }
+            SettingsLabel {
+                width: parent.width
+                tokens: root.tokens
+                text: "Считается время за компьютером. Во время воспроизведения таймеры продолжают идти."
+                color: root.tokens.color.textMuted
+                font.pixelSize: 13
+                wrapMode: Text.WordWrap
+            }
+            Repeater {
+                model: [
+                    { key: "reminderWaterMinutes", label: "Вода", fallback: 60 },
+                    { key: "reminderEyesMinutes", label: "Отдых для глаз", fallback: 20 },
+                    { key: "reminderMoveMinutes", label: "Разминка", fallback: 60 }
+                ]
+                delegate: Row {
+                    id: intervalRow
+                    required property var modelData
+                    width: remindColumn.width
+                    spacing: 12
+                    SettingsLabel {
+                        tokens: root.tokens
+                        text: intervalRow.modelData.label
+                        width: Math.min(200, Math.max(100, intervalRow.width - 130))
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    SpinBox {
+                        id: intervalInput
+                        objectName: intervalRow.modelData.key
+                        from: 5; to: 180; stepSize: 5; editable: true
+                        value: root.settingsService ? root.settingsService.values[intervalRow.modelData.key] : intervalRow.modelData.fallback
+                        implicitHeight: root.tokens.settings.control
+                        palette.text: root.tokens.color.text
+                        palette.buttonText: root.tokens.color.text
+                        palette.base: root.tokens.color.surfaceAlt
+                        palette.button: root.tokens.color.surfaceAlt
+                        palette.highlight: root.tokens.color.accent
+                        palette.highlightedText: root.tokens.color.accentText
+                        Accessible.name: intervalRow.modelData.label + ", интервал в минутах"
+                        onValueModified: {
+                            if (!root.settingsService) return
+                            const patch = {}; patch[intervalRow.modelData.key] = value
+                            root.settingsService.update(patch)
+                        }
+                    }
+                    SettingsLabel { tokens: root.tokens; text: "мин"; anchors.verticalCenter: parent.verticalCenter }
+                }
             }
             SettingsLabel {
                 width: parent.width

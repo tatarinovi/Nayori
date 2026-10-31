@@ -300,6 +300,10 @@ ShellRoot {
             desktopOnly: settingsStore.companionDesktopOnly
             reactToPointer: settingsStore.companionReactToPointer
             systemLines: settingsStore.companionSystemLines
+            sessionLocked: lockService.locked
+            reminderIntervals: ({ water: settingsStore.values.reminderWaterMinutes,
+                                  eyes: settingsStore.values.reminderEyesMinutes,
+                                  move: settingsStore.values.reminderMoveMinutes })
             screen: root.screenNamed(IslandRouting.companionOutput(root.outputNames, settingsStore.companionScreen, root.primaryFullscreen, settingsStore.fullscreenCompanionOutput))
             side: settingsStore.companionSide
             bottomInset: Math.max(88, settingsStore.bottomReserved + 16)
