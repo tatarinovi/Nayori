@@ -43,6 +43,8 @@ ShellRoot {
         running: true
         onTriggered: {
             if (typeof PolkitAgent === "undefined") fail("module")
+            const backend = Qt.createComponent(Qt.resolvedUrl("services/system/PolkitBackend.qml"))
+            if (backend.status !== Component.Ready) fail("backend: " + backend.errorString())
             if (card.responseEcho !== TextInput.Password) fail("echo")
             if (card.titleText !== "Нужно подтверждение") fail("title")
             if (card.identityLine !== "От\u00A0имени Катя (katamy)") fail("identity")

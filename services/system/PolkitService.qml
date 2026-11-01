@@ -43,7 +43,7 @@ QtObject {
         if (phase === "registered")
             return "Nayori принимает запросы подтверждения"
         if (phase === "missing")
-            return "Модуль Quickshell Polkit недоступен. Агент не запущен"
+            return "Не удалось загрузить агент подтверждения. Подробности — в журнале Quickshell"
         if (nameOwner !== "")
             return "Имя агента занято: " + nameOwner + ". Nayori его не заменяет. Выключите тот агент сами и снова включите переключатель"
         if (agentHint !== "")
@@ -260,11 +260,13 @@ QtObject {
     function finishAgent(component) {
         if (!enabled || blockRegistration || phase === "off") return
         if (component.status !== Component.Ready) {
+            console.warn("Polkit backend: " + component.errorString())
             phase = "missing"
             return
         }
         backend = component.createObject(root)
         if (!backend) {
+            console.warn("Polkit backend: не удалось создать объект агента")
             phase = "missing"
             return
         }
@@ -284,6 +286,7 @@ QtObject {
         }
         const component = Qt.createComponent("PolkitBackend.qml")
         if (component.status === Component.Error) {
+            console.warn("Polkit backend: " + component.errorString())
             phase = "missing"
             return
         }

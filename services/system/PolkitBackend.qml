@@ -10,7 +10,6 @@ QtObject {
     signal requestFailed()
     signal requestSucceeded()
     signal requestCancelled()
-    signal flowChanged()
     signal promptChanged()
     signal supplementaryChanged()
 
@@ -18,13 +17,12 @@ QtObject {
     readonly property bool active: agent.isActive
     readonly property var flow: agent.flow
 
-    PolkitAgent {
+    property PolkitAgent agentObject: PolkitAgent {
         id: agent
         path: "/org/nayori/PolkitAgent"
         onAuthenticationRequestStarted: root.requestStarted()
-        onFlowChanged: root.flowChanged()
     }
-    Connections {
+    property Connections flowConnections: Connections {
         target: agent.flow
         function onAuthenticationFailed() { root.requestFailed() }
         function onAuthenticationSucceeded() { root.requestSucceeded() }
