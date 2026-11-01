@@ -109,12 +109,6 @@ Column {
             width: parent.width
             color: root.tokens.color.textMuted
             font.pixelSize: 13
-            text: "Ответы по умолчанию принимаются автоматически. Пароль sudo запросит отдельное окно."
-        }
-        Label {
-            width: parent.width
-            color: root.tokens.color.textMuted
-            font.pixelSize: 13
             objectName: "systemUpdateStatus"
             visible: root.systemUpdateService !== null && root.systemUpdateService.status !== ""
             text: root.systemUpdateService ? root.systemUpdateService.status : ""
