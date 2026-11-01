@@ -128,12 +128,14 @@ FocusScope {
             Layout.fillWidth: true
             spacing: 16
             Repeater {
-                model: ["Главная", "Уведомления" + (root.notifications && root.notifications.unreadCount ? " · " + root.notifications.unreadCount : ""), "Полка"]
+                id: pageTabs
+                model: ["Главная", "Уведомления", "Полка"]
                 delegate: AbstractButton {
                     id: pageTab
+                    objectName: "islandPageTab" + index
                     required property int index
                     required property string modelData
-                    text: modelData
+                    text: modelData + (index === 1 && root.notifications && root.notifications.unreadCount ? " · " + root.notifications.unreadCount : "")
                     implicitWidth: contentItem.implicitWidth
                     implicitHeight: 36
                     focusPolicy: Qt.StrongFocus
@@ -151,22 +153,33 @@ FocusScope {
                     }
                     contentItem: Heading {
                         text: pageTab.text
-                        font.pixelSize: 26
-                        transformOrigin: Item.Left
-                        scale: root.currentPage === pageTab.index ? 1 : 20 / 26
-                        Behavior on scale {
-                            NumberAnimation {
-                                duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast
-                                easing.type: Easing.BezierSpline
-                                easing.bezierCurve: [0.23, 1, 0.32, 1, 1, 1]
-                            }
-                        }
+                        font.pixelSize: 20
                         color: root.tokens.color.text
                         opacity: root.currentPage === pageTab.index ? 1 : 0.5
                         Behavior on opacity {
                             NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast }
                         }
                         verticalAlignment: Text.AlignVCenter
+                    }
+                    Rectangle {
+                        id: pageIndicator
+                        objectName: pageTab.index === 0 ? "islandPageIndicator" : ""
+                        visible: pageTab.index === 0
+                        width: 24; height: 2; radius: 1
+                        y: pageTab.height - height
+                        color: root.tokens.color.accent
+                        transform: Translate {
+                            x: {
+                                const position = Math.max(0, Math.min(root.pageCount - 1, root.pagePosition))
+                                if (position === 0 && pageTab.index === 0) return (pageTab.width - pageIndicator.width) / 2
+                                const first = pageTabs.itemAt(Math.floor(position))
+                                const second = pageTabs.itemAt(Math.ceil(position))
+                                if (!first || !second) return 0
+                                const start = first.x - pageTab.x + (first.width - pageIndicator.width) / 2
+                                const end = second.x - pageTab.x + (second.width - pageIndicator.width) / 2
+                                return start + (end - start) * (position - Math.floor(position))
+                            }
+                        }
                     }
                 }
             }

@@ -26,10 +26,20 @@ ShellRoot {
             wait(350)
             const page = findChild(island, "islandDashboardLoader").item
             compare(page.currentPage, 0)
+            function checkTabs(selected) {
+                const tabs = [findChild(page, "islandPageTab0"), findChild(page, "islandPageTab1"), findChild(page, "islandPageTab2")]
+                const indicator = findChild(page, "islandPageIndicator")
+                for (let i = 0; i < tabs.length - 1; i++)
+                    fuzzyCompare(tabs[i + 1].x - tabs[i].x - tabs[i].width, 16, 0.1)
+                const center = indicator.mapToItem(tabs[selected], indicator.width / 2, 0).x
+                fuzzyCompare(center, tabs[selected].width / 2, 0.5)
+            }
+            checkTabs(0)
             mouseMove(island, 100, 58)
             mouseWheel(island, 100, 58, 0, -120)
             tryCompare(page, "currentPage", 1)
             wait(250)
+            checkTabs(1)
             const list = findChild(page, "notificationList")
             verify(list.contentHeight > list.height)
             list.contentY = 100
@@ -49,6 +59,15 @@ ShellRoot {
             wait(250)
             for (let step = 0; step < 8; step++) mouseWheel(island, 230, 58, 0, 15)
             tryCompare(page, "currentPage", 0)
+            wait(250)
+            checkTabs(0)
+            theme.animationsEnabled = false
+            page.currentPage = 2
+            compare(page.pagePosition, 2)
+            checkTabs(2)
+            testNotifications.clear()
+            wait(50)
+            checkTabs(2)
             console.log("ISLAND_WHEEL_PASS")
             Qt.quit()
         }
