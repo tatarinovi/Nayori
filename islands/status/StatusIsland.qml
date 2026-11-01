@@ -5,6 +5,7 @@ import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Services.Pipewire as QsPw
+import Quickshell.Services.UPower
 import Quickshell.Services.SystemTray
 import Quickshell.Widgets
 import "../../services/status"
@@ -283,6 +284,11 @@ Rectangle {
             onClicked: { root.networkKeyboard = false; root.togglePopup("network") }
             Keys.onReturnPressed: { root.networkKeyboard = true; root.togglePopup("network") }
             Keys.onSpacePressed: { root.networkKeyboard = true; root.togglePopup("network") }
+        }
+        BatteryIndicator {
+            tokens: root.tokens
+            device: UPower.displayDevice
+            onBattery: UPower.onBattery
         }
         StatusButton {
             tokens: root.tokens
