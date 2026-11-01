@@ -3,4 +3,9 @@
 if [ -z "${NAYORI_UPDATE_AUTH_DIR:-}" ] || ! mkdir "$NAYORI_UPDATE_AUTH_DIR/asked" 2>/dev/null; then
     exit 1
 fi
-exec zenity --password --title='Обновление системы'
+# Status goes to stderr; only zenity's password reaches sudo's stdout pipe.
+printf '%s\n' 'NAYORI_UPDATE_PASSWORD_WAIT' >&2
+zenity --password --title='Обновление системы'
+result=$?
+printf '%s\n' 'NAYORI_UPDATE_PASSWORD_DONE' >&2
+exit "$result"

@@ -11,7 +11,7 @@ with tempfile.TemporaryDirectory(prefix="nayori-update-test-") as temp:
     binaries = root / "bin"
     binaries.mkdir()
     for name, body in {
-        "yay": 'printf "%s\\n" "$@" > "$HOME/yay-args"\nsudo -A -v || exit 1\nsudo -A -v || exit 1\necho "there is nothing to do"\nexit 0\n',
+        "yay": 'printf "%s\\n" "$@" > "$HOME/yay-args"\nsudo -A -v || exit 1\necho "there is nothing to do"\nexit 0\n',
         "pacman": 'echo "fake failure" >&2\nexit 1\n',
         "sudo": 'printf "%s\\n" "$@" > "$HOME/sudo-args"\nif [ ! -f "$HOME/authorized" ]; then "$SUDO_ASKPASS" >/dev/null || exit 1; touch "$HOME/authorized"; fi\nshift\n[ "$1" = -v ] && exit 0\nexec "$@"\n',
         "zenity": 'echo dialog >> "$HOME/dialog-count"\nprintf "test-password\\n"\n',
@@ -39,7 +39,8 @@ with tempfile.TemporaryDirectory(prefix="nayori-update-test-") as temp:
     yay_args = (root / "yay-args").read_text().splitlines()
     assert yay_args[:2] == ["-Syu", "--noconfirm"]
     assert yay_args[yay_args.index("--sudo") + 1] == "sudo"
-    assert "--sudoloop" in yay_args
+    assert "--sudoloop=false" in yay_args
+    assert "--sudoloop" not in yay_args
     assert (root / "dialog-count").read_text().splitlines() == ["dialog"]
     assert (root / "sudo-args").read_text().splitlines()[:3] == ["-A", "pacman", "-Syu"]
     second_dir = root / "askpass-guard"

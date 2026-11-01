@@ -8,7 +8,7 @@ export NAYORI_UPDATE_AUTH_DIR="$auth_dir"
 export SUDO_ASKPASS="$script_dir/system-update-askpass"
 export LC_ALL=C
 if [ "${1:-}" = yay ]; then
-    yay -Syu --noconfirm --noprogressbar --color never --sudo sudo --sudoflags=-A --sudoloop --cleanmenu=false --diffmenu=false --editmenu=false
+    yay -Syu --noconfirm --noprogressbar --color never --sudo sudo --sudoflags=-A --sudoloop=false --cleanmenu=false --diffmenu=false --editmenu=false
 else
     sudo -A pacman -Syu --noconfirm --noprogressbar --color never
 fi

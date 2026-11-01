@@ -36,6 +36,14 @@ QtObject {
     function receive(line, isError) {
         const text = String(line || "").trim()
         if (!text) return
+        if (text === "NAYORI_UPDATE_PASSWORD_WAIT") {
+            status = "Введите пароль в окне подтверждения"
+            return
+        }
+        if (text === "NAYORI_UPDATE_PASSWORD_DONE") {
+            status = "Продолжаем обновление"
+            return
+        }
         if (isError) lastError = text.slice(0, 400)
         const lower = text.toLowerCase()
         if (lower.indexOf("there is nothing to do") >= 0) sawNoUpdates = true

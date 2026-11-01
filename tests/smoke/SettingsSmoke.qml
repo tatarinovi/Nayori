@@ -158,9 +158,16 @@ ShellRoot {
                     test.check(!restart.visible, "restart hidden before update")
                     fakeUpdate.restartNeeded = true
                     test.check(restart.visible && restart.enabled, "restart shown after update")
+                    const restartReason = test.findItem(updatesTest, "restartBlockedReason")
+                    test.check(restartReason && !restartReason.visible, "no restart explanation while enabled")
                     fakeSystemUpdate.busy = true
                     test.check(!restart.enabled, "restart disabled during system update")
+                    test.check(restartReason.visible && restartReason.text.indexOf("системы и приложений") >= 0, "restart explains system update")
                     fakeSystemUpdate.busy = false
+                    fakeUpdate.busy = true
+                    test.check(!restart.enabled && restartReason.visible && restartReason.text.indexOf("Nayori") >= 0, "restart explains Nayori operation")
+                    fakeUpdate.busy = false
+                    test.check(restart.enabled && !restartReason.visible, "restart returns when operations finish")
                     restart.clicked()
                     test.check(fakeUpdate.restartCalls === 1, "restart action delegates to service")
                     updatesTest.visible = false

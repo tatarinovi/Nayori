@@ -16,6 +16,14 @@ ShellRoot {
                 if (!service.pacmanFound || !service.yayFound || !service.sudoFound || !service.zenityFound || !service.start() || service.start()) {
                     console.log("SYSTEM_UPDATE_FAIL start"); Qt.quit(); return
                 }
+                service.receive("NAYORI_UPDATE_PASSWORD_WAIT", true)
+                if (service.status !== "Введите пароль в окне подтверждения" || service.lastError !== "") {
+                    console.log("SYSTEM_UPDATE_FAIL password status"); Qt.quit(); return
+                }
+                service.receive("NAYORI_UPDATE_PASSWORD_DONE", true)
+                if (service.status !== "Продолжаем обновление" || service.lastError !== "") {
+                    console.log("SYSTEM_UPDATE_FAIL password completion"); Qt.quit(); return
+                }
                 service.receive(":: Synchronizing package databases...", false)
                 if (service.status !== "Обновляем базы пакетов") { console.log("SYSTEM_UPDATE_FAIL progress"); Qt.quit(); return }
                 step = 1

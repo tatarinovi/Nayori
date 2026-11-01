@@ -67,6 +67,17 @@ Column {
                 root.updateService.restart()
             }
         }
+        Label {
+            objectName: "restartBlockedReason"
+            width: parent.width
+            visible: root.updateService !== null && root.updateService.restartNeeded
+                && (root.updateService.busy || (!!root.systemUpdateService && root.systemUpdateService.busy))
+            text: root.systemUpdateService && root.systemUpdateService.busy
+                ? "Дождитесь окончания обновления системы и приложений, затем перезапустите оболочку."
+                : "Дождитесь завершения операции с Nayori, затем перезапустите оболочку."
+            color: root.tokens.color.textMuted
+            font.pixelSize: 13
+        }
         Action {
             objectName: "rollbackNayoriUpdate"
             text: "Вернуть предыдущую версию"
