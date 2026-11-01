@@ -721,6 +721,7 @@ FocusScope {
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                 ScrollBar.vertical.active: true
                 WeatherPage {
+                    id: weatherPage
                     width: Math.min(960, weatherScroll.availableWidth - 12)
                     tokens: root.tokens
                     showHeading: false
@@ -732,12 +733,13 @@ FocusScope {
                 }
             }
             WallpaperPage {
+                id: wallpaperPage
                 Layout.maximumWidth: 960
                 tokens: root.tokens
                 showHeading: false
                 manager: root.wallpaperManager
             }
-            SettingsScroll { DisplayPage { width: parent.width; tokens: root.tokens } }
+            SettingsScroll { DisplayPage { id: displayPage; width: parent.width; tokens: root.tokens } }
             SettingsScroll {
                 SoundPage {
                     width: parent.width
@@ -750,8 +752,8 @@ FocusScope {
             SettingsScroll { NetworkPage { width: parent.width; tokens: root.tokens; scanning: root.currentPage === 8 } }
             SettingsScroll { LocalSendPage { width: parent.width; tokens: root.tokens } }
             SettingsScroll { BluetoothPage { width: parent.width; tokens: root.tokens; bluetoothService: root.bluetoothService; settingsService: root.settingsService } }
-            SettingsScroll { MousePage { width: parent.width; tokens: root.tokens; niriConfig: niriConfig } }
-            SettingsScroll { KeyboardPage { width: parent.width; tokens: root.tokens; niriConfig: niriConfig } }
+            SettingsScroll { MousePage { id: mousePage; width: parent.width; tokens: root.tokens; niriConfig: niriConfig } }
+            SettingsScroll { KeyboardPage { id: keyboardPage; width: parent.width; tokens: root.tokens; niriConfig: niriConfig } }
             SettingsScroll { ShortcutsPage { width: parent.width; tokens: root.tokens; niriConfig: niriConfig } }
             SettingsScroll {
                 id: startScroll
@@ -876,12 +878,38 @@ FocusScope {
                 spacing: 12
                 Label {
                     Layout.fillWidth: true
-                    text: root.currentPage === 4 ? "Обои сохраняются после применения."
-                          : root.settingsMessage ? root.settingsMessage
+                    text: root.settingsMessage ? root.settingsMessage
+                          : [3, 4, 5, 11, 12].indexOf(root.displayedPage) !== -1 ? "Проверьте изменения перед применением."
                           : root.persistsSettings ? "Изменения сохраняются автоматически." : ""
                     color: root.tokens.color.textMuted
                     font.pixelSize: 13
                     Accessible.role: Accessible.StaticText
+                }
+                SettingsButton {
+                    objectName: "settings-apply-mouse"
+                    visible: root.displayedPage === 11
+                    tokens: root.tokens
+                    text: "Применить для мыши"
+                    enabled: mousePage.canApplyMouse
+                    onClicked: mousePage.applyMouse()
+                }
+                SettingsButton {
+                    objectName: "settings-apply"
+                    visible: [3, 4, 5, 11, 12].indexOf(root.displayedPage) !== -1
+                    tokens: root.tokens
+                    primary: true
+                    text: root.displayedPage === 11 ? "Применить для тачпада" : "Применить"
+                    enabled: root.displayedPage === 4 ? wallpaperPage.canApply
+                        : root.displayedPage === 5 ? displayPage.canApply
+                        : root.displayedPage === 11 ? mousePage.canApplyPad
+                        : root.displayedPage === 12 ? keyboardPage.canApply : true
+                    onClicked: {
+                        if (root.displayedPage === 3) weatherPage.apply()
+                        else if (root.displayedPage === 4) wallpaperPage.apply()
+                        else if (root.displayedPage === 5) displayPage.apply()
+                        else if (root.displayedPage === 11) mousePage.applyPad()
+                        else if (root.displayedPage === 12) keyboardPage.applyKeyboard()
+                    }
                 }
                 Action {
                     visible: root.currentPage !== 4 && (root.canRecover || root.canRetry)

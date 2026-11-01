@@ -11,6 +11,7 @@ Column {
     property bool editing: false
     property string trackKey: ""
     property string cardError: ""
+    readonly property bool canApply: !card.locked && service.ready && service.validateAvailable && !service.busy
 
     component Label: SettingsLabel { tokens: root.tokens }
     component Choice: Item {
@@ -230,13 +231,7 @@ Column {
             font.pixelSize: 13
             text: root.cardError
         }
-        SettingsButton {
-            text: "Применить"
-            primary: true
-            tokens: root.tokens
-            enabled: !card.locked && service.ready && service.validateAvailable && !service.busy
-            onClicked: root.applyKeyboard()
-        }
+
     }
 
     Label { text: "Текущие раскладки"; font.family: root.tokens.type.display.family; font.pixelSize: 18 }

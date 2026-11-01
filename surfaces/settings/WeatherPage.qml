@@ -12,7 +12,7 @@ Column {
     signal weatherCityChangedRequested(string city)
     signal weatherRefreshMinutesChangedRequested(int minutes)
     component Label: SettingsLabel { tokens: root.tokens }
-    component Action: SettingsAction { tokens: root.tokens }
+    function apply() { weatherCityChangedRequested(weatherCityInput.text.trim()) }
     id: root
             spacing: 16
             Label { visible: root.showHeading; text: "Погода"; font.family: root.tokens.type.display.family; font.pixelSize: 20 }
@@ -52,16 +52,7 @@ Column {
                 color: root.tokens.color.textMuted
                 font.pixelSize: 13
             }
-            Action {
-                objectName: "weatherApplyButton"
-                onActiveFocusChanged: if (activeFocus) root.revealRequested(this)
-                text: "Применить"
-                selected: true
-                onClicked: {
-                    const city = weatherCityInput.text.trim()
-                    root.weatherCityChangedRequested(city)
-                }
-            }
+
             Column {
                 width: parent.width
                 spacing: 8

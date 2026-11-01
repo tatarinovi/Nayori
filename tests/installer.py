@@ -163,6 +163,30 @@ class EngineTests(Fixture):
             self.engine.apply({"niri"}, set())
         self.assertEqual((self.paths.niri / "config.kdl").read_text(), "original")
 
+    def test_niri_preset_uses_strata_and_preserves_original_directory(self):
+        self.paths.niri.mkdir(parents=True)
+        (self.paths.niri / "config.kdl").write_text("original")
+        (self.paths.niri / "custom.kdl").write_text("custom")
+        with patch("scripts.installer.core.shutil.which", return_value=None):
+            plan = self.engine.preflight({"niri"}, set())
+            self.assertTrue(any("Strata" in problem for problem in plan["problems"]))
+            self.assertNotIn("thunar", plan["packages"])
+            self.assertNotIn("thunar", CATALOG["apps"])
+            transaction = self.engine.apply({"niri"}, set())
+        backup = self.paths.config / (".niri.nayori-backup-" + transaction["id"])
+        self.assertEqual((backup / "config.kdl").read_text(), "original")
+        self.assertEqual((backup / "custom.kdl").read_text(), "custom")
+        binds = (self.paths.niri / "cfg/keybinds.kdl").read_text()
+        self.assertIn('Mod+E { spawn "strata"; }', binds)
+        self.engine.restore(rollback=True)
+        self.assertEqual((self.paths.niri / "config.kdl").read_text(), "original")
+        self.assertEqual((self.paths.niri / "custom.kdl").read_text(), "custom")
+
+    def test_niri_plan_accepts_existing_strata(self):
+        with patch("scripts.installer.core.shutil.which", return_value="/test/strata"):
+            plan = self.engine.preflight({"niri"}, set())
+        self.assertFalse(any("Strata" in problem for problem in plan["problems"]))
+
     def test_niri_symlink_preserved_and_real_validation(self):
         if not shutil.which("niri"):
             self.skipTest("niri unavailable")
@@ -252,6 +276,33 @@ class EngineTests(Fixture):
         self.engine.apply(set(), {"btop"}, on_package_error=lambda pkg: "retry")
         self.assertEqual(len(calls), 2)
         self.assertEqual(calls[0][:3], ["sudo", "pacman", "-S"])
+        self.assertTrue(all("--noconfirm" in call for call in calls))
+
+    def test_app_confirmation_does_not_change_components_or_upgrade(self):
+        self.engine.apply({"nayori"}, {"btop", "zen-browser-bin"}, update=True)
+        commands = [
+            cmd for cmd in self.runner.commands if "-S" in cmd or "-Syu" in cmd
+        ]
+        update = next(cmd for cmd in commands if "-Syu" in cmd)
+        repo_app = next(cmd for cmd in commands if cmd[-1] == "btop")
+        aur_app = next(cmd for cmd in commands if cmd[-1] == "zen-browser-bin")
+        component = next(cmd for cmd in commands if cmd[-1] == "quickshell")
+        self.assertNotIn("--noconfirm", update)
+        self.assertNotIn("--noconfirm", component)
+        self.assertIn("--noconfirm", repo_app)
+        self.assertIn("--noconfirm", aur_app)
+        self.assertEqual(aur_app[0], "paru")
+
+    def test_blocked_app_does_not_automate_shared_component_package(self):
+        plan = self.engine.preflight({"nayori"}, {"btop"})
+        plan["packages"]["btop"]["owners"].append("nayori")
+        plan["blocked_components"]["app:btop"] = "unavailable"
+        with patch.object(self.engine, "preflight", return_value=plan):
+            self.engine.apply({"nayori"}, {"btop"})
+        command = next(
+            cmd for cmd in self.runner.commands if "-S" in cmd and cmd[-1] == "btop"
+        )
+        self.assertNotIn("--noconfirm", command)
 
     def test_diagnostic_read_only(self):
         before = inventory(self.root)

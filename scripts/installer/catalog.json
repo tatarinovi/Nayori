@@ -40,7 +40,6 @@
         "niri",
         "kitty",
         "firefox",
-        "thunar",
         "wireplumber",
         "playerctl",
         "brightnessctl"
@@ -179,15 +178,6 @@
       "description": "Kitty · репозитории pacman",
       "packages": [
         "kitty"
-      ],
-      "source": "repo"
-    },
-    "thunar": {
-      "label": "Thunar",
-      "category": "Системные",
-      "description": "Thunar · репозитории pacman",
-      "packages": [
-        "thunar"
       ],
       "source": "repo"
     },

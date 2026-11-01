@@ -13,6 +13,16 @@ Column {
     property string selectedName: ""
     property var monitorModel: []
     property var layout: []
+    readonly property var selectedCard: {
+        for (let i = 0; i < cards.count; ++i) {
+            const card = cards.itemAt(i)
+            if (card && card.modelData.name === selectedName) return card
+        }
+        return null
+    }
+    readonly property bool canApply: selectedCard !== null && !selectedCard.locked
+        && service.ready && service.validateAvailable && !service.busy
+    function apply() { if (canApply) selectedCard.applyCard() }
 
     component Label: SettingsLabel { tokens: root.tokens }
     component Choice: Item {
@@ -426,6 +436,7 @@ Column {
     }
 
     Repeater {
+        id: cards
         model: root.monitorModel
         delegate: SettingsCard {
             id: card
@@ -839,13 +850,7 @@ Column {
                 font.pixelSize: 13
                 text: card.cardError
             }
-            SettingsButton {
-                text: "Применить"
-                primary: true
-                tokens: root.tokens
-                enabled: !card.locked && service.ready && service.validateAvailable && !service.busy && card.modelData.name
-                onClicked: card.applyCard()
-            }
+
         }
     }
 

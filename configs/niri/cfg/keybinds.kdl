@@ -1,7 +1,7 @@
 binds {
     Mod+Return { spawn "kitty"; }
     Mod+Shift+Return { spawn "firefox"; }
-    Mod+E { spawn "thunar"; }
+    Mod+E { spawn "strata"; }
     Mod+W { close-window; }
     Mod+O repeat=false { toggle-overview; }
     Mod+Left { focus-column-left; }

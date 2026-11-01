@@ -395,6 +395,10 @@ class Engine:
     def preflight(self, components, apps):
         chosen, packages = self.selected_packages(components, apps)
         problems = []
+        if "niri" in chosen and not shutil.which("strata"):
+            problems.append(
+                "Strata не найдена в PATH: Mod+E заработает после её установки и добавления в PATH."
+            )
         for package, item in packages.items():
             installed = self.runner.capture(["pacman", "-Q", package])[0] == 0
             item["installed"] = installed
@@ -796,10 +800,16 @@ class Engine:
                 ):
                     continue
                 argv = (
-                    ["sudo", "pacman", "-S", "--needed", package]
+                    ["sudo", "pacman", "-S", "--needed"]
                     if item["source"] == "repo"
-                    else [self.runner.helper(), "-S", "--needed", "--aur", package]
+                    else [self.runner.helper(), "-S", "--needed", "--aur"]
                 )
+                if any(
+                    owner.startswith("app:") and owner not in blocked
+                    for owner in item["owners"]
+                ):
+                    argv.append("--noconfirm")
+                argv.append(package)
                 while True:
                     self.log("Пакет: " + package)
                     self.log("КОМАНДА: " + shlex.join(argv))

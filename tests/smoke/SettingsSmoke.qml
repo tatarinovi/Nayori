@@ -299,17 +299,21 @@ ShellRoot {
                     settings.update({startIconStyle: "current"})
                     test.check(!fox.checked && test.iconRequests === 1, "service updates icon selection without feedback")
                     currentPage = 3
+                    displayedPage = 3
                     const field = test.findItem(view, "weatherCityInput")
                     const original = settings.weatherCity
                     field.forceActiveFocus()
                     field.selectAll()
                     for (const letter of "Paris") input.keyClickChar(letter, Qt.NoModifier, -1)
                     test.check(settings.weatherCity === original, "typing does not apply city")
-                    const apply = test.findItem(view, "weatherApplyButton")
+                    const apply = test.findItem(view, "settings-apply")
                     input.keyClick(Qt.Key_Tab, Qt.NoModifier, -1)
-                    test.check(apply.activeFocus, "Tab reaches Apply")
+                    const interval = test.findItem(view, "weatherRefreshMinutesInput")
+                    test.check(interval.activeFocus, "Tab reaches interval before footer")
+                    input.keyClick(Qt.Key_Tab, Qt.NoModifier, -1)
+                    test.check(apply.activeFocus, "Tab reaches footer Apply")
                     input.keyClick(Qt.Key_Tab, Qt.ShiftModifier, -1)
-                    test.check(field.activeFocus, "Shift+Tab returns to city input")
+                    test.check(interval.activeFocus, "Shift+Tab returns to interval")
                     input.mouseClick(apply, apply.width / 2, apply.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
                     test.check(settings.weatherCity === "Paris", "Apply changes city")
                     settings.update({weatherCity: original})
@@ -321,6 +325,13 @@ ShellRoot {
                     test.check(test.intervalRequests === 1 && settings.weatherRefreshMinutes === originalMinutes + 1, "SpinBox action emits once and applies interval")
                     settings.update({weatherRefreshMinutes: originalMinutes})
                     test.check(refresh.value === originalMinutes && test.intervalRequests === 1, "service updates interval without user signal loop")
+                    for (const page of [4, 5, 11, 12]) {
+                        displayedPage = page
+                        test.check(apply.visible, "footer Apply is visible on page " + page)
+                        test.check(apply.text === (page === 11 ? "Применить для тачпада" : "Применить"), "footer Apply matches page " + page)
+                        test.check(test.findItem(view, "settings-apply-mouse").visible === (page === 11), "mouse action only on device page")
+                    }
+                    displayedPage = 3
                     input.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
                     test.check(test.closeRequests === 1, "unhandled Escape closes settings")
                     openKey("notifications")

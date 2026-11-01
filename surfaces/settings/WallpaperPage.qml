@@ -21,6 +21,12 @@ ScrollView {
     property bool draftEnabled: true
     property alias libraryFolder: library.folder
     readonly property int imageCount: images.count
+    readonly property bool canApply: manager && manager.ready && !manager.saving
+        && (preview.loaded || !draftEnabled) && (draftShared || selectedScreen !== null)
+    function apply() {
+        if (canApply) manager.apply(output, String(draftSource) === String(manager.defaultSource) ? "" : draftSource,
+            draftMode, draftShared, draftEnabled)
+    }
     readonly property var selectedScreen: {
         for (const screen of Quickshell.screens) if (screen.name === output) return screen
         return null
@@ -314,16 +320,7 @@ ScrollView {
                             onClicked: root.draftEnabled = checked
                         }
                         Item { Layout.fillHeight: true; Layout.minimumHeight: 0 }
-                        Action {
-                            Layout.fillWidth: true
-                            primary: true
-                            objectName: "wallpaper-apply"
-                            text: "Применить"
-                            enabled: root.manager && root.manager.ready && !root.manager.saving
-                                && (preview.loaded || !root.draftEnabled) && (root.draftShared || root.selectedScreen !== null)
-                            onClicked: root.manager.apply(root.output, String(root.draftSource) === String(root.manager.defaultSource) ? "" : root.draftSource,
-                                root.draftMode, root.draftShared, root.draftEnabled)
-                        }
+
                     }
                 }
             }

@@ -9,6 +9,8 @@ Column {
     property var niriConfig: null
     spacing: 16
     property bool editing: false
+    readonly property bool canApplyMouse: !mouseCard.locked && service.ready && service.validateAvailable && !service.busy
+    readonly property bool canApplyPad: !padCard.locked && service.ready && service.validateAvailable && !service.busy
     property string mouseProfile: ""
     property string mouseScroll: ""
     property bool mouseAccelUnset: true
@@ -352,13 +354,7 @@ Column {
             font.pixelSize: 13
             text: root.mouseError
         }
-        SettingsButton {
-            text: "Применить"
-            primary: true
-            tokens: root.tokens
-            enabled: !mouseCard.locked && service.ready && service.validateAvailable && !service.busy
-            onClicked: root.applyMouse()
-        }
+
     }
 
     SettingsCard {
@@ -537,12 +533,6 @@ Column {
             font.pixelSize: 13
             text: root.padError
         }
-        SettingsButton {
-            text: "Применить"
-            primary: true
-            tokens: root.tokens
-            enabled: !padCard.locked && service.ready && service.validateAvailable && !service.busy
-            onClicked: root.applyPad()
-        }
+
     }
 }
