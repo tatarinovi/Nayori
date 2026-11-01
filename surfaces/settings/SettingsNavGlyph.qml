@@ -187,6 +187,23 @@ Canvas {
             c.beginPath()
             c.arc(12, 20.2, 1.5, 0, Math.PI * 2)
             c.fill()
+        } else if (name === "update-check") {
+            c.beginPath(); c.arc(10, 10, 6, 0, Math.PI * 2); c.stroke()
+            line(14.5, 14.5, 20, 20)
+        } else if (name === "update-install") {
+            line(12, 3, 12, 15); line(8, 11, 12, 15); line(12, 15, 16, 11)
+            line(4, 19, 20, 19)
+        } else if (name === "update-restart" || name === "update-rollback") {
+            c.beginPath()
+            if (name === "update-restart") {
+                c.arc(12, 12, 8, -Math.PI * 0.75, Math.PI * 0.75)
+                c.stroke()
+                line(3.5, 5.5, 6.5, 5.5); line(6.5, 5.5, 6.5, 2.5)
+            } else {
+                c.arc(12, 12, 8, Math.PI * 1.1, Math.PI * 2.7)
+                c.stroke()
+                line(3, 5, 3, 10); line(3, 10, 8, 10)
+            }
         } else if (name === "updates") {
             c.beginPath(); c.arc(12, 12, 9, Math.PI * 0.1, Math.PI * 1.8); c.stroke()
             line(12, 5, 12, 17); line(8, 13, 12, 17); line(12, 17, 16, 13)

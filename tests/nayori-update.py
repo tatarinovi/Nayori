@@ -46,4 +46,43 @@ with tempfile.TemporaryDirectory(prefix='nayori-update-test-') as tmp:
             rolled = update.execute('rollback')
             assert rolled['current'] == 'a' * 40 and (paths.base / 'current').resolve() == old
             assert (paths.base / 'previous').resolve() == new
+        runtime = home / 'runtime' / 'nayori'
+        runtime.mkdir(parents=True)
+        (paths.bin).mkdir(parents=True)
+        launcher = paths.bin / 'nayori'
+        launcher.write_text('#!/bin/sh\n')
+        launcher.chmod(0o700)
+        record = {'pid': 1234, 'start': '999', 'release': str(old)}
+        (runtime / 'active.json').write_text(json.dumps(record))
+        (runtime / 'instance.lock').touch()
+        with mock.patch.dict(os.environ, {'XDG_RUNTIME_DIR': str(runtime.parent)}), \
+             mock.patch.object(update, 'process_start', return_value='999'), \
+             mock.patch.object(update.subprocess, 'Popen') as spawn:
+            assert update.prepare_restart(paths, 1234)['ok']
+            assert spawn.call_args.args[0][2:4] == ['_restart', '1234']
+            try:
+                update.prepare_restart(paths, 4321)
+                raise AssertionError('foreign process accepted')
+            except update.InstallError:
+                pass
+            spawn.reset_mock()
+            with mock.patch.object(update.os, 'kill') as kill:
+                update.restart_process(1234, '999', launcher, runtime)
+                kill.assert_called_once_with(1234, update.signal.SIGTERM)
+                assert spawn.call_args.args[0] == [str(launcher)]
+                kill.reset_mock()
+                try:
+                    update.restart_process(1234, 'outdated', launcher, runtime)
+                    raise AssertionError('stale process accepted')
+                except update.InstallError:
+                    kill.assert_not_called()
+        launcher.unlink()
+        with mock.patch.dict(os.environ, {'XDG_RUNTIME_DIR': str(runtime.parent)}), \
+             mock.patch.object(update, 'process_start', return_value='999'), \
+             mock.patch.object(update.subprocess, 'Popen') as spawn:
+            try:
+                update.prepare_restart(paths, 1234)
+                raise AssertionError('missing launcher accepted')
+            except update.InstallError:
+                spawn.assert_not_called()
 print('Nayori update tests passed')

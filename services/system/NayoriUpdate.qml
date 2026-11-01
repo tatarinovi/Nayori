@@ -9,6 +9,7 @@ QtObject {
     property bool busy: false
     property bool available: false
     property bool canRollback: false
+    property bool restartNeeded: false
     property string current: ""
     property string latest: ""
     property string error: ""
@@ -28,6 +29,27 @@ QtObject {
     function check() { run("check") }
     function apply() { if (available) run("apply") }
     function rollback() { if (canRollback) run("rollback") }
+    function restart() { if (restartNeeded) run("restart") }
+
+    function receiveResult(code, result, stderr) {
+        root.busy = false
+        root.ready = true
+        if (code !== 0 || !result || !result.ok) {
+            if (result && result.installed !== undefined) root.installed = result.installed === true
+            if (result && result.rollback !== undefined) root.canRollback = result.rollback === true
+            if (result && result.current) root.current = result.current
+            root.error = result && result.error ? result.error : ((stderr || "").trim() || "Не удалось проверить обновления")
+            return
+        }
+        if (root.operation === "restart") return
+        if (root.operation === "apply" || root.operation === "rollback") root.restartNeeded = true
+        root.installed = result.installed === true
+        root.current = result.current || ""
+        root.latest = result.latest || ""
+        root.available = result.available === true
+        root.canRollback = result.rollback === true
+        if (result.message) root.message = result.message
+    }
 
     property Timer periodic: Timer {
         interval: 6 * 60 * 60 * 1000
@@ -42,21 +64,7 @@ QtObject {
         onExited: function(code) {
             let result
             try { result = JSON.parse(output.text || "") } catch (e) { result = null }
-            root.busy = false
-            root.ready = true
-            if (!result || !result.ok) {
-                if (result && result.installed !== undefined) root.installed = result.installed === true
-                if (result && result.rollback !== undefined) root.canRollback = result.rollback === true
-                if (result && result.current) root.current = result.current
-                root.error = result && result.error ? result.error : ((errors.text || "").trim() || "Не удалось проверить обновления")
-                return
-            }
-            root.installed = result.installed === true
-            root.current = result.current || ""
-            root.latest = result.latest || ""
-            root.available = result.available === true
-            root.canRollback = result.rollback === true
-            if (result.message) root.message = result.message
+            root.receiveResult(code, result, errors.text)
         }
     }
     Component.onCompleted: check()

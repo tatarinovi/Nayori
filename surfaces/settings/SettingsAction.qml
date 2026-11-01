@@ -10,6 +10,8 @@ AbstractButton {
     property bool navigation: false
     property string detail: ""
     property string glyph: ""
+    property color actionColor: selected ? tokens.color.accent : tokens.color.text
+    property color iconColor: selected ? actionColor : tokens.color.textMuted
     padding: 0
     opacity: enabled ? 1 : 0.45
     implicitHeight: Math.max(tokens.settings.control, captions.implicitHeight + 16)
@@ -28,7 +30,7 @@ AbstractButton {
             objectName: "settings-action-icon"
             visible: !!button.glyph
             name: button.glyph
-            ink: button.selected ? button.tokens.color.accent : button.tokens.color.textMuted
+            ink: button.iconColor
             width: 20; height: 20
             anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
         }
@@ -43,7 +45,7 @@ AbstractButton {
                 width: parent.width
                 text: button.text
                 lineHeight: button.navigation ? 1 : 1.4
-                color: button.selected ? button.tokens.color.accent : button.tokens.color.text
+                color: button.actionColor
             }
             SettingsLabel {
                 objectName: "settings-action-path"

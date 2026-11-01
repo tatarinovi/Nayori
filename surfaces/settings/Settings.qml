@@ -801,7 +801,7 @@ FocusScope {
             SettingsScroll { WorkspacesPage { width: parent.width; tokens: root.tokens; niri: root.niri } }
             SettingsScroll { DefaultsPage { width: parent.width; tokens: root.tokens } }
             SettingsScroll { AutostartPage { width: parent.width; tokens: root.tokens } }
-            SettingsScroll { UpdatesPage { width: parent.width; tokens: root.tokens; updateService: root.updateService; systemUpdateService: root.systemUpdateService } }
+            SettingsScroll { UpdatesPage { width: parent.width; tokens: root.tokens; updateService: root.updateService; systemUpdateService: root.systemUpdateService; settingsService: root.settingsService } }
             SettingsScroll { AboutPage { width: parent.width; tokens: root.tokens } }
             SettingsScroll {
                 IntegrationsPage {

@@ -98,6 +98,30 @@ ShellRoot {
             implicitWidth: 1600
             implicitHeight: 1000
 
+            QtObject {
+                id: fakeUpdate
+                property bool busy: false
+                property bool installed: true
+                property bool ready: true
+                property bool available: false
+                property bool canRollback: false
+                property bool restartNeeded: false
+                property string error: ""
+                property string message: ""
+                property string latest: ""
+                property int restartCalls: 0
+                function restart() { restartCalls++ }
+            }
+            QtObject { id: fakeSystemUpdate; property bool busy: false; property bool toolsReady: false; property bool pacmanFound: false; property bool sudoFound: false; property bool zenityFound: false; property bool yayFound: false; property string status: ""; property string error: "" }
+            UpdatesPage {
+                id: updatesTest
+                parent: view
+                width: view.width
+                visible: false
+                tokens: theme
+                updateService: fakeUpdate
+                systemUpdateService: fakeSystemUpdate
+            }
             DisplayConfirmation {
                 id: confirmationTest
                 parent: view
@@ -122,6 +146,24 @@ ShellRoot {
                 onSectionVisited: key => { test.visitedSections = test.visitedSections.concat([key]); }
                 Test.TestEvent { id: input }
                 function exerciseInput() {
+                    updatesTest.visible = true
+                    for (const [name, glyph] of [["checkNayoriUpdate", "update-check"],
+                            ["installNayoriUpdate", "update-install"], ["restartNayori", "update-restart"],
+                            ["rollbackNayoriUpdate", "update-rollback"], ["installSystemUpdates", "update-install"]]) {
+                        test.check(test.findItem(updatesTest, name).glyph === glyph, "update action icon " + name)
+                    }
+                    test.check(test.findItem(updatesTest, "rollbackNayoriUpdate").actionColor === theme.color.secondary,
+                        "rollback uses secondary color")
+                    const restart = test.findItem(updatesTest, "restartNayori")
+                    test.check(!restart.visible, "restart hidden before update")
+                    fakeUpdate.restartNeeded = true
+                    test.check(restart.visible && restart.enabled, "restart shown after update")
+                    fakeSystemUpdate.busy = true
+                    test.check(!restart.enabled, "restart disabled during system update")
+                    fakeSystemUpdate.busy = false
+                    restart.clicked()
+                    test.check(fakeUpdate.restartCalls === 1, "restart action delegates to service")
+                    updatesTest.visible = false
                     confirmationTest.pending = true
                     test.check(confirmationTest.visible && confirmationTest.modal && confirmationTest.closePolicy === 0, "display confirmation is modal")
                     test.check(confirmationTest.x === Math.round((view.width - confirmationTest.width) / 2)

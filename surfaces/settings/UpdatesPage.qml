@@ -7,6 +7,7 @@ Column {
     required property var tokens
     property var systemUpdateService: null
     property var updateService: null
+    property var settingsService: null
     spacing: 12
     component Label: SettingsLabel { tokens: root.tokens }
     component Action: SettingsAction { tokens: root.tokens }
@@ -33,19 +34,41 @@ Column {
         text: root.updateService ? root.updateService.message : ""
     }
     Action {
+        objectName: "checkNayoriUpdate"
         text: "Проверить обновления"
+        glyph: "update-check"
+        iconColor: root.tokens.color.accent
         enabled: root.updateService !== null && root.updateService.installed && !root.updateService.busy
         onClicked: root.updateService.check()
     }
     Action {
+        objectName: "installNayoriUpdate"
         text: "Установить обновление"
+        glyph: "update-install"
         selected: true
         visible: root.updateService !== null && root.updateService.available
         enabled: root.updateService !== null && !root.updateService.busy
         onClicked: root.updateService.apply()
     }
     Action {
+        objectName: "restartNayori"
+        text: "Перезапустить оболочку"
+        glyph: "update-restart"
+        selected: true
+        visible: root.updateService !== null && root.updateService.restartNeeded
+        enabled: root.updateService !== null && !root.updateService.busy
+            && (!root.systemUpdateService || !root.systemUpdateService.busy)
+        onClicked: {
+            if (root.settingsService) root.settingsService.flush(true)
+            root.updateService.restart()
+        }
+    }
+    Action {
+        objectName: "rollbackNayoriUpdate"
         text: "Вернуть предыдущую версию"
+        glyph: "update-rollback"
+        actionColor: root.tokens.color.secondary
+        iconColor: root.tokens.color.secondary
         visible: root.updateService !== null && root.updateService.canRollback
         enabled: root.updateService !== null && !root.updateService.busy
         onClicked: root.updateService.rollback()
@@ -85,7 +108,9 @@ Column {
         text: root.systemUpdateService ? root.systemUpdateService.error : ""
     }
     Action {
+        objectName: "installSystemUpdates"
         text: "Обновить систему и приложения"
+        glyph: "update-install"
         selected: true
         enabled: root.systemUpdateService !== null && root.systemUpdateService.toolsReady && root.systemUpdateService.pacmanFound && root.systemUpdateService.sudoFound && root.systemUpdateService.zenityFound && !root.systemUpdateService.busy
         onClicked: root.systemUpdateService.start()

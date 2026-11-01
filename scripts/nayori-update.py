@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Check and switch installed Nayori releases; never modify a source checkout."""
 import json
+import fcntl
 import os
 from pathlib import Path
 import re
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from installer.core import Engine, Paths, InstallError, sync_directory
@@ -60,10 +63,57 @@ def state(paths):
     return current, manifest, previous
 
 
+def process_start(pid):
+    return Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()[19]
+
+
+def prepare_restart(paths, parent_pid):
+    if not installed(paths):
+        raise InstallError('Перезапуск доступен только установленной Nayori')
+    runtime = Path(os.environ['XDG_RUNTIME_DIR']) / 'nayori'
+    record = json.loads((runtime / 'active.json').read_text())
+    if (record['pid'] != parent_pid or record['start'] != process_start(parent_pid)
+            or Path(record['release']).resolve() != SCRIPT_ROOT):
+        raise InstallError('Не удалось определить работающую оболочку')
+    launcher = paths.bin / 'nayori'
+    if not launcher.is_file() or not os.access(launcher, os.X_OK):
+        raise InstallError('Launcher Nayori недоступен')
+    subprocess.Popen([sys.executable, str(Path(__file__).resolve()), '_restart',
+                      str(parent_pid), record['start'], str(launcher), str(runtime)],
+                     start_new_session=True, stdin=subprocess.DEVNULL,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True)
+    return {'ok': True, 'installed': True, 'message': 'Перезапускаем Nayori'}
+
+
+def restart_process(pid, start, launcher, runtime):
+    # Only the launcher-registered process can be stopped; recheck against PID reuse.
+    record = json.loads((runtime / 'active.json').read_text())
+    if record['pid'] != pid or record['start'] != start or process_start(pid) != start:
+        raise InstallError('Запись работающей оболочки устарела')
+    fd = os.open(runtime / 'instance.lock', os.O_RDWR | os.O_NOFOLLOW)
+    try:
+        os.kill(pid, signal.SIGTERM)
+        deadline = time.monotonic() + 15
+        while True:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    raise InstallError('Оболочка не завершилась')
+                time.sleep(0.1)
+    finally:
+        os.close(fd)
+    subprocess.Popen([str(launcher)], start_new_session=True, stdin=subprocess.DEVNULL,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True)
+
+
 def execute(operation, wanted=None):
     paths = Paths()
     if not installed(paths):
         return {'ok': True, 'installed': False}
+    if operation == 'restart':
+        return prepare_restart(paths, os.getppid())
     engine = Engine(paths=paths)
     lock = engine.lock()
     try:
@@ -111,6 +161,9 @@ def execute(operation, wanted=None):
 
 if __name__ == '__main__':
     try:
+        if sys.argv[1] == '_restart':
+            restart_process(int(sys.argv[2]), sys.argv[3], Path(sys.argv[4]), Path(sys.argv[5]))
+            sys.exit(0)
         result = execute(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
     except Exception as error:
         paths = Paths()
