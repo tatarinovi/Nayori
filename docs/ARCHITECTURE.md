@@ -22,7 +22,7 @@ Nayori — оболочка на Quickshell и QML. Вход — `shell.qml`, о
 
 ## Вход
 
-`shell.qml` создаёт сервисы и держит флаги этого запуска. На каждый подключённый экран `Variants` строит `surfaces/panel/ScreenPanels.qml`. Первый экран, `probeScreen` (`Quickshell.screens[0]`), задаёт обои для акцента и полный экран основного монитора. `Niri.focusedOutput` для этой привязки не используется.
+`shell.qml` создаёт сервисы и держит флаги этого запуска. На каждый подключённый экран `Variants` строит `surfaces/panel/ScreenPanels.qml`. Экран с `focus-at-startup` в конфигурации niri задаёт `probeScreen`, обои для акцента и полный экран основного монитора; если он отключён или не задан, используется первый подключённый экран Quickshell. `Niri.focusedOutput` для этой привязки не используется.
 
 Сервисы, которые оболочка создаёт сама:
 
@@ -193,7 +193,7 @@ surfaces/clipboard/
 
 ## Подтверждение действий
 
-`PolkitService` в `shell.qml` по умолчанию не регистрирует агент: ключ `polkitAgent` выключен. После включения он проверяет имя `org.freedesktop.PolicyKit1.AuthenticationAgent` на шинах и только потом создаёт `Quickshell.Services.Polkit.PolkitAgent`. Регистрация и проверка пароля остаются у polkit и `polkit-agent-helper-1`. Чужой агент не останавливается. Диалог стоит на первом экране `Quickshell.screens`, как блокировка. Подробности — [POLKIT.md](POLKIT.md).
+`PolkitService` в `shell.qml` по умолчанию не регистрирует агент: ключ `polkitAgent` выключен. После включения он проверяет имя `org.freedesktop.PolicyKit1.AuthenticationAgent` на шинах и только потом создаёт `Quickshell.Services.Polkit.PolkitAgent`. Регистрация и проверка пароля остаются у polkit и `polkit-agent-helper-1`. Чужой агент не останавливается. Диалог и блокировка используют выбранный основной экран. Подробности — [POLKIT.md](POLKIT.md).
 
 ## Bluetooth
 

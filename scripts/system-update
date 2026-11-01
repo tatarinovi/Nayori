@@ -1,0 +1,14 @@
+#!/bin/sh
+# Isolated per-run askpass guard; never stores the password.
+set -eu
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+auth_dir=$(mktemp -d "${TMPDIR:-/tmp}/nayori-update-auth.XXXXXXXX") || exit 1
+trap 'rm -rf -- "$auth_dir"' EXIT HUP INT TERM
+export NAYORI_UPDATE_AUTH_DIR="$auth_dir"
+export SUDO_ASKPASS="$script_dir/system-update-askpass"
+export LC_ALL=C
+if [ "${1:-}" = yay ]; then
+    yay -Syu --noconfirm --noprogressbar --color never --sudo sudo --sudoflags=-A --sudoloop --cleanmenu=false --diffmenu=false --editmenu=false
+else
+    sudo -A pacman -Syu --noconfirm --noprogressbar --color never
+fi

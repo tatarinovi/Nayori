@@ -10,6 +10,8 @@ Rectangle {
     id: root
     required property var tokens
     property var musicService: null
+    property var systemUpdateService: null
+    readonly property bool showingUpdate: !!systemUpdateService && systemUpdateService.busy && expansionProgress < 0.01
     readonly property var player: {
         if (root.musicService) return root.musicService.player && root.musicService.player.isPlaying ? root.musicService.player : null
         if (root.testMode) return null
@@ -245,7 +247,7 @@ Rectangle {
         // Music uses more of the side slots while preserving equal fox gutters.
         readonly property real foxGap: root.playingTitle.length > 0
             ? Math.min(32, elementGap) : elementGap
-        opacity: root.contentYielded || root.rowPlan.main === "volume" || root.showingNotification ? 0 : 1 - root.lyricProgress
+        opacity: root.contentYielded || root.rowPlan.main === "volume" || root.showingNotification || root.showingUpdate ? 0 : 1 - root.lyricProgress
         visible: opacity > 0
         Behavior on opacity {
             NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast }
@@ -361,10 +363,20 @@ Rectangle {
         words: root.lyrics && root.lyrics.status === "synced" ? root.lyrics.currentWords || [] : []
         position: root.lyrics && typeof root.lyrics.position === "number" ? root.lyrics.position : 0
         lineEnd: root.lyricEnd
-        opacity: root.contentYielded || root.rowPlan.main === "volume" || root.showingNotification ? 0 : root.lyricProgress
+        opacity: root.contentYielded || root.rowPlan.main === "volume" || root.showingNotification || root.showingUpdate ? 0 : root.lyricProgress
         visible: opacity > 0
         active: root.active && root.showingLyrics && visible
         transform: Translate { x: root.tokens.motion.off ? 0 : 24 * (1 - root.lyricProgress) }
+    }
+
+    IslandText {
+        objectName: "islandCompactUpdateStatus"
+        anchors.verticalCenter: parent.verticalCenter
+        x: 22; width: root.contentWidth - 44
+        horizontalAlignment: Text.AlignHCenter
+        elide: Text.ElideRight
+        visible: root.showingUpdate && !root.showingVolume && !root.showingNotification && !root.contentYielded
+        text: root.systemUpdateService ? root.systemUpdateService.status : ""
     }
 
     Item {

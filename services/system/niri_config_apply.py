@@ -1173,31 +1173,31 @@ def assign_primary(files, name):
                 raise ApplyError(
                     "Строка focus-at-startup записана в %s. Nayori этот файл не меняет" % entry["path"].name
                 )
-    updated = {}
-    found = False
+    # Select exactly one editable block, even when an output is described more
+    # than once or in multiple included files. Child edits do not reorder nodes.
+    target = None
     for entry in files:
         if entry["protected"] or entry["nodes"] is None:
             continue
-        names = []
-        for node in entry["nodes"]:
+        for index, node in enumerate(entry["nodes"]):
             if node["commented"] or node["name"] != "output":
                 continue
             args = _string_args(node)
-            if args:
-                names.append(args[0])
+            if args and args[0] == name:
+                target = (entry["path"], index)
+    updated = {}
+    found = target is not None
+    for entry in files:
+        if entry["protected"] or entry["nodes"] is None:
+            continue
+        indexes = [index for index, node in enumerate(entry["nodes"])
+                   if not node["commented"] and node["name"] == "output" and _string_args(node)]
         text = updated.get(entry["path"], entry["text"])
         original = text
-        for output_name in names:
+        for index in indexes:
             nodes = parse_document(text)
-            current = _output_nodes(nodes, output_name)
-            if not current:
-                continue
-            if output_name == name:
-                found = True
-                rendered = "focus-at-startup"
-            else:
-                rendered = None
-            text = set_child(text, current[-1], "focus-at-startup", rendered)
+            rendered = "focus-at-startup" if target == (entry["path"], index) else None
+            text = set_child(text, nodes[index], "focus-at-startup", rendered)
         if text != original:
             updated[entry["path"]] = text
     if found:

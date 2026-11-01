@@ -466,6 +466,7 @@ Scope {
         }
 
         MorphingIsland {
+            systemUpdateService: root.shellState.systemUpdateService || null
             shelfService: root.shellState.shelfService || null
             musicService: root.shellState.islandMusic
             audioReaction: root.shellState.islandAudio

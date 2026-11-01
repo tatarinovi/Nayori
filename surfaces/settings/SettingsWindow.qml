@@ -44,6 +44,7 @@ FloatingWindow {
     property string startIconStyle: "current"
     signal startIconStyleChangedRequested(string style)
     property var updateService: null
+    property var systemUpdateService: null
     property string preferredTerminal: "kitty"
     property string preferredFileManager: "org.gnome.Nautilus"
     property var niri: null
@@ -176,6 +177,7 @@ FloatingWindow {
         startIconStyle: root.startIconStyle
         onStartIconStyleChangedRequested: style => root.startIconStyleChangedRequested(style)
         updateService: root.updateService
+        systemUpdateService: root.systemUpdateService
         preferredTerminal: root.preferredTerminal
         preferredFileManager: root.preferredFileManager
         niri: root.niri

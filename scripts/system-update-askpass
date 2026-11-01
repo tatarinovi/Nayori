@@ -1,0 +1,6 @@
+#!/bin/sh
+# sudo can call askpass more than once; do not open another password dialog.
+if [ -z "${NAYORI_UPDATE_AUTH_DIR:-}" ] || ! mkdir "$NAYORI_UPDATE_AUTH_DIR/asked" 2>/dev/null; then
+    exit 1
+fi
+exec zenity --password --title='Обновление системы'

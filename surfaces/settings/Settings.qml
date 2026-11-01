@@ -58,6 +58,7 @@ FocusScope {
     property string startIconStyle: "current"
     signal startIconStyleChangedRequested(string style)
     property var updateService: null
+    property var systemUpdateService: null
     property string preferredTerminal: "kitty"
     property string preferredFileManager: "io.github.lgse.Strata"
     property var niri: null
@@ -225,7 +226,7 @@ FocusScope {
         {key: "naomi-place", page: 27, title: "Отображение", group: "Naomi", description: "Монитор, угол и слой"},
         {key: "naomi-remind", page: 29, title: "Напоминания", group: "Naomi", description: "Вода, глаза и разминка без ожидания"},
         {key: "integrations", page: 24, title: "Интеграции", group: "Приложения", description: "Цвета Nayori в\u00A0niri и тема Strata"},
-        {key: "updates", page: 22, title: "Обновления", group: "NayoriOS", description: "Обновление пакетов в терминале, только по кнопке"},
+        {key: "updates", page: 22, title: "Обновления", group: "NayoriOS", description: "Обновление системы и приложений"},
         {key: "about", page: 23, title: "О системе", group: "NayoriOS", description: "Версии Nayori, niri, Quickshell и системы"}
     ]
     readonly property var navigationSections: sections.filter(item => item.sidebar !== false)
@@ -799,7 +800,7 @@ FocusScope {
             SettingsScroll { WorkspacesPage { width: parent.width; tokens: root.tokens; niri: root.niri } }
             SettingsScroll { DefaultsPage { width: parent.width; tokens: root.tokens } }
             SettingsScroll { AutostartPage { width: parent.width; tokens: root.tokens } }
-            SettingsScroll { UpdatesPage { width: parent.width; tokens: root.tokens; preferredTerminal: root.preferredTerminal; updateService: root.updateService } }
+            SettingsScroll { UpdatesPage { width: parent.width; tokens: root.tokens; updateService: root.updateService; systemUpdateService: root.systemUpdateService } }
             SettingsScroll { AboutPage { width: parent.width; tokens: root.tokens } }
             SettingsScroll {
                 IntegrationsPage {

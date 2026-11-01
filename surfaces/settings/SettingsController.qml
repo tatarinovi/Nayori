@@ -10,6 +10,7 @@ QtObject {
     id: root
     property var companionTokens: tokens
     property var updateService: null
+    property var systemUpdateService: null
     property var bluetoothService: null
     required property var tokens
     required property var settingsService
@@ -162,6 +163,7 @@ QtObject {
             startIconStyle: root.settingsService.startIconStyle
             onStartIconStyleChangedRequested: style => root.settingsService.update({startIconStyle: style})
             updateService: root.updateService
+            systemUpdateService: root.systemUpdateService
             preferredTerminal: root.settingsService.preferredTerminal
             preferredFileManager: root.settingsService.preferredFileManager
             niri: root.niri

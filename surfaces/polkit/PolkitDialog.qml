@@ -4,7 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 
-// Пароль только на основном мониторе: первый в Quickshell.screens, как у блокировки.
+// Пароль только на выбранном основном мониторе, как у блокировки.
 Scope {
     id: root
     required property var tokens

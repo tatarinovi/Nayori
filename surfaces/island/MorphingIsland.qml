@@ -11,6 +11,7 @@ Rectangle {
     property bool testMode: false
     property var audioReaction: null
     property var musicService: null
+    property var systemUpdateService: null
     property var notifications: null
     property var shelfService: null
     property int currentPage: 0
@@ -188,6 +189,7 @@ Rectangle {
         tokens: root.tokens
         audioReaction: root.audioReaction
         musicService: root.musicService
+        systemUpdateService: root.systemUpdateService
         notifications: root.notifications
         expanded: root.expanded
         drawChrome: false
@@ -242,6 +244,7 @@ Rectangle {
         })
         sourceComponent: IslandDashboard {
             musicService: root.musicService
+            systemUpdateService: root.systemUpdateService
             testMode: root.testMode
             tokens: root.tokens
             weatherCity: root.weatherCity

@@ -259,7 +259,7 @@ Column {
         let marked = ""
         for (let index = 0; index < monitorModel.length; index++) {
             const item = monitorModel[index]
-            if (item.config && item.config.focusAtStartup)
+            if (item.screen && item.config && item.config.focusAtStartup && !item.config.off)
                 marked = item.name
         }
         return marked

@@ -2,7 +2,7 @@ const fs = require('fs'), vm = require('vm'), assert = require('assert')
 const context = {}
 vm.createContext(context)
 vm.runInContext(fs.readFileSync('services/ui/IslandRouting.js', 'utf8').replace(/^\.pragma.*$/m, ''), context)
-const { topEnabled, relocationReserve, companionOutput } = context
+const { topEnabled, relocationReserve, companionOutput, primaryFirst } = context
 const screens = ['DP-1', 'DP-2', 'HDMI-A-1']
 
 assert.equal(topEnabled('', screens, false, false, ''), false)
@@ -33,5 +33,12 @@ assert.equal(companionOutput(screens, 'secondary', false, ''), 'DP-2')
 assert.equal(companionOutput(['DP-1'], 'secondary', true, 'DP-2'), 'DP-1')
 assert.equal(companionOutput(['DP-1', ''], 'secondary', false, ''), 'DP-1')
 assert.equal(companionOutput(screens, 'elsewhere', true, 'DP-2'), 'DP-2')
+
+assert.deepEqual(Array.from(primaryFirst(screens, [{name: 'DP-2', focusAtStartup: true}])), ['DP-2', 'DP-1', 'HDMI-A-1'])
+assert.deepEqual(Array.from(primaryFirst(screens, [{name: 'GONE', focusAtStartup: true}])), screens)
+assert.deepEqual(Array.from(primaryFirst(screens, [{name: 'DP-2', focusAtStartup: true, off: true}])), screens)
+assert.deepEqual(Array.from(primaryFirst(screens, [])), screens)
+assert.equal(companionOutput(primaryFirst(screens, [{name: 'DP-2', focusAtStartup: true}]), 'primary', false, ''), 'DP-2')
+assert.equal(topEnabled('DP-2', primaryFirst(screens, [{name: 'DP-2', focusAtStartup: true}]), true, false, ''), true)
 
 console.log('ISLAND_ROUTING_PASS')

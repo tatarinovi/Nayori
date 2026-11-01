@@ -12,6 +12,7 @@ FocusScope {
     property bool testMode: false
     property var testPlayers: []
     property var musicService: null
+    property var systemUpdateService: null
     readonly property bool popupOpen: musicCard.popupOpen
     function closePopups() { musicCard.closePopups() }
     property var selectedPlayer: null
@@ -189,6 +190,13 @@ FocusScope {
             }
             Item { Layout.fillWidth: true }
             Caption { visible: root.showDate; text: root.ru.toString(root.now, "dddd, d MMMM") }
+        }
+        Caption {
+            objectName: "islandExpandedUpdateStatus"
+            Layout.fillWidth: true
+            visible: !!root.systemUpdateService && root.systemUpdateService.busy
+            text: root.systemUpdateService ? root.systemUpdateService.status : ""
+            elide: Text.ElideRight
         }
         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Qt.alpha(root.tokens.color.border, 0.5) }
         Item {

@@ -269,6 +269,30 @@ def test_primary_moves_focus_line():
     print("PASS primary output")
 
 
+def test_primary_duplicate_outputs():
+    with tempfile.TemporaryDirectory(prefix="niri-primary-") as directory:
+        config = Path(directory) / "config.kdl"
+        config.write_text('output "DP-1" {\n    focus-at-startup\n}\n'
+                          'output "DP-1" {\n    scale 1\n}\n'
+                          'output "DP-2" {\n}\n'
+                          'output "DP-2" {\n    mode "1920x1080"\n}\n', encoding="utf-8")
+        result = nca.apply_changes(config, {
+            "output": {"name": "DP-2", "set": {}, "primary": True, "primaryName": "DP-2"},
+        }, validator=ACCEPT)
+        assert_true(result["ok"] and result["changed"], result["error"])
+        text = read(config)
+        assert_true(text.count("focus-at-startup") == 1, "duplicate focus markers: " + text)
+        outputs = nca.read_config(config)["outputs"]
+        assert_true([(o["name"], o["focusAtStartup"]) for o in outputs] == [
+            ("DP-1", False), ("DP-1", False), ("DP-2", False), ("DP-2", True)
+        ], "wrong primary block: " + repr(outputs))
+        again = nca.apply_changes(config, {
+            "output": {"name": "DP-2", "set": {}, "primary": True, "primaryName": "DP-2"},
+        }, validator=ACCEPT)
+        assert_true(again["ok"] and not again["changed"], "duplicate output selection must be idempotent")
+    print("PASS primary duplicate output blocks")
+
+
 def main():
     test_parser_accepts_shipped_presets()
     test_comment_and_outputs()
@@ -277,6 +301,7 @@ def main():
     test_confirm_timer_without_live_reload()
     test_protected_and_missing_output()
     test_primary_moves_focus_line()
+    test_primary_duplicate_outputs()
     test_real_validate()
     print("OK")
 

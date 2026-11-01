@@ -1,7 +1,6 @@
 .pragma library
 
-// Куда девается верхний остров, если на всех экранах кроме первого он скрыт.
-// screenNames[0] — основной монитор, как probeScreen в оболочке.
+// Экран с focus-at-startup идёт первым; остальные сохраняют исходный порядок.
 function screenList(screenNames) {
     if (!Array.isArray(screenNames))
         return []
@@ -9,6 +8,20 @@ function screenList(screenNames) {
     for (let i = 0; i < screenNames.length; ++i)
         names.push(typeof screenNames[i] === "string" ? screenNames[i] : "")
     return names
+}
+
+function primaryFirst(screenNames, outputs) {
+    const names = screenList(screenNames)
+    let primary = ""
+    if (Array.isArray(outputs)) {
+        for (let i = 0; i < outputs.length; ++i) {
+            const output = outputs[i]
+            if (output && output.focusAtStartup && !output.off && names.indexOf(output.name) >= 0)
+                primary = output.name
+        }
+    }
+    if (!primary) return names
+    return [primary].concat(names.filter(function(name) { return name !== primary }))
 }
 
 // Экран Naomi. "secondary" держит её на втором мониторе и не смотрит на полный экран.

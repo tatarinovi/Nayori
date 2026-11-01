@@ -6,6 +6,8 @@ case "${1:-}" in
     unit)
         python3 tests/installer.py
         python3 tests/nayori-update.py
+        python3 tests/niri-primary.py
+        python3 tests/system-update.py
         python3 tests/wireguard.py --unit
         python3 tests/polkit-status.py
         for test in tests/*.cjs; do

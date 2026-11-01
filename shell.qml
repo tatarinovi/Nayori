@@ -43,6 +43,8 @@ ShellRoot {
     readonly property var islandNotifications: notificationModel
     AudioReaction { id: audioReaction }
     NayoriUpdate { id: nayoriUpdate }
+    SystemUpdate { id: systemUpdate }
+    readonly property var systemUpdateService: systemUpdate
     SettingsService { id: settingsStore }
     BluetoothService { id: bluetoothStore }
     readonly property var bluetoothService: bluetoothStore
@@ -166,7 +168,7 @@ ShellRoot {
         }
     }
     WallpaperManager { id: wallpaperStore }
-    // Accent and dark neutrals follow the first screen, probeScreen. Never Niri.focusedOutput.
+    // Accent and dark neutrals follow the configured primary screen, not focus.
     // Naomi also samples the primary wallpaper with the default UI palette.
     AccentExtractor {
         id: accentExtractor
@@ -547,6 +549,7 @@ ShellRoot {
         id: settingsController
         bluetoothService: bluetoothStore
         updateService: nayoriUpdate
+        systemUpdateService: systemUpdate
         companionTokens: naomiTokens
         remindCompanion: kind => companionHost.item ? companionHost.item.remind(kind) : false
         tokens: root.tokenSet
@@ -572,8 +575,19 @@ ShellRoot {
         function close(): void { settingsController.close() }
     }
 
-    // Each output owns independent panels. The first output is the primary screen; all outputs get their own panels.
-    readonly property var probeScreen: Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    // Read-only view of the same niri configuration used by the display page.
+    NiriPrimary { id: primaryConfig }
+    Connections {
+        target: Niri
+        function onConfigReloadsChanged() { primaryConfig.reload() }
+    }
+    readonly property var probeScreen: {
+        const screens = Quickshell.screens
+        const name = root.outputNames.length ? root.outputNames[0] : ""
+        for (let i = 0; i < screens.length; ++i)
+            if (screens[i] && screens[i].name === name) return screens[i]
+        return screens.length ? screens[0] : null
+    }
     FullscreenGuard {
         id: primaryFullscreenGuard
         screen: root.probeScreen
@@ -587,7 +601,7 @@ ShellRoot {
             const screen = screens[i]
             names.push(screen && screen.name ? screen.name : "")
         }
-        return names
+        return IslandRouting.primaryFirst(names, primaryConfig.outputs)
     }
     property var overlayScreen: probeScreen
     readonly property var currentOverlayScreen: Quickshell.screens.indexOf(overlayScreen) >= 0
