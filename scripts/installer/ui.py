@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -25,11 +26,26 @@ class Cancelled(Exception):
     pass
 
 
+def quickshell_running(proc_root=Path("/proc")):
+    """Conservatively avoid starting another Quickshell in the user's session."""
+    for process in proc_root.iterdir():
+        if not process.name.isdecimal():
+            continue
+        try:
+            if process.stat().st_uid != os.getuid():
+                continue
+            if (process / "comm").read_text().strip().lower() in {"qs", "quickshell"}:
+                return True
+        except FileNotFoundError:
+            continue
+        except OSError as error:
+            raise InstallError(f"Не удалось проверить процессы Quickshell: {error}") from error
+    return False
+
+
 class Gum:
-    def choose(self, title, labels, selected=(), multiple=False, search=False):
-        argv = ["gum", "filter" if search else "choose", "--header", title]
-        if search:
-            argv.extend(["--placeholder", "Поиск приложений"])
+    def choose(self, title, labels, selected=(), multiple=False):
+        argv = ["gum", "choose", "--header", title]
         if multiple:
             argv.append("--no-limit")
             for label in selected:
@@ -37,7 +53,7 @@ class Gum:
         result = subprocess.run([*argv, *labels], stdout=subprocess.PIPE, text=True)
         if result.returncode:
             raise Cancelled()
-        return result.stdout.splitlines()
+        return [line for line in result.stdout.splitlines() if line]
 
     def confirm(self, question):
         return (
@@ -84,7 +100,7 @@ class InstallerApp:
         }
         try:
             selected = self.gum.choose(
-                "Компоненты · Space — выбрать, Enter — продолжить",
+                "Компоненты · Tab — отметить, Enter — продолжить",
                 list(labels),
                 [label for label, key in labels.items() if key in self.components],
                 multiple=True,
@@ -104,6 +120,10 @@ class InstallerApp:
             )
 
     def choose_apps(self):
+        code, output = self.engine.runner.capture(["pacman", "-Qq"])
+        installed = set(output.splitlines()) if code == 0 else set()
+        if code:
+            print("Не удалось определить установленные приложения.")
         categories = list(
             dict.fromkeys(item["category"] for item in CATALOG["apps"].values())
         )
@@ -115,16 +135,19 @@ class InstallerApp:
                 if not category or category == "Назад":
                     return
                 labels = {
-                    f"{item['label']} [{item['source'] if item['source'] != 'auto' else 'repo/AUR'}]": key
+                    f"{item['label']} [{item['source'] if item['source'] != 'auto' else 'repo/AUR'}]"
+                    + (" [installed]" if set(item["packages"]) <= installed else ""): key
                     for key, item in CATALOG["apps"].items()
                     if item["category"] == category
                 }
+                if not labels:
+                    print("Приложения не найдены.")
+                    continue
                 selected = self.gum.choose(
-                    category + " · поиск, Tab — выбрать, Enter — продолжить",
+                    category + " · Tab — отметить, Enter — продолжить",
                     list(labels),
                     [label for label, key in labels.items() if key in self.apps],
                     multiple=True,
-                    search=True,
                 )
                 self.apps.difference_update(labels.values())
                 self.apps.update(labels[label] for label in selected)
@@ -165,7 +188,7 @@ class InstallerApp:
                 "\nЕсть незавершённая транзакция. Сначала восстановите её в диагностике."
             )
         print(
-            "\nВыбранные приложения устанавливаются с --noconfirm; sudo может запросить пароль."
+            "\npacman использует ответы по умолчанию (--noconfirm); sudo может запросить пароль."
         )
 
     def package_error(self, package):
@@ -177,6 +200,60 @@ class InstallerApp:
         except Cancelled:
             return "cancel"
         return {"Повторить": "retry", "Пропустить": "skip"}.get(choice, "cancel")
+
+    def launch_available(self):
+        launcher = self.engine.paths.bin / "nayori"
+        current = self.engine.paths.base / "current"
+        try:
+            release = current.resolve(strict=True)
+            return (
+                launcher.is_file()
+                and os.access(launcher, os.X_OK)
+                and release.is_relative_to(self.engine.paths.base / "releases")
+                and (release / "manifest.json").is_file()
+            )
+        except OSError:
+            return False
+
+    def launch_shell(self):
+        if not self.launch_available():
+            raise InstallError("Установленная версия Nayori не найдена.")
+        if not os.environ.get("WAYLAND_DISPLAY"):
+            raise InstallError("Для запуска нужна активная сессия Wayland.")
+        if quickshell_running():
+            raise InstallError(
+                "Quickshell уже запущен. Проверьте работающую оболочку перед запуском Nayori."
+            )
+        subprocess.Popen(
+            [str(self.engine.paths.bin / "nayori")],
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        print("Запуск Nayori запрошен.", flush=True)
+
+    def show_result(self, success, allow_launch=False):
+        while True:
+            print("\n" + ("Установка завершена." if success else "Установка не завершена."))
+            print("Проверьте журнал и возможные пропуски выше.")
+            options = []
+            if success and allow_launch and self.launch_available():
+                options.append("Запустить Nayori")
+            options.extend(["Диагностика", "Вернуться в меню", "Закрыть"])
+            try:
+                choice = self.choose_one("Результат установки", options)
+                if choice == "Запустить Nayori":
+                    try:
+                        self.launch_shell()
+                    except (OSError, InstallError) as error:
+                        print(f"Не удалось запустить Nayori: {error}")
+                        continue
+                    return True
+                if choice == "Диагностика":
+                    self.diagnostics()
+                    continue
+                return choice != "Вернуться в меню"
+            except Cancelled:
+                return True
 
     def review(self):
         if not self.components and not self.apps:
@@ -201,7 +278,7 @@ class InstallerApp:
             return
         self.engine.cancelled = False
         try:
-            self.engine.apply(
+            result = self.engine.apply(
                 self.components.copy(),
                 self.apps.copy(),
                 update=update,
@@ -210,8 +287,12 @@ class InstallerApp:
             )
         except (OSError, ValueError, InstallError) as error:
             print(f"Установка не завершена: {error}")
-            return
-        print("Установка завершена. Проверьте журнал и возможные пропуски выше.")
+            return self.show_result(False)
+        requested = resolve_components(self.components)
+        if "nayori" in requested and "nayori" not in result["components"]:
+            print("Nayori не установлена: нужные пакеты недоступны или были пропущены.")
+        allow_launch = "nayori" not in requested or "nayori" in result["components"]
+        return self.show_result(True, allow_launch=allow_launch)
 
     def diagnostics(self):
         while True:
@@ -270,7 +351,8 @@ class InstallerApp:
                 elif choice == "Приложения":
                     self.choose_apps()
                 elif choice == "Проверить план":
-                    self.review()
+                    if self.review():
+                        return
                 elif choice == "Диагностика":
                     self.diagnostics()
                 else:

@@ -36,7 +36,7 @@ if ((${#missing[@]})); then
         'Системный pip не используется. Обновление баз отдельно не выполняется.'
     printf 'Отсутствует: %s\n' "${missing[*]}"
     read -r -p 'Установить недостающие пакеты через pacman? [y/N] ' answer
-    case "$answer" in y|Y|yes|да) sudo pacman -S --needed "${missing[@]}" ;; *) exit 0 ;; esac
+    case "$answer" in y|Y|yes|да) sudo pacman -S --needed --noconfirm "${missing[@]}" ;; *) exit 0 ;; esac
     command -v python3 >/dev/null && command -v gum >/dev/null || {
         echo 'Python или gum не найдены после установки.' >&2; exit 1;
     }

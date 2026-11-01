@@ -807,7 +807,8 @@ class Engine:
                     self.log(f"ПРОПУСК {package}: недоступен")
             block_dependents()
             if update and not self.cancelled:
-                if self.runner.run(["sudo", "pacman", "-Syu"]):
+                self.log("КОМАНДА: sudo pacman -Syu --noconfirm")
+                if self.runner.run(["sudo", "pacman", "-Syu", "--noconfirm"]):
                     raise InstallError("Обновление системы не завершено")
             for package, item in plan["packages"].items():
                 if self.cancelled:
@@ -829,11 +830,11 @@ class Engine:
                         self.log(f"ПРОПУСК {package}: AUR helper недоступен")
                         continue
                 argv = (
-                    ["sudo", "pacman", "-S", "--needed"]
+                    ["sudo", "pacman", "-S", "--needed", "--noconfirm"]
                     if item["source"] == "repo"
                     else [helper, "-S", "--needed", "--aur"]
                 )
-                if any(
+                if item["source"] == "aur" and any(
                     owner.startswith("app:") and owner not in blocked
                     for owner in item["owners"]
                 ):

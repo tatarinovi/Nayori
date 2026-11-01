@@ -43,6 +43,8 @@ class FakeRunner(Runner):
 
     def capture(self, argv):
         self.commands.append(argv)
+        if "-Qq" in argv:
+            return 0, "\n".join(sorted(self.installed))
         if argv[0] == "git":
             return 0, "" if "status" in argv else "fixture-commit"
         if argv[0] == "niri":
@@ -360,20 +362,20 @@ class EngineTests(Fixture):
         self.assertEqual(calls[0][:3], ["sudo", "pacman", "-S"])
         self.assertTrue(all("--noconfirm" in call for call in calls))
 
-    def test_app_confirmation_does_not_change_components_or_upgrade(self):
+    def test_pacman_and_apps_use_automatic_confirmation(self):
         self.engine.apply({"nayori"}, {"btop", "zen-browser-bin"}, update=True)
         commands = [cmd for cmd in self.runner.commands if "-S" in cmd or "-Syu" in cmd]
         update = next(cmd for cmd in commands if "-Syu" in cmd)
         repo_app = next(cmd for cmd in commands if cmd[-1] == "btop")
         aur_app = next(cmd for cmd in commands if cmd[-1] == "zen-browser-bin")
         component = next(cmd for cmd in commands if cmd[-1] == "quickshell")
-        self.assertNotIn("--noconfirm", update)
-        self.assertNotIn("--noconfirm", component)
+        self.assertIn("--noconfirm", update)
+        self.assertIn("--noconfirm", component)
         self.assertIn("--noconfirm", repo_app)
         self.assertIn("--noconfirm", aur_app)
         self.assertEqual(aur_app[0], "paru")
 
-    def test_blocked_app_does_not_automate_shared_component_package(self):
+    def test_shared_component_package_uses_pacman_confirmation(self):
         plan = self.engine.preflight({"nayori"}, {"btop"})
         plan["packages"]["btop"]["owners"].append("nayori")
         plan["blocked_components"]["app:btop"] = "unavailable"
@@ -381,6 +383,13 @@ class EngineTests(Fixture):
             self.engine.apply({"nayori"}, {"btop"})
         command = next(
             cmd for cmd in self.runner.commands if "-S" in cmd and cmd[-1] == "btop"
+        )
+        self.assertIn("--noconfirm", command)
+
+    def test_aur_component_keeps_its_interactive_questions(self):
+        self.engine.apply({"fonts"}, set())
+        command = next(
+            cmd for cmd in self.runner.commands if "-S" in cmd and cmd[-1] == "ttf-literata"
         )
         self.assertNotIn("--noconfirm", command)
 
@@ -703,8 +712,8 @@ class FakeGum:
         self.inputs = list(inputs)
         self.calls = []
 
-    def choose(self, title, labels, selected=(), multiple=False, search=False):
-        self.calls.append((title, list(labels), list(selected), multiple, search))
+    def choose(self, title, labels, selected=(), multiple=False):
+        self.calls.append((title, list(labels), list(selected), multiple))
         return self.choices.pop(0)
 
     def confirm(self, question):
@@ -717,6 +726,123 @@ class FakeGum:
 
 
 class UITests(Fixture):
+    def test_gum_empty_multiselect_is_empty_for_components_and_apps(self):
+        from scripts.installer.ui import Gum
+
+        result = subprocess.CompletedProcess([], 0, stdout="\n")
+        with patch("scripts.installer.ui.subprocess.run", return_value=result) as run:
+            self.assertEqual(Gum().choose("components", ["first"], multiple=True), [])
+            self.assertEqual(Gum().choose("apps", ["first"], multiple=True), [])
+            self.assertEqual(run.call_args.args[0][1], "choose")
+
+    def test_real_gum_confirmation_uses_tab_and_enter(self):
+        if not shutil.which("gum"):
+            self.skipTest("gum unavailable")
+        import fcntl
+        import pty
+        import select
+        import struct
+        import termios
+        import time
+
+        pid, master = pty.fork()
+        if pid == 0:
+            os.environ["TERM"] = "xterm-256color"
+            os.execv(
+                sys.executable,
+                [sys.executable, "-c", "from scripts.installer.ui import Gum; print('CONFIRM_RESULT', Gum().confirm('TEST_CONFIRM'), flush=True)"],
+            )
+        fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
+        output = b""
+        sent = False
+        finished = False
+        try:
+            deadline = time.monotonic() + 8
+            while time.monotonic() < deadline:
+                if select.select([master], [], [], 0.1)[0]:
+                    try:
+                        output += os.read(master, 8192)
+                    except OSError:
+                        break
+                    if b"TEST_CONFIRM" in output and not sent:
+                        os.write(master, b"\t\r")
+                        sent = True
+                done, status = os.waitpid(pid, os.WNOHANG)
+                if done:
+                    finished = True
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 0)
+                    break
+            self.assertIn(b"CONFIRM_RESULT True", output)
+        finally:
+            if not finished:
+                try:
+                    os.kill(pid, 9)
+                except ProcessLookupError:
+                    pass
+                os.waitpid(pid, 0)
+            os.close(master)
+
+    def _check_real_gum_component_selection(self, keys, expected):
+        if not shutil.which("gum"):
+            self.skipTest("gum unavailable")
+        import fcntl
+        import pty
+        import select
+        import struct
+        import termios
+        import time
+
+        pid, master = pty.fork()
+        if pid == 0:
+            os.environ["TERM"] = "xterm-256color"
+            os.execv(
+                sys.executable,
+                [
+                    sys.executable,
+                    "-c",
+                    "from scripts.installer.ui import InstallerApp; "
+                    "app=InstallerApp(); app.choose_components(); "
+                    "print('EMPTY_OK', repr(app.components), flush=True)",
+                ],
+            )
+        fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
+        output = b""
+        sent = False
+        finished = False
+        try:
+            deadline = time.monotonic() + 8
+            while time.monotonic() < deadline:
+                if select.select([master], [], [], 0.1)[0]:
+                    try:
+                        chunk = os.read(master, 8192)
+                    except OSError:
+                        break
+                    output += chunk
+                    if b"Enter" in output and not sent:
+                        os.write(master, keys)
+                        sent = True
+                done, status = os.waitpid(pid, os.WNOHANG)
+                if done:
+                    finished = True
+                    self.assertEqual(os.waitstatus_to_exitcode(status), 0)
+                    break
+            self.assertIn(expected, output)
+            self.assertNotIn(b"Traceback", output)
+        finally:
+            if not finished:
+                try:
+                    os.kill(pid, 9)
+                except ProcessLookupError:
+                    pass
+                os.waitpid(pid, 0)
+            os.close(master)
+
+    def test_real_gum_empty_component_selection_in_pty(self):
+        self._check_real_gum_component_selection(b"\r", b"EMPTY_OK set()")
+
+    def test_real_gum_tab_selects_component_in_pty(self):
+        self._check_real_gum_component_selection(b"\t\r", b"'nayori'")
+
     def test_real_gum_preselected_items_in_pty(self):
         if not shutil.which("gum"):
             self.skipTest("gum unavailable")
@@ -791,7 +917,55 @@ class UITests(Fixture):
         app = InstallerApp(engine=self.engine, gum=gum)
         app.choose_apps()
         self.assertEqual(app.apps, {"btop"})
-        self.assertTrue(gum.calls[1][4])
+        self.assertNotIn("Поиск", gum.calls[0][1])
+        self.assertTrue(gum.calls[1][3])
+        self.assertFalse(any(isinstance(call, str) for call in gum.calls))
+
+    def test_other_categories_preserve_previous_selections(self):
+        from scripts.installer.ui import InstallerApp
+
+        gum = FakeGum(choices=[["Браузеры"], ["Firefox [repo]"], ["Назад"]])
+        app = InstallerApp(engine=self.engine, gum=gum)
+        app.apps = {"btop"}
+        app.choose_apps()
+        self.assertEqual(app.apps, {"btop", "firefox"})
+
+    def test_installed_app_is_labeled_in_category(self):
+        from scripts.installer.ui import InstallerApp
+
+        self.runner.installed = {"btop"}
+        gum = FakeGum(choices=[["Системные"], [], ["Назад"]])
+        app = InstallerApp(engine=self.engine, gum=gum)
+        app.choose_apps()
+        self.assertIn("btop [repo] [installed]", gum.calls[1][1])
+        self.assertNotIn("btop", app.apps)
+
+    def test_installed_status_failure_keeps_apps_selectable(self):
+        from scripts.installer.ui import InstallerApp
+
+        original_capture = self.runner.capture
+        self.runner.capture = lambda argv: (
+            (1, "unavailable")
+            if argv == ["pacman", "-Qq"]
+            else original_capture(argv)
+        )
+        gum = FakeGum(choices=[["Системные"], ["btop [repo]"], ["Назад"]])
+        app = InstallerApp(engine=self.engine, gum=gum)
+        app.choose_apps()
+        self.assertEqual(app.apps, {"btop"})
+
+    def test_selected_installed_app_is_not_reinstalled(self):
+        from scripts.installer.ui import InstallerApp
+
+        self.runner.installed = {"btop"}
+        gum = FakeGum(
+            choices=[["Системные"], ["btop [repo] [installed]"], ["Назад"]]
+        )
+        app = InstallerApp(engine=self.engine, gum=gum)
+        app.choose_apps()
+        result = self.engine.apply(set(), app.apps)
+        self.assertEqual(result["apps"], ["btop"])
+        self.assertFalse(any("-S" in command for command in self.runner.commands))
 
     def test_review_is_read_only_until_confirmed(self):
         from scripts.installer.ui import InstallerApp
@@ -810,13 +984,13 @@ class UITests(Fixture):
     def test_review_apply_and_package_error(self):
         from scripts.installer.ui import InstallerApp
 
-        gum = FakeGum(confirmations=[True, True], choices=[["Повторить"]])
+        gum = FakeGum(confirmations=[True, True], choices=[["Повторить"], ["Закрыть"]])
         app = InstallerApp(engine=self.engine, gum=gum)
         app.apps = {"btop"}
         self.assertEqual(app.package_error("btop"), "retry")
         app.review()
         self.assertTrue((self.paths.state / "installed.json").is_file())
-        self.assertIn(["sudo", "pacman", "-Syu"], self.runner.commands)
+        self.assertIn(["sudo", "pacman", "-Syu", "--noconfirm"], self.runner.commands)
         self.assertTrue(
             any(
                 "--noconfirm" in cmd and cmd[-1] == "btop"
@@ -836,6 +1010,84 @@ class UITests(Fixture):
         app.review()
         self.assertEqual(launcher.read_text(), "custom launcher")
         self.assertIsNone(self.engine.pending())
+
+    def test_result_screen_launches_only_when_selected(self):
+        from scripts.installer.ui import InstallerApp
+
+        self.engine.apply({"nayori"}, set())
+        gum = FakeGum(choices=[["Запустить Nayori"]])
+        app = InstallerApp(engine=self.engine, gum=gum)
+        with patch.dict(os.environ, {"WAYLAND_DISPLAY": "wayland-test"}):
+            with patch("scripts.installer.ui.quickshell_running", return_value=False):
+                with patch("scripts.installer.ui.subprocess.Popen") as start:
+                    self.assertTrue(app.show_result(True, allow_launch=True))
+        start.assert_called_once_with(
+            [str(self.paths.bin / "nayori")],
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+
+    def test_result_screen_does_not_launch_competing_shell(self):
+        from scripts.installer.ui import InstallerApp
+
+        self.engine.apply({"nayori"}, set())
+        gum = FakeGum(choices=[["Запустить Nayori"], ["Закрыть"]])
+        app = InstallerApp(engine=self.engine, gum=gum)
+        with patch.dict(os.environ, {"WAYLAND_DISPLAY": "wayland-test"}):
+            with patch("scripts.installer.ui.quickshell_running", return_value=True):
+                with patch("scripts.installer.ui.subprocess.Popen") as start:
+                    self.assertTrue(app.show_result(True, allow_launch=True))
+        start.assert_not_called()
+
+    def test_result_screen_closing_does_not_launch_installed_shell(self):
+        from scripts.installer.ui import InstallerApp
+
+        self.engine.apply({"nayori"}, set())
+        app = InstallerApp(engine=self.engine, gum=FakeGum(choices=[["Закрыть"]]))
+        with patch("scripts.installer.ui.subprocess.Popen") as start:
+            self.assertTrue(app.show_result(True, allow_launch=True))
+        start.assert_not_called()
+
+    def test_result_screen_no_launch_when_missing_or_failed(self):
+        from scripts.installer.ui import InstallerApp
+
+        gum = FakeGum(choices=[["Закрыть"], ["Закрыть"]])
+        app = InstallerApp(engine=self.engine, gum=gum)
+        with patch("scripts.installer.ui.subprocess.Popen") as start:
+            app.show_result(True, allow_launch=True)
+            app.show_result(False)
+        start.assert_not_called()
+        for call in gum.calls:
+            self.assertNotIn("Запустить Nayori", call[1])
+
+    def test_launch_checks_wayland_and_process_inventory(self):
+        from scripts.installer.ui import InstallerApp, quickshell_running
+
+        proc = self.root / "proc"
+        (proc / "123").mkdir(parents=True)
+        (proc / "123" / "comm").write_text("quickshell\n")
+        self.assertTrue(quickshell_running(proc))
+        (proc / "123" / "comm").write_text("other\n")
+        self.assertFalse(quickshell_running(proc))
+        self.engine.apply({"nayori"}, set())
+        app = InstallerApp(engine=self.engine, gum=FakeGum())
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(InstallError, "Wayland"):
+                app.launch_shell()
+
+    def test_blocked_nayori_does_not_offer_start_of_old_version(self):
+        from scripts.installer.ui import InstallerApp
+
+        self.engine.apply({"nayori"}, set())
+        self.runner.fail = {"quickshell"}
+        gum = FakeGum(confirmations=[False, True], choices=[["Пропустить"], ["Закрыть"]])
+        app = InstallerApp(engine=self.engine, gum=gum)
+        app.components = {"nayori"}
+        with patch("scripts.installer.ui.subprocess.Popen") as start:
+            app.review()
+        start.assert_not_called()
+        result_menu = next(call for call in gum.calls if isinstance(call, tuple) and call[0] == "Результат установки")
+        self.assertNotIn("Запустить Nayori", result_menu[1])
 
     def test_diagnostic_restore_requires_exact_confirmation(self):
         from scripts.installer.ui import InstallerApp
