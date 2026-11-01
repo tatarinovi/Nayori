@@ -316,15 +316,6 @@
       ],
       "source": "repo"
     },
-    "vscodium-bin": {
-      "label": "VSCodium",
-      "category": "Разработка",
-      "description": "VSCodium · AUR",
-      "packages": [
-        "vscodium-bin"
-      ],
-      "source": "aur"
-    },
     "steam": {
       "label": "Steam",
       "category": "Игры",
@@ -352,15 +343,6 @@
       ],
       "source": "repo"
     },
-    "libreoffice-fresh": {
-      "label": "LibreOffice",
-      "category": "Офис и заметки",
-      "description": "LibreOffice · репозитории pacman",
-      "packages": [
-        "libreoffice-fresh"
-      ],
-      "source": "repo"
-    },
     "obsidian": {
       "label": "Obsidian",
       "category": "Офис и заметки",
@@ -369,6 +351,124 @@
         "obsidian"
       ],
       "source": "repo"
+    },
+    "helium-browser-bin": {
+      "label": "Helium",
+      "category": "Браузеры",
+      "description": "Helium · AUR",
+      "packages": [
+        "helium-browser-bin"
+      ],
+      "source": "aur"
+    },
+    "spotify-launcher": {
+      "label": "Spotify",
+      "category": "Музыка",
+      "description": "Spotify Launcher · репозитории pacman",
+      "packages": [
+        "spotify-launcher"
+      ],
+      "source": "repo"
+    },
+    "yandex-music": {
+      "label": "Яндекс Музыка",
+      "category": "Музыка",
+      "description": "Яндекс Музыка · AUR, предпочтительно yay",
+      "packages": [
+        "yandex-music"
+      ],
+      "source": "aur",
+      "preferred_helper": "yay"
+    },
+    "zed": {
+      "label": "Zed",
+      "category": "Разработка",
+      "description": "Zed · репозитории pacman",
+      "packages": [
+        "zed"
+      ],
+      "source": "repo"
+    },
+    "openai-codex": {
+      "label": "Codex CLI",
+      "category": "Разработка",
+      "description": "Codex CLI · репозитории pacman",
+      "packages": [
+        "openai-codex"
+      ],
+      "source": "repo"
+    },
+    "claude-desktop": {
+      "label": "Claude Desktop",
+      "category": "Разработка",
+      "description": "Claude Desktop · AUR",
+      "packages": [
+        "claude-desktop"
+      ],
+      "source": "aur"
+    },
+    "docker": {
+      "label": "Docker",
+      "category": "Разработка",
+      "description": "Docker · репозитории pacman; службы автоматически не включаются",
+      "packages": [
+        "docker"
+      ],
+      "source": "repo"
+    },
+    "openoffice-bin": {
+      "label": "Apache OpenOffice",
+      "category": "Офис и заметки",
+      "description": "Apache OpenOffice · AUR",
+      "packages": [
+        "openoffice-bin"
+      ],
+      "source": "aur"
+    },
+    "bitwarden": {
+      "label": "Bitwarden",
+      "category": "Утилиты",
+      "description": "Bitwarden · репозитории pacman",
+      "packages": [
+        "bitwarden"
+      ],
+      "source": "repo"
+    },
+    "qbittorrent": {
+      "label": "qBittorrent",
+      "category": "Утилиты",
+      "description": "qBittorrent · репозитории pacman",
+      "packages": [
+        "qbittorrent"
+      ],
+      "source": "repo"
+    },
+    "localsend": {
+      "label": "LocalSend",
+      "category": "Утилиты",
+      "description": "LocalSend · репозитории или AUR",
+      "packages": [
+        "localsend"
+      ],
+      "source": "auto"
+    },
+    "qthrone-bin": {
+      "label": "qThrone",
+      "category": "Утилиты",
+      "description": "qThrone · AUR; доступность проверяется перед установкой",
+      "packages": [
+        "qthrone-bin"
+      ],
+      "source": "aur"
+    },
+    "shelly": {
+      "label": "Shelly",
+      "category": "Утилиты",
+      "description": "Shelly · репозитории или AUR",
+      "packages": [
+        "shelly"
+      ],
+      "source": "auto"
     }
   }
 }

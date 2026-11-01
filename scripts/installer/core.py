@@ -253,7 +253,9 @@ class Runner:
     def run(self, argv):
         return self.interactive(argv)
 
-    def helper(self):
+    def helper(self, preferred=None):
+        if preferred and shutil.which(preferred):
+            return shutil.which(preferred)
         return shutil.which("paru") or shutil.which("yay")
 
 
@@ -394,9 +396,12 @@ class Engine:
         for key in sorted(apps):
             app = CATALOG["apps"][key]
             for package in app["packages"]:
-                packages.setdefault(package, {"source": app["source"], "owners": []})[
-                    "owners"
-                ].append("app:" + key)
+                item = packages.setdefault(
+                    package, {"source": app["source"], "owners": []}
+                )
+                item["owners"].append("app:" + key)
+                if app.get("preferred_helper"):
+                    item["preferred_helper"] = app["preferred_helper"]
         return chosen, packages
 
     def preflight(self, components, apps):
@@ -410,11 +415,20 @@ class Engine:
             installed = self.runner.capture(["pacman", "-Q", package])[0] == 0
             item["installed"] = installed
             item["available"] = installed
+            if item["source"] == "auto":
+                item["source"] = "repo"
+                if not installed and self.runner.capture(["pacman", "-Si", package])[0]:
+                    item["source"] = "aur"
             if not installed:
                 cmd = (
                     ["pacman", "-Si", package]
                     if item["source"] == "repo"
-                    else [self.runner.helper() or "false", "-Si", "--aur", package]
+                    else [
+                        self.runner.helper(item.get("preferred_helper")) or "false",
+                        "-Si",
+                        "--aur",
+                        package,
+                    ]
                 )
                 code, output = self.runner.capture(cmd)
                 item["available"] = code == 0
@@ -806,10 +820,18 @@ class Engine:
                     or set(item["owners"]) <= blocked
                 ):
                     continue
+                helper = None
+                if item["source"] == "aur":
+                    helper = self.runner.helper(item.get("preferred_helper"))
+                    if not helper:
+                        blocked.update(item["owners"])
+                        block_dependents()
+                        self.log(f"ПРОПУСК {package}: AUR helper недоступен")
+                        continue
                 argv = (
                     ["sudo", "pacman", "-S", "--needed"]
                     if item["source"] == "repo"
-                    else [self.runner.helper(), "-S", "--needed", "--aur"]
+                    else [helper, "-S", "--needed", "--aur"]
                 )
                 if any(
                     owner.startswith("app:") and owner not in blocked

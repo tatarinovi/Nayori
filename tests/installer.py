@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Installer tests use only TemporaryDirectory, fake packages and headless Textual."""
 
-import asyncio
 import copy
 import importlib.util
 import json
@@ -12,9 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import threading
 import unittest
-from contextlib import contextmanager
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,8 +38,8 @@ class FakeRunner(Runner):
         self.real_niri = False
         self.have_helper = True
 
-    def helper(self):
-        return "paru" if self.have_helper else None
+    def helper(self, preferred=None):
+        return (preferred or "paru") if self.have_helper else None
 
     def capture(self, argv):
         self.commands.append(argv)
@@ -122,6 +119,60 @@ class EngineTests(Fixture):
         plan = self.engine.preflight(set(), {"zen-browser-bin"})
         self.assertFalse(plan["packages"]["zen-browser-bin"]["available"])
         self.assertFalse(self.paths.state.exists())
+
+    def test_requested_apps_and_preferred_yay(self):
+        apps = CATALOG["apps"]
+        self.assertEqual(
+            {key for key, item in apps.items() if item["category"] == "Браузеры"},
+            {"helium-browser-bin", "zen-browser-bin", "firefox", "chromium"},
+        )
+        self.assertEqual(
+            {key for key, item in apps.items() if item["category"] == "Разработка"},
+            {"git", "neovim", "zed", "openai-codex", "claude-desktop", "docker"},
+        )
+        self.assertEqual(
+            {key for key, item in apps.items() if item["category"] == "Офис и заметки"},
+            {"openoffice-bin", "obsidian"},
+        )
+        self.assertTrue(
+            {
+                "spotify-launcher", "yandex-music", "bitwarden", "qbittorrent",
+                "localsend", "qthrone-bin", "shelly",
+            }
+            <= apps.keys()
+        )
+        self.engine.apply(set(), {"yandex-music"})
+        command = next(cmd for cmd in self.runner.commands if "-S" in cmd)
+        self.assertEqual(command[0], "yay")
+        self.assertEqual(command[-1], "yandex-music")
+
+    def test_auto_package_falls_back_to_aur_and_reports_missing(self):
+        original_capture = self.runner.capture
+
+        def capture(argv):
+            if argv[:2] == ["pacman", "-Si"] and argv[-1] == "shelly":
+                self.runner.commands.append(argv)
+                return 1, "not in repositories"
+            return original_capture(argv)
+
+        self.runner.capture = capture
+        plan = self.engine.preflight(set(), {"shelly"})
+        self.assertEqual(plan["packages"]["shelly"]["source"], "aur")
+        self.assertTrue(plan["packages"]["shelly"]["available"])
+        self.runner.have_helper = False
+        plan = self.engine.preflight(set(), {"shelly"})
+        self.assertFalse(plan["packages"]["shelly"]["available"])
+
+    def test_aur_helper_disappearing_after_preflight_is_skipped(self):
+        plan = self.engine.preflight(set(), {"yandex-music"})
+        self.assertTrue(plan["packages"]["yandex-music"]["available"])
+        self.runner.have_helper = False
+        messages = []
+        self.engine.log = messages.append
+        with patch.object(self.engine, "preflight", return_value=plan):
+            result = self.engine.apply(set(), {"yandex-music"})
+        self.assertEqual(result["apps"], [])
+        self.assertTrue(any("AUR helper недоступен" in message for message in messages))
 
     def test_repeated_install_modified_and_rollback(self):
         first = self.engine.apply({"nayori"}, set())
@@ -311,9 +362,7 @@ class EngineTests(Fixture):
 
     def test_app_confirmation_does_not_change_components_or_upgrade(self):
         self.engine.apply({"nayori"}, {"btop", "zen-browser-bin"}, update=True)
-        commands = [
-            cmd for cmd in self.runner.commands if "-S" in cmd or "-Syu" in cmd
-        ]
+        commands = [cmd for cmd in self.runner.commands if "-S" in cmd or "-Syu" in cmd]
         update = next(cmd for cmd in commands if "-Syu" in cmd)
         repo_app = next(cmd for cmd in commands if cmd[-1] == "btop")
         aur_app = next(cmd for cmd in commands if cmd[-1] == "zen-browser-bin")
@@ -582,24 +631,27 @@ class BootstrapTests(unittest.TestCase):
             trace = root / "trace"
             for name, body in {
                 "pacman": "exit 0",
-                "sudo": 'echo sudo >> "$BOOTSTRAP_TRACE"; exit 0',
-                "python3": 'if [[ "$1" == -c ]]; then exit 1; fi; echo ui >> "$BOOTSTRAP_TRACE"; exit 0',
+                "sudo": 'echo sudo >> "$BOOTSTRAP_TRACE"; printf "#!/bin/bash\\nexit 0\\n" > "$BOOTSTRAP_BIN/gum"; /bin/chmod +x "$BOOTSTRAP_BIN/gum"',
+                "python3": 'echo ui >> "$BOOTSTRAP_TRACE"; exit 0',
             }.items():
                 path = fake / name
                 path.write_text("#!/bin/bash\n" + body + "\n")
                 path.chmod(0o755)
+            for name in ("uname", "dirname"):
+                (fake / name).symlink_to(shutil.which(name))
             env = dict(
                 os.environ,
                 HOME=str(root),
-                PATH=str(fake) + ":" + os.environ["PATH"],
+                PATH=str(fake),
                 TERM="xterm",
                 BOOTSTRAP_TRACE=str(trace),
+                BOOTSTRAP_BIN=str(fake),
             )
 
             def run(arguments, answer=b""):
                 master, slave = pty.openpty()
                 proc = subprocess.Popen(
-                    ["bash", str(script), *arguments],
+                    ["/bin/bash", str(script), *arguments],
                     stdin=slave,
                     stdout=slave,
                     stderr=slave,
@@ -644,116 +696,155 @@ class BootstrapTests(unittest.TestCase):
             self.assertEqual(trace.read_text().splitlines(), ["sudo", "ui"])
 
 
-class UITests(unittest.IsolatedAsyncioTestCase):
-    async def asyncTearDown(self):
-        # Keep the selector ticking through Runner.close as well: sandboxed
-        # runtimes may not wake it for executor-shutdown callbacks. The loop
-        # discards this timer when unittest closes it; no task is left running.
-        loop = asyncio.get_running_loop()
+class FakeGum:
+    def __init__(self, choices=(), confirmations=(), inputs=()):
+        self.choices = list(choices)
+        self.confirmations = list(confirmations)
+        self.inputs = list(inputs)
+        self.calls = []
 
-        def pulse():
-            loop.call_later(0.01, pulse)
+    def choose(self, title, labels, selected=(), multiple=False, search=False):
+        self.calls.append((title, list(labels), list(selected), multiple, search))
+        return self.choices.pop(0)
 
-        loop.call_later(0.01, pulse)
-        await asyncio.wait_for(loop.shutdown_default_executor(), 5)
+    def confirm(self, question):
+        self.calls.append(question)
+        return self.confirmations.pop(0)
 
-    async def test_interactive_terminal_returns_on_success_and_failure(self):
-        from scripts.installer.ui import InstallerApp
+    def input(self, prompt):
+        self.calls.append(prompt)
+        return self.inputs.pop(0)
 
-        app = InstallerApp(engine=Engine(runner=FakeRunner()))
-        events = []
-        main_thread = threading.get_ident()
 
-        @contextmanager
-        def suspend():
-            self.assertEqual(threading.get_ident(), main_thread)
-            events.append("suspend")
-            yield
-            events.append("resume")
+class UITests(Fixture):
+    def test_real_gum_preselected_items_in_pty(self):
+        if not shutil.which("gum"):
+            self.skipTest("gum unavailable")
+        import fcntl
+        import pty
+        import select
+        import struct
+        import termios
+        import time
 
-        async with app.run_test(size=(130, 40)):
-            with patch.object(app, "suspend", suspend):
-                with patch("subprocess.call", return_value=0):
-                    self.assertEqual(
-                        await asyncio.to_thread(app.interactive, ["fake"]), 0
-                    )
-                with patch("subprocess.call", side_effect=OSError("missing")):
-                    with self.assertRaisesRegex(OSError, "missing"):
-                        await asyncio.to_thread(app.interactive, ["fake"])
-            self.assertEqual(events, ["suspend", "resume", "suspend", "resume"])
-
-    async def test_review_confirmation_and_apply_in_isolated_home(self):
-        from scripts.installer.ui import InstallerApp
-        from textual.widgets import Checkbox
-
-        with tempfile.TemporaryDirectory(prefix="nayori-ui-apply-test-") as directory:
-            engine = Engine(Paths({"HOME": directory}), FakeRunner(), ROOT)
-            app = InstallerApp(engine=engine)
-            async with app.run_test(size=(130, 40)) as pilot:
-                app.components = {"nayori"}
-                app.step = 4
-                app.render_step()
-                for _ in range(150):
-                    await pilot.pause(0.01)
-                    if app.plan is not None:
+        pid, master = pty.fork()
+        if pid == 0:
+            os.environ["TERM"] = "xterm-256color"
+            os.execv(
+                sys.executable,
+                [
+                    sys.executable,
+                    "-c",
+                    "from scripts.installer.ui import Gum; print('GUM_RESULT', repr(Gum().choose('TEST_MENU', ['first', 'second'], ['second'], True)), flush=True)",
+                ],
+            )
+        fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
+        output = b""
+        sent = False
+        finished = False
+        try:
+            deadline = time.monotonic() + 8
+            while time.monotonic() < deadline:
+                if select.select([master], [], [], 0.1)[0]:
+                    try:
+                        chunk = os.read(master, 8192)
+                    except OSError:
                         break
-                self.assertIsNotNone(app.plan)
-                await pilot.click("#next")
-                await pilot.pause()
-                self.assertEqual(app.step, 4)
-                self.assertFalse(engine.paths.base.exists())
-                app.query_one("#approve", Checkbox).value = True
-                await pilot.pause(0.4)
-                await pilot.click("#next")
-                for _ in range(200):
-                    await pilot.pause(0.01)
-                    if app.step == 6:
-                        break
-                self.assertEqual(app.step, 6)
-                self.assertTrue((engine.paths.base / "current").is_symlink())
-                self.assertTrue((engine.paths.state / "installed.json").is_file())
+                    output += chunk
+                    if b"TEST_MENU" in output and not sent:
+                        os.write(master, b"\r")
+                        sent = True
+                done, _ = os.waitpid(pid, os.WNOHANG)
+                if done:
+                    finished = True
+                    break
+            self.assertIn(b"GUM_RESULT ['second']", output)
+        finally:
+            if not finished:
+                try:
+                    os.kill(pid, 9)
+                except ProcessLookupError:
+                    pass
+                os.waitpid(pid, 0)
+            os.close(master)
 
-    async def test_wizard_dependencies_search_diagnostics_sizes_and_dry_run(self):
+    def test_components_resolve_dependencies_and_deselect_dependents(self):
         from scripts.installer.ui import InstallerApp
-        from textual.widgets import Input, SelectionList
 
-        for size in ((80, 24), (130, 40)):
-            with tempfile.TemporaryDirectory(prefix="nayori-ui-test-") as directory:
-                engine = Engine(Paths({"HOME": directory}), FakeRunner())
-                app = InstallerApp(dry_run=True, engine=engine)
-                before = inventory(Path(directory))
-                async with app.run_test(size=size) as pilot:
-                    await pilot.click("#next")
-                    await pilot.pause()
-                    choices = app.query_one("#choices", SelectionList)
-                    choices.select("nayori")
-                    await pilot.press("space")
-                    await pilot.pause()
-                    # Navigate explicitly and check dependency handling through user toggle.
-                    app.step = 3
-                    app.render_step()
-                    choices.highlighted = 0
-                    await pilot.press("tab")
-                    choices.focus()
-                    await pilot.press("space")
-                    await pilot.pause()
-                    self.assertIn("autostart", app.components)
-                    self.assertIn("nayori", app.components)
-                    app.step = 2
-                    app.render_step()
-                    app.query_one("#search", Input).value = "btop"
-                    await pilot.pause()
-                    self.assertEqual(choices.option_count, 1)
-                    app.action_back()
-                    self.assertIn("autostart", app.components)
-                    app.action_diagnose()
-                    await pilot.pause()
-                    for _ in range(30):
-                        if app.report:
-                            break
-                        await asyncio.sleep(0.01)
-                    self.assertTrue(app.report)
-                self.assertEqual(inventory(Path(directory)), before)
+        labels = {
+            key: f"{item['label']} [{key}]"
+            for key, item in CATALOG["components"].items()
+        }
+        gum = FakeGum(choices=[[labels["autostart"]], []])
+        app = InstallerApp(engine=self.engine, gum=gum)
+        app.choose_components()
+        self.assertEqual(app.components, {"nayori", "autostart"})
+        app.choose_components()
+        self.assertEqual(app.components, set())
+        self.assertTrue(gum.calls[0][3])
+        self.assertEqual(set(gum.calls[1][2]), {labels["nayori"], labels["autostart"]})
+
+    def test_app_categories_keep_selections(self):
+        from scripts.installer.ui import InstallerApp
+
+        gum = FakeGum(choices=[["Системные"], ["btop [repo]"], ["Назад"]])
+        app = InstallerApp(engine=self.engine, gum=gum)
+        app.choose_apps()
+        self.assertEqual(app.apps, {"btop"})
+        self.assertTrue(gum.calls[1][4])
+
+    def test_review_is_read_only_until_confirmed(self):
+        from scripts.installer.ui import InstallerApp
+
+        before = inventory(self.root)
+        gum = FakeGum(confirmations=[False, False])
+        app = InstallerApp(engine=self.engine, gum=gum)
+        app.apps = {"btop"}
+        app.review()
+        self.assertEqual(inventory(self.root), before)
+        app.dry_run = True
+        app.review()
+        self.assertEqual(inventory(self.root), before)
+        self.assertEqual(len(gum.confirmations), 0)
+
+    def test_review_apply_and_package_error(self):
+        from scripts.installer.ui import InstallerApp
+
+        gum = FakeGum(confirmations=[True, True], choices=[["Повторить"]])
+        app = InstallerApp(engine=self.engine, gum=gum)
+        app.apps = {"btop"}
+        self.assertEqual(app.package_error("btop"), "retry")
+        app.review()
+        self.assertTrue((self.paths.state / "installed.json").is_file())
+        self.assertIn(["sudo", "pacman", "-Syu"], self.runner.commands)
+        self.assertTrue(
+            any(
+                "--noconfirm" in cmd and cmd[-1] == "btop"
+                for cmd in self.runner.commands
+            )
+        )
+
+    def test_review_refuses_modified_files_without_backup_confirmation(self):
+        from scripts.installer.ui import InstallerApp
+
+        self.engine.apply({"nayori"}, set())
+        launcher = self.paths.bin / "nayori"
+        launcher.write_text("custom launcher")
+        gum = FakeGum(confirmations=[False, False])
+        app = InstallerApp(engine=self.engine, gum=gum)
+        app.components = {"nayori"}
+        app.review()
+        self.assertEqual(launcher.read_text(), "custom launcher")
+        self.assertIsNone(self.engine.pending())
+
+    def test_diagnostic_restore_requires_exact_confirmation(self):
+        from scripts.installer.ui import InstallerApp
+
+        self.engine.apply({"nayori"}, set())
+        gum = FakeGum(choices=[["Откат"], ["Назад"]], inputs=["нет"])
+        app = InstallerApp(engine=self.engine, gum=gum)
+        app.diagnostics()
+        self.assertTrue((self.paths.base / "current").is_symlink())
 
 
 if __name__ == "__main__":

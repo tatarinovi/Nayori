@@ -24,14 +24,21 @@ fi
 [[ -t 0 && -t 1 && ${TERM:-dumb} != dumb ]] || {
     echo 'Нужен интерактивный терминал.' >&2; exit 1;
 }
-if ! command -v python3 >/dev/null || ! python3 -c 'import textual' 2>/dev/null; then
+missing=()
+command -v python3 >/dev/null || missing+=(python)
+command -v gum >/dev/null || missing+=(gum)
+if ((${#missing[@]})); then
     if (( readonly_mode )); then
-        echo 'Нужны python и python-textual. В режиме просмотра bootstrap отключён.' >&2
+        echo 'Нужны python и gum. В режиме просмотра bootstrap отключён.' >&2
         exit 1
     fi
-    printf '%s\n' 'Для интерфейса нужны python и python-textual из репозитория pacman.' \
+    printf '%s\n' 'Для установщика нужны python и gum из репозитория pacman.' \
         'Системный pip не используется. Обновление баз отдельно не выполняется.'
-    read -r -p 'Установить через sudo pacman -S --needed python python-textual? [y/N] ' answer
-    case "$answer" in y|Y|yes|да) sudo pacman -S --needed python python-textual ;; *) exit 0 ;; esac
+    printf 'Отсутствует: %s\n' "${missing[*]}"
+    read -r -p 'Установить недостающие пакеты через pacman? [y/N] ' answer
+    case "$answer" in y|Y|yes|да) sudo pacman -S --needed "${missing[@]}" ;; *) exit 0 ;; esac
+    command -v python3 >/dev/null && command -v gum >/dev/null || {
+        echo 'Python или gum не найдены после установки.' >&2; exit 1;
+    }
 fi
 exec python3 "$root/scripts/installer/ui.py" "$@"
