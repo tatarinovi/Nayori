@@ -406,19 +406,37 @@ class InstallerApp(App):
             self.exit()
 
     def interactive(self, argv):
-        with self.suspend():
-            import subprocess
+        import subprocess
 
+        def run():
             print("\nNayori: " + " ".join(argv), flush=True)
             return subprocess.call(argv)
 
-    def package_error(self, package):
+        return self.call_from_thread(self.terminal_action, run)
+
+    def terminal_action(self, action):
+        # Textual's terminal driver installs signal handlers and must resume on
+        # the main thread. Keep exceptions inside suspend so it can resume first.
+        error = None
+        result = None
         with self.suspend():
-            answer = (
+            try:
+                result = action()
+            except Exception as caught:
+                error = caught
+        if error is not None:
+            raise error
+        return result
+
+    def package_error(self, package):
+        def prompt():
+            return (
                 input(f"Ошибка {package}. [r] повтор / [s] пропуск / [c] отмена: ")
                 .strip()
                 .lower()
             )
+
+        answer = self.call_from_thread(self.terminal_action, prompt)
         return {"r": "retry", "c": "cancel"}.get(answer, "skip")
 
     def log_message(self, text):
@@ -566,11 +584,13 @@ class InstallerApp(App):
     def recover(self, rollback):
         self.running = True
         try:
-            with self.suspend():
+            def prompt():
                 print(
                     "Восстановление вернёт файлы до последней установки. Правки будут сохранены рядом. Пакеты останутся."
                 )
-                answer = input("Введите ВОССТАНОВИТЬ для подтверждения: ")
+                return input("Введите ВОССТАНОВИТЬ для подтверждения: ")
+
+            answer = self.call_from_thread(self.terminal_action, prompt)
             if answer == "ВОССТАНОВИТЬ":
                 self.engine.restore(allow_modified=True, rollback=rollback)
         except Exception as error:

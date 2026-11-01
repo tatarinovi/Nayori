@@ -12,7 +12,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
+from contextlib import contextmanager
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -572,6 +574,31 @@ class UITests(unittest.IsolatedAsyncioTestCase):
 
         loop.call_later(0.01, pulse)
         await asyncio.wait_for(loop.shutdown_default_executor(), 5)
+
+    async def test_interactive_terminal_returns_on_success_and_failure(self):
+        from scripts.installer.ui import InstallerApp
+
+        app = InstallerApp(engine=Engine(runner=FakeRunner()))
+        events = []
+        main_thread = threading.get_ident()
+
+        @contextmanager
+        def suspend():
+            self.assertEqual(threading.get_ident(), main_thread)
+            events.append("suspend")
+            yield
+            events.append("resume")
+
+        async with app.run_test(size=(130, 40)):
+            with patch.object(app, "suspend", suspend):
+                with patch("subprocess.call", return_value=0):
+                    self.assertEqual(
+                        await asyncio.to_thread(app.interactive, ["fake"]), 0
+                    )
+                with patch("subprocess.call", side_effect=OSError("missing")):
+                    with self.assertRaisesRegex(OSError, "missing"):
+                        await asyncio.to_thread(app.interactive, ["fake"])
+            self.assertEqual(events, ["suspend", "resume", "suspend", "resume"])
 
     async def test_review_confirmation_and_apply_in_isolated_home(self):
         from scripts.installer.ui import InstallerApp
