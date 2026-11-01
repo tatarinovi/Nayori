@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Services.Mpris
 
@@ -222,11 +223,17 @@ FocusScope {
                 }
                 Card {
                     id: weatherCard
+                    objectName: "weatherCard"
+                    readonly property bool softwareRendering: GraphicsInfo.api === GraphicsInfo.Software
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
                     Item {
+                        id: weatherBackdrop
+                        objectName: "weatherBackdrop"
                         anchors.fill: parent
+                        layer.enabled: !weatherCard.softwareRendering
+                        layer.effect: MultiEffect { maskEnabled: true; maskSource: weatherMask }
                         Image {
                             id: weatherIllustration
                             objectName: "weatherIllustration"
@@ -241,9 +248,17 @@ FocusScope {
                             color: Qt.alpha(root.tokens.color.background, 0.72)
                         }
                     }
-                    // Cover only the four outer corners; works with both GPU and software rendering.
+                    Rectangle {
+                        id: weatherMask
+                        anchors.fill: parent
+                        radius: weatherCard.radius
+                        color: "white"
+                        layer.enabled: true
+                        visible: false
+                    }
+                    // Shader effects are unavailable in the software renderer.
                     Repeater {
-                        model: 4
+                        model: weatherCard.softwareRendering ? 4 : 0
                         Canvas {
                             required property int index
                             width: weatherCard.radius

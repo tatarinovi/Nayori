@@ -17,6 +17,14 @@ ShellRoot {
         }
         return null
     }
+    function backdrop(item) {
+        if (item.objectName === "weatherBackdrop") return item
+        for (let child of item.children) {
+            const found = backdrop(child)
+            if (found) return found
+        }
+        return null
+    }
     function check(value, message) { if (!value) throw new Error(message) }
     function setWeather() { dashboard.weather = {weatherCode: codes[sceneIndex], temp_C: "18", FeelsLikeC: "17"} }
     FloatingWindow {
@@ -33,13 +41,16 @@ ShellRoot {
         repeat: true
         onTriggered: {
             const art = test.illustration(dashboard)
+            const background = test.backdrop(dashboard)
             test.check(dashboard.weatherScene === test.scenes[test.sceneIndex], "weather condition mapping")
             test.check(art && art.status === Image.Ready, "weather image loaded: " + test.scenes[test.sceneIndex])
+            test.check(background && (background.layer.enabled || background.parent.softwareRendering), "weather backdrop uses the renderer's clipping path")
             captureTimer.stop()
             dashboard.grabToImage(function(result) {
                 result.saveToFile("/tmp/nayori-weather-" + test.scenes[test.sceneIndex] + ".png")
                 test.sceneIndex++
                 if (test.sceneIndex < test.scenes.length) {
+                    theme.colorScheme = test.sceneIndex % 2 ? "light" : "dark"
                     test.setWeather()
                     captureTimer.start()
                 } else {
