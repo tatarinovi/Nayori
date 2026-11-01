@@ -58,7 +58,7 @@ Item {
     }
 
     Column {
-        anchors.verticalCenter: parent.verticalCenter
+        anchors.bottom: parent.bottom
         width: parent.width
         visible: root.player !== null
         spacing: 8
@@ -108,6 +108,7 @@ Item {
             }
         }
         Rectangle {
+            objectName: "desktop-music-progress"
             width: parent.width
             height: 3
             radius: 1.5
@@ -125,11 +126,13 @@ Item {
         }
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
+            topPadding: 8
             spacing: root.large ? 20 : 12
             AbstractButton {
                 id: previousButton
-                implicitWidth: 32
-                implicitHeight: 32
+                objectName: "desktop-music-previous"
+                implicitWidth: 40
+                implicitHeight: 40
                 hoverEnabled: true
                 focusPolicy: Qt.StrongFocus
                 enabled: !!root.player && root.player.canGoPrevious !== false
@@ -146,16 +149,17 @@ Item {
                     MusicTransportIcon {
                         name: "prev"
                         ink: root.tokens.color.text
-                        width: 16
-                        height: 16
+                        width: 20
+                        height: 20
                         anchors.centerIn: parent
                     }
                 }
             }
             AbstractButton {
                 id: playButton
-                implicitWidth: 32
-                implicitHeight: 32
+                objectName: "desktop-music-play"
+                implicitWidth: 40
+                implicitHeight: 40
                 hoverEnabled: true
                 focusPolicy: Qt.StrongFocus
                 enabled: !!root.player && root.player.canTogglePlaying !== false
@@ -172,16 +176,17 @@ Item {
                     MusicTransportIcon {
                         name: root.player && root.player.isPlaying ? "pause" : "play"
                         ink: root.tokens.color.text
-                        width: 16
-                        height: 16
+                        width: 20
+                        height: 20
                         anchors.centerIn: parent
                     }
                 }
             }
             AbstractButton {
                 id: nextButton
-                implicitWidth: 32
-                implicitHeight: 32
+                objectName: "desktop-music-next"
+                implicitWidth: 40
+                implicitHeight: 40
                 hoverEnabled: true
                 focusPolicy: Qt.StrongFocus
                 enabled: !!root.player && root.player.canGoNext !== false
@@ -198,8 +203,8 @@ Item {
                     MusicTransportIcon {
                         name: "next"
                         ink: root.tokens.color.text
-                        width: 16
-                        height: 16
+                        width: 20
+                        height: 20
                         anchors.centerIn: parent
                     }
                 }

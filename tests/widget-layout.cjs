@@ -12,7 +12,7 @@ const note = { id: "b", type: "note", x: 4, y: 8, size: "compact", style: "card"
 // Compact cards leave less unused space, while notes keep their editing area.
 for (const [type, size, height] of [
     ["clock", "compact", 100], ["clock", "huge", 290],
-    ["weather", "large", 200], ["music", "compact", 144],
+    ["weather", "large", 200], ["music", "compact", 152],
     ["system", "large", 184], ["note", "compact", 168]
 ]) {
     const box = context.sizeOf({ type, size })

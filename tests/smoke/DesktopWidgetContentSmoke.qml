@@ -12,6 +12,7 @@ ShellRoot {
     property string note: ""
     property int moved: 0
     property int menus: 0
+    property int plays: 0
     function check(ok, message) { if (!ok) { console.error("DESKTOP_CONTENT_FAIL " + message); Qt.exit(1) } }
     function findItem(item, name) {
         if (item.objectName === name) return item
@@ -21,6 +22,15 @@ ShellRoot {
     Tokens { id: theme }
     Test.TestEvent { id: input }
     SystemReader { id: systemReader }
+    QtObject {
+        id: player
+        property string trackTitle: "Трек"
+        property string trackArtist: "Исполнитель"
+        property string trackAlbum: "Альбом"
+        property real length: 120
+        property real position: 20
+        function togglePlaying() { test.plays++ }
+    }
     FloatingWindow {
         visible: true; implicitWidth: 520; implicitHeight: 400
         color: theme.color.background
@@ -40,6 +50,12 @@ ShellRoot {
             onMenuRequested: (id, x, y) => test.menus++
             onCommitPosition: (id, x, y, snap) => test.moved++
         }
+        MusicWidget {
+            id: musicWidget
+            x: 20; y: 250; width: 268; height: 120
+            tokens: theme
+            music: ({ player: player })
+        }
     }
     Timer {
         interval: 300; repeat: true; running: true
@@ -50,6 +66,17 @@ ShellRoot {
                 Niri.applyEvent({OverviewOpenedOrClosed: {is_open: false}}, Niri._streamEpoch)
                 test.check(!Niri.overviewOpen, "overview closed")
                 test.check(test.findItem(faces, "desktop-widget-face").visible, "wallpaper face shown")
+                const play = test.findItem(musicWidget, "desktop-music-play")
+                const previous = test.findItem(musicWidget, "desktop-music-previous")
+                const next = test.findItem(musicWidget, "desktop-music-next")
+                test.check(play && previous && next && play.width === 40 && play.height === 40 && previous.width === 40 && next.width === 40, "larger music controls")
+                const pos = play.mapToItem(musicWidget, 0, 0)
+                test.check(pos.y >= 0 && pos.y + play.height <= musicWidget.height, "music controls fit compact card")
+                const progress = test.findItem(musicWidget, "desktop-music-progress")
+                const progressBottom = progress.mapToItem(musicWidget, 0, progress.height).y
+                test.check(Math.abs(pos.y - progressBottom - (musicWidget.height - pos.y - play.height + 16)) < 0.1, "compact music spacing is balanced")
+                input.mouseClick(play, 20, 20, Qt.LeftButton, Qt.NoModifier, -1)
+                test.check(test.plays === 1, "music play button works")
                 systemReader.consumeGpu("42\n")
                 test.check(systemReader.gpu === 0.42 && !systemReader.gpuFailed, "GPU percentage parsed")
                 systemReader.consumeGpu("N/A")
@@ -64,11 +91,19 @@ ShellRoot {
             } else if (test.phase === 2) {
                 test.check(!test.findItem(faces, "desktop-widget-face").visible, "interactive face hidden on backdrop")
                 test.check(test.note === "a", "note edit saved")
+                musicWidget.large = true
+                musicWidget.height = 152
                 frame.editing = true
                 frame.forceActiveFocus()
                 input.keyClick(Qt.Key_Right, Qt.NoModifier, -1)
                 test.check(test.moved === 1, "keyboard moves widget")
             } else if (test.phase === 3) {
+                const play = test.findItem(musicWidget, "desktop-music-play")
+                const pos = play.mapToItem(musicWidget, 0, 0)
+                test.check(pos.y >= 0 && pos.y + play.height <= musicWidget.height, "music controls fit large card")
+                const progress = test.findItem(musicWidget, "desktop-music-progress")
+                const progressBottom = progress.mapToItem(musicWidget, 0, progress.height).y
+                test.check(Math.abs(pos.y - progressBottom - (musicWidget.height - pos.y - play.height + 16)) < 0.1, "large music spacing is balanced")
                 console.log("DESKTOP_CONTENT_PASS")
                 Qt.quit()
             }

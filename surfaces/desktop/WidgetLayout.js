@@ -10,7 +10,7 @@ var TYPES = { clock: true, weather: true, music: true, system: true, note: true 
 var BOX = {
     clock: { compact: [220, 100], large: [420, 180], extraLarge: [560, 235], huge: [700, 290] },
     weather: { compact: [248, 156], large: [340, 200] },
-    music: { compact: [300, 144], large: [380, 184] },
+    music: { compact: [300, 152], large: [380, 184] },
     system: { compact: [236, 152], large: [300, 184] },
     note: { compact: [260, 168], large: [340, 240] }
 }
