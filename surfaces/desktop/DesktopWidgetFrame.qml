@@ -50,9 +50,9 @@ FocusScope {
 
     visible: spec !== null
     width: box.width
-    height: box.height
+    height: box.height + (editing && spec && spec.type !== "note" ? 24 : 0)
     x: !spec ? 0 : dragging ? dragX : spec.x
-    y: !spec ? 0 : dragging ? dragY : spec.y
+    y: !spec ? 0 : dragging ? dragY : editing ? Math.min(spec.y, Math.max(0, screenHeight - height)) : spec.y
     z: dragging ? 10 : 0
     objectName: spec ? "desktop-widget-" + spec.id : "desktop-widget"
     activeFocusOnTab: true

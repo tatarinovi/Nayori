@@ -120,6 +120,15 @@ ShellRoot {
                 records.receive({id:5, body:"Текст уведомления"})
                 island.expanded = true
                 verify(!notificationText.scrolling)
+                island.expanded = false
+                wait(400)
+                verify(!sourceLabel.visible, "после раскрытия баннер не возвращается")
+                compare(records.unreadCount, 5)
+                records.receive({id: 7, appName: "Почта", summary: "Новое", body: "После раскрытия", actions: []})
+                wait(100)
+                verify(sourceLabel.visible, "следующее уведомление появляется в свёрнутом острове")
+                records.close(7)
+                island.expanded = true
                 verify(!mediaControls.visible)
                 verify(!sideClock.visible)
                 verify(!island.lyricsClock)

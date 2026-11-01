@@ -29,7 +29,8 @@ Item {
     readonly property string humidity: payload && payload.humidity !== null && large ? "Влажность " + payload.humidity + "%" : ""
 
     Column {
-        anchors.fill: parent
+        anchors.verticalCenter: parent.verticalCenter
+        width: parent.width
         spacing: root.large ? 10 : 5
         DesktopLabel {
             width: parent.width

@@ -189,6 +189,7 @@ Rectangle {
         audioReaction: root.audioReaction
         musicService: root.musicService
         notifications: root.notifications
+        expanded: root.expanded
         drawChrome: false
         expansionProgress: root.progress
         lookActive: root.expanded && cursor.hovered

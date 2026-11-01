@@ -9,6 +9,18 @@ vm.runInContext(fs.readFileSync("surfaces/desktop/WidgetLayout.js", "utf8").repl
 const clock = { id: "a", type: "clock", x: 10, y: 12, size: "large", style: "plain" }
 const note = { id: "b", type: "note", x: 4, y: 8, size: "compact", style: "card", text: "привет" }
 
+// Compact cards leave less unused space, while notes keep their editing area.
+for (const [type, size, height] of [
+    ["clock", "compact", 100], ["clock", "huge", 290],
+    ["weather", "large", 200], ["music", "compact", 144],
+    ["system", "large", 184], ["note", "compact", 168]
+]) {
+    const box = context.sizeOf({ type, size })
+    assert.strictEqual(box.height, height)
+    const clamped = context.clamp([{ id: type, type, size, x: 0, y: 999 }], 800, 600)
+    assert.strictEqual(clamped[0].y, 600 - height)
+}
+
 const saved = {
     "DP-1": { snap: true, items: [clock] },
     "HDMI-A-1": { snap: false, items: [note, { id: "gone", type: "photo", x: 1, y: 1 }] }

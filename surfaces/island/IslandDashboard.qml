@@ -129,6 +129,8 @@ FocusScope {
             spacing: 16
             Repeater {
                 id: pageTabs
+                property int layoutRevision: 0
+                onItemAdded: layoutRevision++
                 model: ["Главная", "Уведомления", "Полка"]
                 delegate: AbstractButton {
                     id: pageTab
@@ -170,6 +172,7 @@ FocusScope {
                         color: root.tokens.color.accent
                         transform: Translate {
                             x: {
+                                if (pageTabs.layoutRevision < root.pageCount) return 0
                                 const position = Math.max(0, Math.min(root.pageCount - 1, root.pagePosition))
                                 if (position === 0 && pageTab.index === 0) return (pageTab.width - pageIndicator.width) / 2
                                 const first = pageTabs.itemAt(Math.floor(position))

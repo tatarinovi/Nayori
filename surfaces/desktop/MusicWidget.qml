@@ -58,7 +58,8 @@ Item {
     }
 
     Column {
-        anchors.fill: parent
+        anchors.verticalCenter: parent.verticalCenter
+        width: parent.width
         visible: root.player !== null
         spacing: 8
         Row {

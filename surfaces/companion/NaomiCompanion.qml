@@ -13,6 +13,7 @@ Item {
     property string artworkAlignment: "center"
     property bool active: true
     property bool animationsEnabled: true
+    property var audioReaction: null
     // Реагировать на курсор: поза поглаживания и реплики на неё.
     property bool reactToPointer: true
     // Следить головой за курсором по всему компоненту (предпросмотр) или только над головой.
@@ -68,6 +69,7 @@ Item {
         height: root.illustrationHeight
         active: root.active
         animationsEnabled: root.animationsEnabled
+        audioReaction: root.audioReaction
         followPointer: root.followPointer
         pointerTracking: root.reactToPointer
         pet: brain.pet

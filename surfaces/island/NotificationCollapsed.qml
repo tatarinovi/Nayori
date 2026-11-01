@@ -11,12 +11,23 @@ import "../../services/island/NotificationPolicy.js" as Policy
 QtObject {
     id: root
     property var notifications: null
+    property bool expanded: false
     property int dwellMs: 30000
     property var shown: null
     property var floorTime: null
     property var floorId: null
     property var current: null
     property var pending: []
+
+    onExpandedChanged: {
+        if (!expanded || !ready) return
+        // Учитываем уведомление, чей отложенный пересчёт ещё не выполнился.
+        refresh()
+        if (shown && current) {
+            shown = { id: shown.id, until: 0 }
+            refresh()
+        }
+    }
 
     function isNewer(item, time, id) {
         const stamp = Number(item.time)

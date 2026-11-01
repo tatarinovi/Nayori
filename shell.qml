@@ -319,6 +319,7 @@ ShellRoot {
         id: companionHost
         active: settingsStore.ready && settingsStore.companionEnabled && root.probeScreen !== null
         component: CompanionWindow {
+            audioReaction: root.islandAudio
             companionStyle: settingsStore.companionStyle
             tokens: naomiTokens
             animationsEnabled: settingsStore.animationsEnabled

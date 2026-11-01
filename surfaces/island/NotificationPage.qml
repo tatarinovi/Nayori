@@ -57,7 +57,7 @@ FocusScope {
                 id: historyButton
                 objectName: "notificationHistoryButton"
                 visible: !root.showingHistory
-                implicitWidth: Math.max(36, historyButtonLabel.implicitWidth + 40)
+                implicitWidth: Math.max(36, historyContent.implicitWidth + 20)
                 implicitHeight: 36
                 hoverEnabled: true
                 focusPolicy: Qt.StrongFocus
@@ -70,26 +70,27 @@ FocusScope {
                     border.width: historyButton.visualFocus ? 2 : 1
                     border.color: historyButton.visualFocus ? root.tokens.color.accent : Qt.alpha(root.tokens.color.border, 0.45)
                 }
-                contentItem: RowLayout {
-                    spacing: 6
-                    Item { Layout.preferredWidth: 8 }
-                    Glyph {
-                        Layout.alignment: Qt.AlignVCenter
-                        Layout.preferredWidth: 14
-                        Layout.preferredHeight: 14
-                        implicitWidth: 14
-                        implicitHeight: 14
-                        name: "list"
-                        ink: historyButton.hovered ? root.tokens.color.text : root.tokens.color.textMuted
+                contentItem: Item {
+                    Row {
+                        id: historyContent
+                        objectName: "notificationHistoryContent"
+                        anchors.centerIn: parent
+                        spacing: 6
+                        Glyph {
+                            width: 14; height: 14
+                            anchors.verticalCenter: parent.verticalCenter
+                            name: "list"
+                            ink: historyButton.hovered ? root.tokens.color.text : root.tokens.color.textMuted
+                        }
+                        IslandLabel {
+                            objectName: "notificationHistoryLabel"
+                            tokens: root.tokens
+                            text: "История"
+                            font.pixelSize: 12
+                            wrapMode: Text.NoWrap
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
                     }
-                    IslandLabel {
-                        id: historyButtonLabel
-                        tokens: root.tokens
-                        text: "История"
-                        font.pixelSize: 12
-                        Layout.alignment: Qt.AlignVCenter
-                    }
-                    Item { Layout.preferredWidth: 8 }
                 }
             }
             IslandAction {

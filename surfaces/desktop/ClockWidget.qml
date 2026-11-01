@@ -19,7 +19,8 @@ Item {
     }
 
     Column {
-        anchors.fill: parent
+        anchors.verticalCenter: parent.verticalCenter
+        width: parent.width
         spacing: root.large ? 6 : 0
         DesktopLabel {
             width: parent.width

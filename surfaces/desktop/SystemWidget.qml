@@ -107,14 +107,16 @@ Item {
 
     Row {
         id: meterRow
-        anchors.fill: parent
+        anchors.verticalCenter: parent.verticalCenter
+        width: parent.width
+        height: childrenRect.height
         spacing: 4
         Repeater {
             model: WidgetLayout.normalizeMetrics(root.metrics)
             Meter {
                 required property string modelData
                 width: (meterRow.width - Math.max(0, WidgetLayout.normalizeMetrics(root.metrics).length - 1) * meterRow.spacing) / WidgetLayout.normalizeMetrics(root.metrics).length
-                height: meterRow.height
+                height: (root.large ? 68 : 52) + 52
                 tokens: root.tokens
                 title: modelData === "cpu" ? "CPU" : modelData === "memory" ? "RAM" : "GPU"
                 value: modelData === "cpu" ? (root.cpuKnown ? root.cpuText : "Нет данных") : modelData === "memory" ? (root.memoryKnown ? root.memoryText : "Нет данных") : root.gpuText

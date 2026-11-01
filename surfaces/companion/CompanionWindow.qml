@@ -11,6 +11,7 @@ PanelWindow {
     readonly property int designHeight: companionStyle === "chibi" ? 200 : companionStyle === "pixel-art" ? 400 : 534
     property int bottomInset: 88
     property bool animationsEnabled: true
+    property var audioReaction: null
     // true: за окнами, над обоями; false: поверх окон (но под меню, лаунчером и панелью)
     property bool desktopOnly: false
     // true: окно ловит курсор над головой Naomi (поглаживание). Клики по этому небольшому
@@ -131,6 +132,7 @@ PanelWindow {
         active: root.visible
         opacity: fullscreenGuard.reveal
         animationsEnabled: root.animationsEnabled
+        audioReaction: root.audioReaction
         reactToPointer: root.reactToPointer
         systemLines: root.systemLines
         reminderTracking: !root.sessionLocked

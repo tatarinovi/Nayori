@@ -16,12 +16,28 @@ ShellRoot {
         tokens: theme; testMode: true; notifications: testNotifications
         expanded: true
     }
+    Component {
+        id: dashboardComponent
+        IslandDashboard { testMode: true; width: 680; height: 450 }
+    }
     Timer { interval: 400; running: true; onTriggered: tests.test_header_wheel() }
     TestCase {
         id: tests
         name: "IslandWheel"
         when: false
         function test_header_wheel() {
+            for (let motion of [true, false]) {
+                theme.animationsEnabled = motion
+                const initialPage = dashboardComponent.createObject(scene.contentItem, {currentPage: 1, tokens: theme})
+                verify(initialPage !== null)
+                wait(350)
+                const initialTab = findChild(initialPage, "islandPageTab1")
+                const initialIndicator = findChild(initialPage, "islandPageIndicator")
+                const center = initialIndicator.mapToItem(initialTab, initialIndicator.width / 2, 0).x
+                fuzzyCompare(center, initialTab.width / 2, 0.5)
+                initialPage.destroy()
+            }
+            theme.animationsEnabled = true
             for (let id = 1; id <= 20; id++) testNotifications.receive({id:id,appName:"Test " + id,summary:"Title",body:"Body",actions:[]})
             wait(350)
             const page = findChild(island, "islandDashboardLoader").item
@@ -40,6 +56,14 @@ ShellRoot {
             tryCompare(page, "currentPage", 1)
             wait(250)
             checkTabs(1)
+            const historyButton = findChild(page, "notificationHistoryButton")
+            const historyContent = findChild(page, "notificationHistoryContent")
+            const historyLabel = findChild(page, "notificationHistoryLabel")
+            const historyCenter = historyContent.mapToItem(historyButton, historyContent.width / 2, historyContent.height / 2)
+            fuzzyCompare(historyCenter.x, historyButton.width / 2, 1)
+            fuzzyCompare(historyCenter.y, historyButton.height / 2, 0.5)
+            fuzzyCompare(historyLabel.width, historyLabel.implicitWidth, 0.5)
+            compare(historyLabel.lineCount, 1)
             const list = findChild(page, "notificationList")
             verify(list.contentHeight > list.height)
             list.contentY = 100

@@ -64,9 +64,11 @@ Rectangle {
     property bool testMode: false
     property var audioReaction: null
     property var notifications: null
+    property bool expanded: false
     NotificationCollapsed {
         id: collapsedBanner
         notifications: root.notifications
+        expanded: root.expanded
     }
     // Самое новое подходящее уведомление, 30 с. Срок не делает его прочитанным.
     readonly property var notification: collapsedBanner.current

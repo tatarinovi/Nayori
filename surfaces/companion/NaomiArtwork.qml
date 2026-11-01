@@ -10,6 +10,7 @@ Item {
     property string alignment: "center"
     property bool active: true
     property bool animationsEnabled: true
+    property var audioReaction: null
     property bool followPointer: false
     property bool pointerTracking: false
     property real pet: 0
@@ -59,6 +60,7 @@ Item {
         id: chibi
         NaomiChibi {
             id: chibiSprite
+            audioReaction: root.audioReaction
             alignment: root.alignment
             active: root.active
             animationsEnabled: root.animationsEnabled && !root.tokens.motion.off
