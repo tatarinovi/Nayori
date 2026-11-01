@@ -50,7 +50,7 @@ Item {
     readonly property bool webOffered: root.webTerms.length > 0
     readonly property var rows: SearchModel.buildRows({
         query: root.queryText,
-        apps: catalog.results,
+        apps: root.searching ? catalog.results : catalog.collectFrequent(usage.counts, usage.lastVisited, catalog.generation),
         files: fileSearch.files,
         commandOk: fileSearch.commandOk,
         commandPending: fileSearch.commandPending,
@@ -68,7 +68,7 @@ Item {
         truncated: fileSearch.truncated,
         fileQueryLength: SearchModel.fileNeedle(root.queryText).length
     })
-    readonly property bool listWanted: root.searching && (
+    readonly property bool listWanted: (
         root.rows.length > 0 || root.statusText.length > 0 || root.emptyText.length > 0
     )
     readonly property string emptyText: {
@@ -99,7 +99,10 @@ Item {
 
     Apps {
         id: catalog
+        launchCounts: usage.counts
     }
+
+    LauncherUsage { id: usage }
 
     FileSearch {
         id: fileSearch
@@ -210,6 +213,7 @@ Item {
         const launchedId = catalog.launch(entryId)
         if (!launchedId)
             return
+        usage.record(launchedId)
         root.launched(launchedId)
         root.commandArm = false
         root.close()

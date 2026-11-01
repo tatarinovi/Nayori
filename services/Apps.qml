@@ -11,6 +11,7 @@ QtObject {
     property string query: ""
     property int generation: 0
     property bool catalogReady: false
+    property var launchCounts: ({})
 
     readonly property int resultLimit: 5
 
@@ -27,7 +28,7 @@ QtObject {
     readonly property string normalizedQuery: root.query.trim().toLocaleLowerCase()
     readonly property int applicationCount: root.countApplications(root.generation)
     readonly property var favorites: root.collectFavorites(root.generation)
-    readonly property var results: root.collectResults(root.normalizedQuery, root.generation)
+    readonly property var results: root.collectResults(root.normalizedQuery, root.generation, root.launchCounts)
 
     // QtObject не принимает дочерние Connections. Каталог слушаем с объекта.
     function bump() {
@@ -266,8 +267,22 @@ QtObject {
         return root.applicationList().length
     }
 
-    // Пустой запрос не показывает «первые по алфавиту»: до ввода живы только избранные.
-    function collectResults(foldedQuery, generation) {
+    function collectFrequent(counts, visits, generation) {
+        if (generation < 0) return []
+        const ids = Object.keys(counts || {}).filter(id => counts[id] > 0)
+        ids.sort(function(a, b) {
+            return counts[b] - counts[a] || ((visits || {})[b] || 0) - ((visits || {})[a] || 0) || a.localeCompare(b)
+        })
+        const cards = []
+        for (let i = 0; i < ids.length && cards.length < root.resultLimit; i++) {
+            const card = root.cardFor(root.lookup(ids[i]))
+            if (card) cards.push(card)
+        }
+        return cards
+    }
+
+    // Поиск приложений начинается после ввода; частые приложения собираются отдельно.
+    function collectResults(foldedQuery, generation, counts) {
         if (generation < 0 || foldedQuery.length === 0)
             return []
         const apps = root.applicationList()
@@ -293,6 +308,9 @@ QtObject {
         matched.sort(function(a, b) {
             if (a.rank !== b.rank)
                 return a.rank - b.rank
+            const frequency = (counts[b.id] || 0) - (counts[a.id] || 0)
+            if (frequency !== 0)
+                return frequency
             const left = root.fold(a.name)
             const right = root.fold(b.name)
             if (left < right)
