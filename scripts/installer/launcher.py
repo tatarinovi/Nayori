@@ -51,6 +51,15 @@ def main():
         os.close(fd)
         raise RuntimeError("Nayori уже запущена через launcher") from None
     try:
+        # An unexpectedly killed launcher can leave its shell running unlocked.
+        try:
+            record = json.loads((runtime / "active.json").read_text())
+            pid = record["pid"]
+            start = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[19]
+            if start == record["start"]:
+                raise RuntimeError("Nayori уже запущена через launcher")
+        except FileNotFoundError:
+            pass
         release = (base / "current").resolve(strict=True)
         if not release.is_relative_to(base / "releases"):
             raise RuntimeError("Активная версия вне releases")
@@ -59,9 +68,8 @@ def main():
         env["NAYORI_NOTIFICATIONS"] = (
             "1" if "notifications" in manifest["components"] else "0"
         )
-        process = subprocess.Popen(
-            ["qs", "-p", str(release), "--no-duplicate"], env=env, pass_fds=(fd,)
-        )
+        # Do not leak the lock through Quickshell into applications it starts.
+        process = subprocess.Popen(["qs", "-p", str(release), "--no-duplicate"], env=env)
         for signum in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
             signal.signal(
                 signum,

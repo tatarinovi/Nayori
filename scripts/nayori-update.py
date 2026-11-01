@@ -63,6 +63,27 @@ def state(paths):
     return current, manifest, previous
 
 
+def update_launcher(paths, target):
+    source = (target / 'scripts/installer/launcher.py').read_text()
+    marker = 'INSTALL_BASE = None'
+    if source.count(marker) != 1:
+        raise InstallError('Некорректный launcher в обновлении')
+    launcher = paths.bin / 'nayori'
+    if launcher.is_symlink() or not launcher.is_file():
+        raise InstallError('Установленный launcher недоступен')
+    fd, name = tempfile.mkstemp(prefix='.nayori-launcher-', dir=paths.bin)
+    try:
+        with os.fdopen(fd, 'w') as stream:
+            stream.write(source.replace(marker, 'INSTALL_BASE = ' + repr(str(paths.base))))
+            stream.flush()
+            os.fchmod(stream.fileno(), 0o755)
+            os.fsync(stream.fileno())
+        os.replace(name, launcher)
+        sync_directory(paths.bin)
+    finally:
+        Path(name).unlink(missing_ok=True)
+
+
 def process_start(pid):
     return Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()[19]
 
@@ -78,6 +99,8 @@ def prepare_restart(paths, parent_pid):
     launcher = paths.bin / 'nayori'
     if not launcher.is_file() or not os.access(launcher, os.X_OK):
         raise InstallError('Launcher Nayori недоступен')
+    # Also migrate installations whose previous updater did not refresh the launcher.
+    update_launcher(paths, SCRIPT_ROOT)
     subprocess.Popen([sys.executable, str(Path(__file__).resolve()), '_restart',
                       str(parent_pid), record['start'], str(launcher), str(runtime)],
                      start_new_session=True, stdin=subprocess.DEVNULL,
@@ -141,6 +164,7 @@ def execute(operation, wanted=None):
                 new = Engine(paths=paths, source=source)._copy_release(manifest.get('components', ['nayori']))
                 if release(paths, 'current') != current:
                     raise InstallError('Установленная версия изменилась во время обновления')
+                update_launcher(paths, new)
                 switch(paths, 'previous', current)
                 switch(paths, 'current', new)
             return {'ok': True, 'installed': True, 'current': commit, 'latest': commit,
