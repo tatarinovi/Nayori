@@ -31,17 +31,18 @@ Item {
             spacing: 0
 
             SearchResults {
+                objectName: "launcher-dropdown-results"
                 width: column.width
                 tokens: root.tokens
                 entries: root.live ? root.host.rows : []
-                selectedIndex: root.live && root.host.searching ? root.host.selectedIndex : -1
+                selectedIndex: root.live ? root.host.selectedIndex : -1
                 emptyText: root.live ? root.host.emptyText : ""
                 onActivated: function(index) {
                     if (root.live)
                         root.host.launchIndex(index)
                 }
                 onHighlighted: function(index) {
-                    if (root.live && root.host.searching)
+                    if (root.live)
                         root.host.highlightIndex(index)
                 }
                 onSelectionGeometry: function(itemY, itemHeight) {

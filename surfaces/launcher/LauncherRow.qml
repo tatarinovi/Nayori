@@ -195,6 +195,7 @@ Item {
     }
 
     MouseArea {
+        objectName: "launcher-row-mouse"
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton

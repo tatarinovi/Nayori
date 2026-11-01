@@ -287,8 +287,6 @@ Item {
 
     function launchSelected() {
         root.reconcile()
-        if (!root.searching)
-            return
         const list = root.rows
         if (!list || root.selectedIndex < 0 || root.selectedIndex >= list.length)
             return
@@ -705,13 +703,10 @@ Item {
                         width: tailColumn.width
                         tokens: root.tokenSet
                         entries: root.rows
-                        selectedIndex: root.searching ? root.selectedIndex : -1
+                        selectedIndex: root.selectedIndex
                         emptyText: root.emptyText
                         onActivated: function(index) { root.launchIndex(index) }
-                        onHighlighted: function(index) {
-                            if (root.searching)
-                                root.highlightIndex(index)
-                        }
+                        onHighlighted: function(index) { root.highlightIndex(index) }
                     }
 
                     Text {
