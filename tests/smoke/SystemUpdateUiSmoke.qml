@@ -24,12 +24,20 @@ ShellRoot {
     Timer {
         running: true; interval: 100
         onTriggered: {
+            const progress = root.find(page, "systemUpdateProgressStatic")
             const c = root.find(compact, "islandCompactUpdateStatus")
             const a = root.find(page, "systemUpdateStatus")
             const b = root.find(island, "islandExpandedUpdateStatus")
-            if (!a || !b || !c || !a.visible || !b.visible || !c.visible || a.text !== update.status || b.text !== update.status || c.text !== update.status) {
+            if (!progress || !progress.visible || !a || !b || !c || !a.visible || !b.visible || !c.visible || a.text !== update.status || b.text !== update.status || c.text !== update.status) {
                 console.log("SYSTEM_UPDATE_UI_FAIL"); Qt.exit(1); return
             }
+            const animated = root.find(page, "systemUpdateProgress")
+            theme.animationsEnabled = true
+            if (!animated || !animated.visible || !animated.indeterminate || progress.visible) {
+                console.log("SYSTEM_UPDATE_UI_FAIL animated progress"); Qt.exit(1); return
+            }
+            update.busy = false
+            if (progress.visible || animated.visible) { console.log("SYSTEM_UPDATE_UI_FAIL progress still visible"); Qt.exit(1); return }
             console.log("SYSTEM_UPDATE_UI_PASS"); Qt.quit()
         }
     }

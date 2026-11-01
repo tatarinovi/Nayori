@@ -20,16 +20,23 @@ ShellRoot {
                 if (service.status !== "Обновляем базы пакетов") { console.log("SYSTEM_UPDATE_FAIL progress"); Qt.quit(); return }
                 step = 1
             } else if (step === 1 && !service.busy) {
-                if (service.status !== "Обновление завершено" || service.error !== "") {
+                if (service.status !== "Обновлений нет" || service.error !== "") {
                     console.log("SYSTEM_UPDATE_FAIL result " + service.status + " " + service.error); Qt.quit(); return
                 }
+                service.receive("upgrading test-package", false)
+                if (!service.sawPackageChanges) { console.log("SYSTEM_UPDATE_FAIL package changes"); Qt.quit(); return }
                 service.sudoFound = false
                 if (service.start()) { console.log("SYSTEM_UPDATE_FAIL missing sudo"); Qt.quit(); return }
                 service.sudoFound = true
-                service.yayFound = false
-                if (!service.start()) { console.log("SYSTEM_UPDATE_FAIL fallback"); Qt.quit(); return }
+                if (!service.start()) { console.log("SYSTEM_UPDATE_FAIL repeat"); Qt.quit(); return }
+                service.receive("upgrading test-package", false)
                 step = 2
             } else if (step === 2 && !service.busy) {
+                if (service.status !== "Обновление завершено") { console.log("SYSTEM_UPDATE_FAIL changed result"); Qt.quit(); return }
+                service.yayFound = false
+                if (!service.start()) { console.log("SYSTEM_UPDATE_FAIL fallback"); Qt.quit(); return }
+                step = 3
+            } else if (step === 3 && !service.busy) {
                 if (service.status !== "Обновление не завершено" || service.error.indexOf("fake failure") < 0) {
                     console.log("SYSTEM_UPDATE_FAIL failure " + service.error); Qt.quit(); return
                 }

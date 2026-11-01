@@ -16,12 +16,16 @@ QtObject {
     property string status: ""
     property string error: ""
     property string lastError: ""
+    property bool sawNoUpdates: false
+    property bool sawPackageChanges: false
     readonly property string tool: yayFound ? "yay" : "pacman"
 
     function start(): bool {
         if (busy || !toolsReady || !pacmanFound || !sudoFound || !zenityFound) return false
         error = ""
         lastError = ""
+        sawNoUpdates = false
+        sawPackageChanges = false
         status = "Запускаем обновление"
         // The helper retains no password and permits at most one askpass dialog.
         runner.command = [root.script, root.tool]
@@ -34,6 +38,10 @@ QtObject {
         if (!text) return
         if (isError) lastError = text.slice(0, 400)
         const lower = text.toLowerCase()
+        if (lower.indexOf("there is nothing to do") >= 0) sawNoUpdates = true
+        if (lower.indexOf("installing ") >= 0 || lower.indexOf("upgrading ") >= 0
+                || lower.indexOf("making package:") >= 0 || lower.indexOf("building ") >= 0)
+            sawPackageChanges = true
         if (lower.indexOf("synchronizing package databases") >= 0) status = "Обновляем базы пакетов"
         else if (lower.indexOf("retrieving packages") >= 0 || lower.indexOf("downloading") >= 0) status = "Загружаем пакеты"
         else if (lower.indexOf("building") >= 0 || lower.indexOf("making package") >= 0) status = "Собираем пакеты AUR"
@@ -59,7 +67,7 @@ QtObject {
         stderr: SplitParser { onRead: line => root.receive(line, true) }
         onExited: code => {
             root.busy = false
-            if (code === 0) root.status = "Обновление завершено"
+            if (code === 0) root.status = root.sawNoUpdates && !root.sawPackageChanges ? "Обновлений нет" : "Обновление завершено"
             else {
                 root.status = "Обновление не завершено"
                 root.error = (root.lastError || ("Код завершения: " + code)) + ". Если подтверждение истекло или пароль неверный, запустите обновление снова."
