@@ -24,6 +24,13 @@ class InstallError(RuntimeError):
     pass
 
 
+def niri_launcher_argument(path):
+    value = str(path)
+    if any(ord(char) < 32 or ord(char) == 127 for char in value):
+        raise InstallError("Недопустимый путь launcher")
+    return json.dumps(value, ensure_ascii=False)
+
+
 def exists(path):
     return path.exists() or path.is_symlink()
 
@@ -669,9 +676,7 @@ class Engine:
                 self.source / "configs/niri", stage, dirs_exist_ok=True, symlinks=True
             )
             launcher = str(self.paths.bin / "nayori")
-            if any(c in launcher for c in ("\n", "\r", "\x00")):
-                raise InstallError("Недопустимый путь launcher")
-            command = json.dumps(launcher, ensure_ascii=False)
+            command = niri_launcher_argument(launcher)
             bindings = []
             if "nayori" in components:
                 bindings.append(
@@ -744,6 +749,8 @@ class Engine:
                 raise InstallError(
                     "Есть незавершённая транзакция. Сначала выполните восстановление."
                 )
+            if "autostart" in resolve_components(components):
+                niri_launcher_argument(self.paths.bin / "nayori")
             plan = self.preflight(components, apps)
             if plan["modified"] and not allow_modified:
                 raise InstallError(
@@ -947,7 +954,7 @@ class Engine:
             if "autostart" in active and "niri" not in active:
                 self.log(
                     "Добавьте в niri вручную: spawn-at-startup "
-                    + json.dumps(str(self.paths.bin / "nayori"))
+                    + niri_launcher_argument(self.paths.bin / "nayori")
                 )
             requirements = {
                 requirement

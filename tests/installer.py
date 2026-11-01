@@ -187,6 +187,29 @@ class EngineTests(Fixture):
             plan = self.engine.preflight({"niri"}, set())
         self.assertFalse(any("Strata" in problem for problem in plan["problems"]))
 
+    def test_autostart_manual_command_handles_unicode_and_preserves_niri(self):
+        home = self.root / 'пользователь "test"'
+        home.mkdir()
+        paths = Paths({"HOME": str(home)})
+        paths.niri.mkdir(parents=True)
+        config = paths.niri / "config.kdl"
+        config.write_text("// original\n")
+        messages = []
+        engine = Engine(paths, FakeRunner(), self.source, messages.append)
+        engine.apply({"autostart"}, set())
+        line = next(m for m in messages if m.startswith("Добавьте в niri вручную: "))
+        command = line.removeprefix("Добавьте в niri вручную: ")
+        self.assertIn("пользователь", command)
+        self.assertIn('\\"test\\"', command)
+        self.assertEqual(config.read_text(), "// original\n")
+        if shutil.which("niri"):
+            fixture = self.root / "autostart-test.kdl"
+            fixture.write_text(command + "\n")
+            result = subprocess.run(
+                ["niri", "validate", "-c", str(fixture)], capture_output=True, text=True
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_niri_symlink_preserved_and_real_validation(self):
         if not shutil.which("niri"):
             self.skipTest("niri unavailable")
@@ -202,6 +225,14 @@ class EngineTests(Fixture):
         binds = (self.paths.niri / "cfg/keybinds.kdl").read_text()
         self.assertIn("home with spaces", binds)
         self.assertNotIn("/home/tatarinov", binds)
+        startup = (self.paths.niri / "cfg/autostart.kdl").read_text()
+        self.assertEqual(
+            startup,
+            "spawn-at-startup "
+            + json.dumps(str(self.paths.bin / "nayori"), ensure_ascii=False)
+            + "\n",
+        )
+        self.assertTrue((self.paths.bin / "nayori").is_file())
         self.engine.restore(rollback=True)
         self.assertTrue(self.paths.niri.is_symlink())
 
