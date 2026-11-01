@@ -353,7 +353,8 @@ FocusScope {
     }
     Keys.onEscapePressed: function(event) {
         event.accepted = true
-        if (root.searchOpen) root.dismissSearch()
+        if (displayPage.confirmationPending) displayPage.cancelDisplay()
+        else if (root.searchOpen) root.dismissSearch()
         else root.closeRequested()
     }
     Keys.onPressed: function(event) {
@@ -920,4 +921,15 @@ FocusScope {
             }
         }
     }
+    DisplayConfirmation {
+        parent: root
+        tokens: root.tokens
+        pending: displayPage.confirmationPending
+        busy: displayPage.confirmationBusy
+        secondsLeft: displayPage.confirmationSeconds
+        error: displayPage.confirmationError
+        onConfirmed: displayPage.confirmDisplay()
+        onCanceled: displayPage.cancelDisplay()
+    }
+
 }

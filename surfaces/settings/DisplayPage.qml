@@ -22,6 +22,12 @@ Column {
     }
     readonly property bool canApply: selectedCard !== null && !selectedCard.locked
         && service.ready && service.validateAvailable && !service.busy
+    readonly property bool confirmationPending: service.pending
+    readonly property bool confirmationBusy: service.busy
+    readonly property int confirmationSeconds: service.secondsLeft
+    readonly property string confirmationError: service.error
+    function confirmDisplay() { if (service.pending && !service.busy) service.confirm() }
+    function cancelDisplay() { if (service.pending && !service.busy) service.rollback() }
     function apply() { if (canApply) selectedCard.applyCard() }
 
     component Label: SettingsLabel { tokens: root.tokens }
@@ -397,34 +403,6 @@ Column {
         font.pixelSize: 13
         visible: service.modesError !== ""
         text: service.modesError + ". Разрешение и частоту можно вписать вручную, например 1920x1080 и 60"
-    }
-
-    SettingsCard {
-        visible: service.pending
-        tokens: root.tokens
-        title: "Картинка на месте?"
-        subtitle: "Если не нажать «Оставить», Nayori вернёт прежние настройки экрана"
-        highlighted: true
-        Label {
-            width: parent.width
-            text: "Осталось " + service.secondsLeft + " с"
-        }
-        Row {
-            spacing: 8
-            SettingsButton {
-                tokens: root.tokens
-                text: "Оставить"
-                primary: true
-                enabled: !service.busy
-                onClicked: service.confirm()
-            }
-            SettingsButton {
-                tokens: root.tokens
-                text: "Вернуть"
-                enabled: !service.busy
-                onClicked: service.rollback()
-            }
-        }
     }
 
     Label {

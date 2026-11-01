@@ -98,6 +98,16 @@ ShellRoot {
             implicitWidth: 1600
             implicitHeight: 1000
 
+            DisplayConfirmation {
+                id: confirmationTest
+                parent: view
+                tokens: theme
+                secondsLeft: 15
+                property int confirms: 0
+                property int cancels: 0
+                onConfirmed: { confirms++; pending = false }
+                onCanceled: { cancels++; pending = false }
+            }
             Settings {
                 id: view
                 settingsService: settings
@@ -112,6 +122,25 @@ ShellRoot {
                 onSectionVisited: key => { test.visitedSections = test.visitedSections.concat([key]); }
                 Test.TestEvent { id: input }
                 function exerciseInput() {
+                    confirmationTest.pending = true
+                    test.check(confirmationTest.visible && confirmationTest.modal && confirmationTest.closePolicy === 0, "display confirmation is modal")
+                    test.check(confirmationTest.x === Math.round((view.width - confirmationTest.width) / 2)
+                        && confirmationTest.y === Math.round((view.height - confirmationTest.height) / 2), "display confirmation is centered")
+                    const confirm = test.findItem(confirmationTest.contentItem, "display-confirm")
+                    const cancel = test.findItem(confirmationTest.contentItem, "display-cancel")
+                    test.check(confirm.text === "Применить" && cancel.text === "Отменить", "display confirmation actions")
+                    confirmationTest.busy = true
+                    test.check(!confirm.enabled && !cancel.enabled, "display confirmation waits for service")
+                    confirmationTest.busy = false
+                    confirm.clicked()
+                    test.check(confirmationTest.confirms === 1 && !confirmationTest.visible, "display confirmation accepts")
+                    confirmationTest.pending = true
+                    cancel.clicked()
+                    test.check(confirmationTest.cancels === 1 && !confirmationTest.visible, "display confirmation cancels")
+                    confirmationTest.pending = true
+                    cancel.forceActiveFocus()
+                    input.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+                    test.check(confirmationTest.cancels === 2 && !confirmationTest.visible, "escape cancels display confirmation")
                     test.check(section.title === "Обзор" && !hasSecondary, "consistent overview name")
                     const shortcuts = ["wallpapers", "appearance", "panels", "island"]
                     for (const key of shortcuts) {
