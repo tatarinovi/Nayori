@@ -17,16 +17,28 @@ def main():
     base = Path(INSTALL_BASE)
     runtime = Path(os.environ["XDG_RUNTIME_DIR"]) / "nayori"
     args = sys.argv[1:]
-    if args and args[0] in ("ipc", "status", "settings"):
+    if args and args[0] in ("ipc", "status", "settings", "-stop"):
+        if args[0] == "-stop" and len(args) != 1:
+            raise RuntimeError("Использование: nayori -stop")
         record = json.loads((runtime / "active.json").read_text())
         # PID reuse cannot accidentally address a different process.
         pid = record["pid"]
-        start = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[19]
-        if start != record["start"]:
-            raise RuntimeError("Запись работающей версии устарела")
-        release = record["release"]
-        if not Path(release).is_relative_to(base / "releases"):
-            raise RuntimeError("Неверная запись работающей версии")
+        if not isinstance(pid, int) or isinstance(pid, bool) or pid <= 0:
+            raise RuntimeError("Неверный PID работающей версии")
+        pidfd = os.pidfd_open(pid) if args[0] == "-stop" else None
+        try:
+            start = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[19]
+            if start != record["start"]:
+                raise RuntimeError("Запись работающей версии устарела")
+            release = record["release"]
+            if not Path(release).is_relative_to(base / "releases"):
+                raise RuntimeError("Неверная запись работающей версии")
+            if pidfd is not None:
+                signal.pidfd_send_signal(pidfd, signal.SIGTERM)
+                return 0
+        finally:
+            if pidfd is not None:
+                os.close(pidfd)
         if args[0] == "status":
             command = ["qs", "ipc", "-p", release, "show"]
         elif args[0] == "settings":
@@ -36,7 +48,7 @@ def main():
         return subprocess.call(command)
     if args:
         raise RuntimeError(
-            "Использование: nayori [ipc TARGET METHOD [ARGS...] | settings | status]"
+            "Использование: nayori [ipc TARGET METHOD [ARGS...] | settings | status | -stop]"
         )
     runtime.mkdir(mode=0o700, parents=True, exist_ok=True)
     info = runtime.lstat()

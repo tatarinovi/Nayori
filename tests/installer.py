@@ -619,8 +619,22 @@ class LauncherTests(unittest.TestCase):
                 )
                 self.assertIn("releases/one", output)
                 self.assertNotIn("releases/two", output)
+                active = runtime / "nayori/active.json"
+                record = json.loads(active.read_text())
+                stale = dict(record, start="0")
+                active.write_text(json.dumps(stale))
+                result = subprocess.run([str(launcher), "-stop"], env=env, capture_output=True)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIsNone(process.poll())
+                active.write_text(json.dumps(record))
+                subprocess.run([str(launcher), "-stop"], env=env, check=True)
+                process.communicate(timeout=5)
+                self.assertFalse(active.exists())
+                result = subprocess.run([str(launcher), "-stop"], env=env, capture_output=True)
+                self.assertNotEqual(result.returncode, 0)
             finally:
-                process.terminate()
+                if process.poll() is None:
+                    process.terminate()
                 process.communicate(timeout=5)
 
 
