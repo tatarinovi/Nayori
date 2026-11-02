@@ -172,6 +172,7 @@ Rectangle {
             matched.push({
                 windowId: w.id,
                 appId: w.appId ? String(w.appId) : "",
+                pid: w.pid,
                 title: w.title ? String(w.title) : "",
                 focused: w.focused === true
             })
@@ -222,7 +223,9 @@ Rectangle {
     }
 
     // Путь локальной темы или пустая строка. Сеть и новый набор иконок не используются.
-    function iconFor(appId) {
+    function iconFor(appId, pid) {
+        if (pid === Quickshell.processId && appId !== "" && appId === Quickshell.appId)
+            return String(Qt.resolvedUrl("../../assets/branding/nayori-fox-logo.png"))
         const entry = root.entryFor(appId)
         if (!entry || !entry.icon)
             return ""
@@ -285,7 +288,7 @@ Rectangle {
         readonly property string title: modelData && modelData.title ? String(modelData.title) : ""
         readonly property bool focused: !!(modelData && modelData.focused)
 
-        readonly property string iconUrl: root.desktopEpoch >= 0 ? root.iconFor(appId) : ""
+        readonly property string iconUrl: root.desktopEpoch >= 0 ? root.iconFor(appId, modelData ? modelData.pid : null) : ""
         readonly property bool showLetter: iconUrl === "" || iconImage.status === Image.Error
 
         x: index * (root.slot + root.gap)

@@ -39,11 +39,12 @@ case "${1:-}" in
             printf '\n>>> %s\n' "$test"
             python3 "tests/$test.py"
         done
-        for fixture in Battery Clipboard NaomiPixel NayoriUpdate PolkitDialog DesktopWidgetContent StatusPopup WorkspaceMotion; do
+        for fixture in AppsScope Battery Clipboard NaomiPixel NayoriUpdate PolkitDialog DesktopWidgetContent StatusPopup WorkspaceMotion; do
             log="$runtime/$fixture.log"
             timeout 20s qs -p "tests/smoke/${fixture}Smoke.qml" --no-color > "$log" 2>&1 || { cat "$log"; exit 1; }
             cat "$log"
             case "$fixture" in
+                AppsScope) marker=APPS_SCOPE_PASS ;;
                 Battery) marker=BATTERY_SMOKE_PASS ;;
                 Clipboard) marker=CLIPBOARD_SMOKE_PASS ;;
                 NaomiPixel) marker=NAOMI_PIXEL_PASS ;;
