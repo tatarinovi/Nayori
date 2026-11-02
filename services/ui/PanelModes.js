@@ -11,6 +11,7 @@ function normalize(value) {
             const mode = entry[part];
             if (mode === "always" || mode === "auto" || mode === "hidden") modes[part] = mode;
         }
+        if (entry.appsScope === "workspace" || entry.appsScope === "monitor") modes.appsScope = entry.appsScope;
         if (Object.keys(modes).length) Object.defineProperty(result, output, {value: modes, enumerable: true, configurable: true});
     }
     return result;

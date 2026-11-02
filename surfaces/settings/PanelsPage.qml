@@ -167,6 +167,7 @@ FocusScope {
                             modes: ({
                                 top: PanelModes.mode(root.panelModes, modelData.name, "top", root.autoHideTop, !modelData.primary && root.hideSecondaryIsland),
                                 apps: PanelModes.mode(root.panelModes, modelData.name, "apps", root.autoHideApps, false),
+                                appsScope: PanelModes.explicitMode(root.panelModes, modelData.name, "appsScope") || "workspace",
                                 workspaces: PanelModes.mode(root.panelModes, modelData.name, "workspaces", root.autoHideWorkspaces, false),
                                 status: PanelModes.mode(root.panelModes, modelData.name, "status", root.autoHideStatus, false)
                             })

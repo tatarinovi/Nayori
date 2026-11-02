@@ -673,6 +673,8 @@ Scope {
 
         AppsIsland {
             id: apps
+            allMonitorWindows: PanelModes.explicitMode(root.shellState.panelModes, root.screenName, "appsScope") === "monitor"
+            maxWidth: root.panelScreen ? Math.max(120, root.panelScreen.width - 48) : 120
             outputName: root.panelScreen ? root.panelScreen.name : ""
             opacity: appsWindow.contentOpacity
             tokens: root.tokenSet

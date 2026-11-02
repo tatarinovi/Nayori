@@ -122,6 +122,24 @@ Rectangle {
                 }
             }
         }
+        SettingsLabel {
+            tokens: card.tokens
+            text: "Окна в доке"
+            color: card.tokens.color.textMuted
+        }
+        SettingsSelect {
+            objectName: "panels-" + card.outputName + "-apps-scope"
+            width: parent.width
+            tokens: card.tokens
+            Accessible.name: "Окна в доке: " + currentLabel
+            model: [
+                {key: "workspace", label: "Окна текущего рабочего стола"},
+                {key: "monitor", label: "Отображать все окна этого монитора"}
+            ]
+            currentKey: card.modes.appsScope || "workspace"
+            onActivated: key => card.modeRequested("appsScope", key)
+            onFocusReceived: card.itemFocused(this)
+        }
         Rectangle { width: parent.width; height: 1; color: card.tokens.color.border }
         SettingsLabel {
             tokens: card.tokens

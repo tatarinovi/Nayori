@@ -14,6 +14,8 @@ Rectangle {
 
     required property var tokens
     property string outputName: ""
+    property bool allMonitorWindows: false
+    property real maxWidth: 10000
 
     readonly property int pad: tokens.spacing.small
     readonly property int slot: PanelGeometry.appsIconSlot()
@@ -62,7 +64,7 @@ Rectangle {
     readonly property bool hasWindows: visibleWindows.length > 0
     visible: hasWindows
 
-    implicitWidth: Math.max(implicitHeight, cluster.implicitWidth + pad * 2)
+    implicitWidth: Math.min(maxWidth, Math.max(implicitHeight, cluster.implicitWidth + pad * 2))
     implicitHeight: slot + pad * 2
     width: implicitWidth
     height: implicitHeight
@@ -143,7 +145,7 @@ Rectangle {
             chosenId = activeId
             haveChosen = true
         }
-        if (!haveChosen)
+        if (!haveChosen && !root.allMonitorWindows)
             return none
 
         const winCount = root.listCount(windows)
@@ -154,7 +156,18 @@ Rectangle {
                 continue
             if (w.output && w.output !== output)
                 continue
-            if (!root.sameId(w.workspaceId, chosenId))
+            if (root.allMonitorWindows) {
+                let belongs = false
+                for (let j = 0; j < wsCount; j++) {
+                    const workspace = root.listAt(workspaces, j)
+                    if (workspace && workspace.output === output && root.sameId(workspace.id, w.workspaceId)) {
+                        belongs = true
+                        break
+                    }
+                }
+                if (!belongs)
+                    continue
+            } else if (!root.sameId(w.workspaceId, chosenId))
                 continue
             matched.push({
                 windowId: w.id,
@@ -164,7 +177,7 @@ Rectangle {
             })
         }
 
-        if (matched.length <= root.maxVisible)
+        if (root.allMonitorWindows || matched.length <= root.maxVisible)
             return { windows: matched, overflow: 0 }
 
         let focusIndex = -1
@@ -281,6 +294,14 @@ Rectangle {
         height: root.slot
 
         activeFocusOnTab: true
+        onActiveFocusChanged: {
+            if (!activeFocus)
+                return
+            if (x < viewport.contentX)
+                viewport.contentX = x
+            else if (x + width > viewport.contentX + viewport.width)
+                viewport.contentX = Math.min(viewport.contentWidth - viewport.width, x + width - viewport.width)
+        }
         Keys.onReturnPressed: root.focusAt(windowId)
         Keys.onSpacePressed: root.focusAt(windowId)
         PanelTooltip {
@@ -350,9 +371,26 @@ Rectangle {
         }
     }
 
+    Flickable {
+        id: viewport
+        anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: root.pad }
+        height: root.slot
+        contentWidth: cluster.width
+        contentHeight: height
+        clip: true
+        flickableDirection: Flickable.HorizontalFlick
+        boundsBehavior: Flickable.StopAtBounds
+        interactive: contentWidth > width
+        WheelHandler {
+            onWheel: event => {
+                viewport.contentX = Math.max(0, Math.min(viewport.contentWidth - viewport.width,
+                    viewport.contentX - (event.angleDelta.x || event.angleDelta.y)))
+                event.accepted = true
+            }
+        }
     Item {
         id: cluster
-        anchors.centerIn: parent
+        x: Math.max(0, (viewport.width - width) / 2)
 
         readonly property int count: {
             const list = root.visibleWindows
@@ -388,5 +426,6 @@ Rectangle {
             renderType: Text.NativeRendering
             textFormat: Text.PlainText
         }
+    }
     }
 }
