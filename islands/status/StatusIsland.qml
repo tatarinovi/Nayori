@@ -69,11 +69,12 @@ Rectangle {
     }
 
     property string opened: ""
-    property bool networkRetained: false
+    property string retainedPopup: ""
     property bool networkKeyboard: false
-    readonly property bool networkPopup: opened === "network" || (opened === "" && networkRetained)
-    property real networkReveal: opened === "network" ? 1 : 0
-    Behavior on networkReveal {
+    readonly property string displayedPopup: opened !== "" ? opened : retainedPopup
+    readonly property bool networkPopup: displayedPopup === "network"
+    property real popupReveal: opened !== "" ? 1 : 0
+    Behavior on popupReveal {
         enabled: !root.tokens.motion.off && !root.networkKeyboard
         NumberAnimation {
             duration: root.tokens.motion.fast
@@ -81,11 +82,12 @@ Rectangle {
             easing.bezierCurve: root.tokens.motion.easeOut
         }
     }
-    onNetworkRevealChanged: if (networkReveal === 0 && opened !== "network") networkRetained = false
+    onPopupRevealChanged: if (popupReveal === 0 && opened === "") retainedPopup = ""
     property var trayMenuStack: []
     onOpenedChanged: {
-        if (opened === "network") networkRetained = true
-        else if (opened !== "" || tokens.motion.off || networkKeyboard) networkRetained = false
+        if (opened !== "" && opened !== "network") networkKeyboard = false
+        if (opened !== "") retainedPopup = opened
+        else if (tokens.motion.off || networkKeyboard) retainedPopup = ""
         if (opened !== "bluetooth" && bluetoothService) bluetoothService.stopDiscovery()
         clearTrayMenus()
     }
@@ -315,21 +317,24 @@ Rectangle {
 
     PopupWindow {
         id: popup
-        visible: (root.opened !== "" || root.networkRetained) && root.menuWindow !== null
+        objectName: "status-popup"
+        visible: root.displayedPopup !== "" && root.menuWindow !== null
         anchor.item: root
         anchor.edges: Edges.Top | Edges.Right
         anchor.gravity: Edges.Top | Edges.Left
         anchor.margins.top: 8
         Region { id: popupGlass; item: popupGlassSurface; radius: root.networkPopup ? root.tokens.radius.medium : root.tokens.radius.small + 12 }
-        BackgroundEffect.blurRegion: root.tokens.frosted ? popupGlass : null
-        implicitWidth: root.opened === "bluetooth" || root.networkPopup ? 360 : 320
+        BackgroundEffect.blurRegion: root.tokens.frosted && root.opened !== "" && root.popupReveal === 1 ? popupGlass : null
+        mask: Region { width: root.opened !== "" ? popup.width : 0; height: root.opened !== "" ? popup.height : 0 }
+        implicitWidth: root.displayedPopup === "bluetooth" || root.networkPopup ? 360
+                     : root.displayedPopup === "tray" && !root.trayMenuStack.length ? 248 : 320
         implicitHeight: popupColumn.implicitHeight + 24
         color: "transparent"
-        grabFocus: true
+        grabFocus: root.opened !== ""
         onVisibleChanged: {
             if (!visible) {
                 root.opened = ""
-                root.networkRetained = false
+                root.retainedPopup = ""
             } else
                 Qt.callLater(function() {
                     if (root.opened === "network") networkPanel.forceActiveFocus()
@@ -343,8 +348,8 @@ Rectangle {
             radius: root.networkPopup ? root.tokens.radius.medium : root.tokens.radius.small + 12
             color: root.networkPopup ? root.tokens.material.dense : root.tokens.material.menu
             transformOrigin: Item.BottomRight
-            opacity: root.networkPopup ? root.networkReveal : 1
-            scale: root.networkPopup && !root.tokens.motion.off ? 0.97 + root.networkReveal * 0.03 : 1
+            opacity: root.popupReveal
+            scale: !root.tokens.motion.off ? 0.97 + root.popupReveal * 0.03 : 1
             border.width: 1
             border.color: root.tokens.color.border
 
@@ -368,16 +373,16 @@ Rectangle {
                     visible: !root.networkPopup
                     width: parent.width
                     StatusText {
-                        width: parent.width - 32 - (root.opened === "bluetooth" ? 84 : 0)
+                        width: parent.width - 32 - (root.displayedPopup === "bluetooth" ? 84 : 0)
                         height: 32
                         verticalAlignment: Text.AlignVCenter
-                        text: root.opened === "tray" ? "System tray" : root.opened === "audio" ? "Sound" : root.opened.startsWith("bluetooth") ? "Bluetooth" : "Network"
+                        text: root.displayedPopup === "tray" ? "Трей" : root.displayedPopup === "audio" ? "Звук" : root.displayedPopup.startsWith("bluetooth") ? "Bluetooth" : "Сеть"
                         font.family: root.tokens.type.display.family
                         font.pixelSize: root.tokens.type.display.size
                     }
                     SettingsSwitch {
                         tokens: root.tokens
-                        visible: root.opened === "bluetooth"
+                        visible: root.displayedPopup === "bluetooth"
                         width: 52
                         height: 32
                         text: ""
@@ -391,7 +396,7 @@ Rectangle {
                     }
                     StatusButton {
                         tokens: root.tokens
-                        visible: root.opened === "bluetooth"
+                        visible: root.displayedPopup === "bluetooth"
                         iconName: "settings"
                         hint: "Настройки Bluetooth"
                         onClicked: { root.opened = ""; root.bluetoothSettingsRequested() }
@@ -405,7 +410,7 @@ Rectangle {
                 }
                 StatusButton {
                     tokens: root.tokens
-                    visible: root.opened === "bluetooth-context"
+                    visible: root.displayedPopup === "bluetooth-context"
                     width: parent.width
                     text: "Скрыть иконку"
                     enabled: !!root.settingsService && root.settingsService.ready
@@ -415,7 +420,7 @@ Rectangle {
                     }
                 }
                 Flickable {
-                    visible: root.opened === "bluetooth"
+                    visible: root.displayedPopup === "bluetooth"
                     width: parent.width
                     height: visible ? Math.min(480, bluetoothColumn.implicitHeight) : 0
                     contentHeight: bluetoothColumn.implicitHeight
@@ -437,8 +442,8 @@ Rectangle {
                 }
                 Grid {
                     id: trayGrid
-                    visible: root.opened === "tray" && !root.trayMenuStack.length
-                    columns: 8
+                    visible: root.displayedPopup === "tray" && !root.trayMenuStack.length
+                    columns: 5
                     spacing: 4
                 Repeater {
                     id: trayIcons
@@ -463,8 +468,8 @@ Rectangle {
                         }
                         readonly property bool needsAttention: !!(modelData && modelData.status === Status.NeedsAttention)
 
-                        width: 32
-                        height: 32
+                        width: 40
+                        height: 40
 
                         activeFocusOnTab: true
                         Keys.onReturnPressed: {
@@ -499,11 +504,10 @@ Rectangle {
 
                         Rectangle {
                             anchors.fill: parent
-                            visible: trayIcon.needsAttention || trayIcon.activeFocus || trayMouse.containsMouse
                             radius: root.tokens.radius.small
-                            color: trayMouse.containsMouse ? root.tokens.color.surface : "transparent"
+                            color: trayMouse.containsMouse ? root.tokens.color.accentSoft : root.tokens.color.surface
                             border.width: trayIcon.needsAttention || trayIcon.activeFocus ? 1 : 0
-                            border.color: root.tokens.color.secondary
+                            border.color: trayIcon.activeFocus ? root.tokens.color.accent : root.tokens.color.secondary
                             antialiasing: true
                         }
 
@@ -571,7 +575,7 @@ Rectangle {
                     contentHeight: menuColumn.implicitHeight
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
-                    visible: root.opened === "tray" && root.trayMenuStack.length > 0
+                    visible: root.displayedPopup === "tray" && root.trayMenuStack.length > 0
                     Column {
                     id: menuColumn
                     width: parent.width
@@ -614,13 +618,13 @@ Rectangle {
                 }
                 }
                 Column {
-                    visible: root.opened === "audio"
+                    visible: root.displayedPopup === "audio"
                     width: parent.width
                     spacing: 8
                     StatusText {
                         width: parent.width
-                        elide: Text.ElideRight
-                        text: audio.available ? audio.sink.description : "No audio output available"
+                        visible: !audio.available
+                        text: "No audio output available"
                     }
                     Flickable {
                         width: parent.width
@@ -783,8 +787,8 @@ Rectangle {
                     id: networkPanel
                     width: parent.width
                     tokens: root.tokens
-                    active: root.networkPopup
-                    visible: active
+                    active: root.opened === "network"
+                    visible: root.networkPopup
                     maxBodyHeight: Math.max(180, Math.min(460, root.menuWindow && root.menuWindow.screen ? root.menuWindow.screen.height - 200 : 460))
                     onCloseRequested: keyboard => { root.networkKeyboard = keyboard; root.opened = "" }
                     onSettingsRequested: { root.opened = ""; root.networkSettingsRequested() }

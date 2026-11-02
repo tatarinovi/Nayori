@@ -39,7 +39,7 @@ case "${1:-}" in
             printf '\n>>> %s\n' "$test"
             python3 "tests/$test.py"
         done
-        for fixture in Battery Clipboard NaomiPixel NayoriUpdate PolkitDialog DesktopWidgetContent; do
+        for fixture in Battery Clipboard NaomiPixel NayoriUpdate PolkitDialog DesktopWidgetContent StatusPopup; do
             log="$runtime/$fixture.log"
             timeout 20s qs -p "tests/smoke/${fixture}Smoke.qml" --no-color > "$log" 2>&1 || { cat "$log"; exit 1; }
             cat "$log"
@@ -50,6 +50,7 @@ case "${1:-}" in
                 NayoriUpdate) marker=UPDATE_SMOKE_PASS ;;
                 PolkitDialog) marker=POLKIT_DIALOG_PASS ;;
                 DesktopWidgetContent) marker=DESKTOP_CONTENT_PASS ;;
+                StatusPopup) marker=STATUS_POPUP_SMOKE_PASS ;;
             esac
             rg -q "$marker" "$log"
             ! rg -q 'FAIL|Error:|Unable to assign|ReferenceError|TypeError|Failed to load configuration' "$log"
