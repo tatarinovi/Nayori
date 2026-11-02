@@ -14,6 +14,7 @@ ShellRoot {
     id: test
     readonly property bool waylandTest: Quickshell.env("NAYORI_WINDOW_WAYLAND") === "1"
     property int step: 0
+    property int windowWaits: 0
     Tokens { id: theme }
     SettingsService { id: service; storageDirectory: Quickshell.env("NAYORI_SETTINGS_DIR") }
     WallpaperManager { id: wallpaper; storageDirectory: Quickshell.env("NAYORI_SETTINGS_DIR") }
@@ -63,7 +64,9 @@ ShellRoot {
                 fakeNiri.windows = fakeNiri.windows.concat([{id: 12, pid: Quickshell.processId, appId: Quickshell.appId, title: "Nayori Settings"}])
                 test.check(controller.windowId === 12 && fakeNiri.lastFocused === 12, "register exact identity")
             } else if (test.step === 1) {
-                // Offscreen Qt does not guarantee a native QQuickWindow.
+                if (!controller.window.backingWindowVisible && test.windowWaits++ < 50) return
+                test.check(controller.window.backingWindowVisible && controller.window.contentItem.Window.window !== null,
+                    "visible settings has a native window")
                 // The --wayland Python test checks compositor-driven native close.
                 controller.window.closeRequested()
                 test.check(!controller.opened && controller.windowId === -1, "close request clears identity")
