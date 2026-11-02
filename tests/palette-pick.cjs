@@ -53,6 +53,9 @@ const competing = [
     { color: '#5C8A86', share: 0.10 },
     { color: '#00FF00', share: 0.05 }
 ]
+assert.equal(pick.lightestAccent([{color: '#FF0000'}, {color: '#C4A8E0'}, {color: '#00FF00'}]), '#00FF00')
+assert.equal(pick.lightestAccent([{color: 'bad'}, {color: '#C4A8E0'}]), '#C4A8E0')
+assert.equal(pick.lightestAccent([]), null)
 const ranked = pick.rank(competing)
 assert.deepEqual(colorsOf(ranked), ['#C4A8E0', '#5C8A86', '#FF0000', '#00FF00'])
 assert.equal(ranked.fallbackUsed, false)

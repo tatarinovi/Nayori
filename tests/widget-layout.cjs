@@ -6,14 +6,17 @@ const context = {}
 vm.createContext(context)
 vm.runInContext(fs.readFileSync("surfaces/desktop/WidgetLayout.js", "utf8").replace(/^\.pragma.*$/m, ""), context)
 
+assert.strictEqual(context.normalizeSize("system", "extraLarge"), "extraLarge")
+assert.strictEqual(context.sizeOf({type:"system", size:"extraLarge"}).height, 388)
+
 const clock = { id: "a", type: "clock", x: 10, y: 12, size: "large", style: "plain" }
 const note = { id: "b", type: "note", x: 4, y: 8, size: "compact", style: "card", text: "привет" }
 
 // Compact cards leave less unused space, while notes keep their editing area.
 for (const [type, size, height] of [
-    ["clock", "compact", 100], ["clock", "huge", 290],
+    ["clock", "compact", 100], ["clock", "huge", 245],
     ["weather", "large", 200], ["music", "compact", 152],
-    ["system", "large", 184], ["note", "compact", 168]
+    ["system", "large", 298], ["note", "compact", 168]
 ]) {
     const box = context.sizeOf({ type, size })
     assert.strictEqual(box.height, height)
@@ -201,8 +204,17 @@ assert.ok(Math.abs(context.cpuLoad(first, second) - (1 - 50 / 70)) < 1e-9)
 assert.strictEqual(context.readCpuCounters("cpu0 1 2 3 4 5 6 7 8"), null)
 assert.strictEqual(context.readCpuCounters(""), null)
 
+const cpuInfo = context.readCpuInfo("processor : 0\ncpu MHz : 2200.0\nprocessor : 1\ncpu MHz : 3000.0\n")
+assert.strictEqual(context.cpuDetails(cpuInfo), "2.6 GHz")
+assert.strictEqual(context.cpuDetails(context.readCpuInfo("processor : 0\n")), "")
+assert.strictEqual(context.readCpuInfo("invalid"), null)
+
 const memory = context.readMeminfo("MemTotal:       1000 kB\nMemFree:         100 kB\nMemAvailable:    400 kB\n")
 assert.strictEqual(memory.used, 0.6)
+assert.strictEqual(context.memoryAmount(6 * 1024 * 1024, 16 * 1024 * 1024), "6.4 / 17.2 GB")
+assert.strictEqual(context.memoryAmount(512 * 1024, 768 * 1024), "536.9 / 805.3 MB")
+assert.strictEqual(context.memoryAmount(1025, 1024), "")
+assert.strictEqual(context.memoryAmount(null, 1024), "")
 assert.strictEqual(context.readMeminfo("MemTotal: 1000 kB\nMemFree: 100 kB\n"), null)
 assert.strictEqual(context.readMeminfo("MemTotal: 100 kB\nMemAvailable: 400 kB\n"), null)
 assert.strictEqual(context.percentLabel(null), "")

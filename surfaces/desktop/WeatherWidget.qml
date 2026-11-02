@@ -29,9 +29,31 @@ Item {
     readonly property string humidity: payload && payload.humidity !== null && large ? "Влажность " + payload.humidity + "%" : ""
 
     Column {
-        anchors.verticalCenter: parent.verticalCenter
+        anchors.top: parent.top
         width: parent.width
-        spacing: root.large ? 10 : 5
+        spacing: 4
+        Item {
+            width: parent.width
+            height: root.tokens.type.small.size + 4
+            visible: root.message === ""
+            DesktopLabel {
+                anchors.left: parent.left
+                width: parent.width * 0.45
+                tokens: root.tokens
+                muted: true
+                text: "Сейчас"
+                font.pixelSize: root.tokens.type.small.size
+            }
+            DesktopLabel {
+                anchors.right: parent.right
+                width: parent.width * 0.55
+                tokens: root.tokens
+                muted: true
+                horizontalAlignment: Text.AlignRight
+                font.pixelSize: root.tokens.type.small.size
+                text: root.service ? String(root.service.city || "") : ""
+            }
+        }
         DesktopLabel {
             width: parent.width
             visible: root.message !== ""
@@ -45,19 +67,41 @@ Item {
         Row {
             width: parent.width
             spacing: 8
+            layoutDirection: Qt.RightToLeft
             visible: root.message === ""
             Item {
-                width: root.large ? 54 : 36
+                width: root.large ? 64 : 44
                 height: width
                 visible: root.payload && root.payload.weatherCode !== null
+                readonly property int code: root.payload ? Number(root.payload.weatherCode) : 0
+                readonly property bool clear: code === 113
+                readonly property bool cloud: [116, 119, 122].indexOf(code) >= 0
+                Rectangle {
+                    visible: parent.clear || parent.cloud
+                    width: parent.width * 0.48; height: width; radius: width / 2
+                    anchors.top: parent.top; anchors.right: parent.right
+                    color: root.tokens.color.secondary
+                }
+                Item {
+                    visible: parent.cloud
+                    anchors.left: parent.left; anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: parent.height * 0.58
+                    Rectangle { x: parent.width * 0.04; y: parent.height * 0.35; width: parent.width * 0.92; height: parent.height * 0.55; radius: height / 2; color: root.tokens.color.accentSoft }
+                    Rectangle { x: parent.width * 0.16; y: parent.height * 0.2; width: parent.width * 0.48; height: width; radius: width / 2; color: root.tokens.color.accentSoft }
+                    Rectangle { x: parent.width * 0.42; y: 0; width: parent.width * 0.48; height: width; radius: width / 2; color: root.tokens.color.accentSoft }
+                }
                 WeatherGlyph {
-                    anchors.fill: parent
+                    visible: !parent.clear && !parent.cloud
+                    anchors.centerIn: parent
+                    width: parent.width * 0.7
+                    height: parent.height * 0.7
                     tokens: root.tokens
                     weatherCode: root.payload ? root.payload.weatherCode : null
                 }
             }
             Column {
-                readonly property int glyphSpace: root.payload && root.payload.weatherCode !== null ? (root.large ? 62 : 44) : 0
+                readonly property int glyphSpace: root.payload && root.payload.weatherCode !== null ? (root.large ? 72 : 52) : 0
                 width: Math.max(0, parent.width - glyphSpace)
                 spacing: 2
                 DesktopLabel {
@@ -65,7 +109,7 @@ Item {
                     tokens: root.tokens
                     display: true
                     text: root.temperature !== "" ? root.temperature : "Нет температуры"
-                    font.pixelSize: root.large ? 40 : 27
+                    font.pixelSize: root.large ? 46 : 27
                     lineHeight: 1
                     Accessible.name: "Погода, " + text
                 }
@@ -73,11 +117,13 @@ Item {
                     width: parent.width
                     visible: root.payload && root.payload.description !== ""
                     tokens: root.tokens
+                    display: true
+                    font.pixelSize: root.large ? 18 : 13
                     text: root.payload ? root.payload.description : ""
                 }
                 DesktopLabel {
                     width: parent.width
-                    visible: root.large && root.feels !== ""
+                    visible: false
                     tokens: root.tokens
                     muted: true
                     text: root.feels
@@ -100,6 +146,7 @@ Item {
             color: Qt.alpha(root.tokens.color.text, 0.16)
         }
         Row {
+            objectName: "desktop-weather-forecast"
             width: parent.width
             spacing: 0
             visible: root.message === "" && root.payload && root.payload.forecast.length > 0
@@ -123,14 +170,15 @@ Item {
                         tokens: root.tokens
                         muted: true
                         text: day.modelData.label
-                        visible: text !== ""
+                        visible: root.large && text !== ""
                         font.pixelSize: root.tokens.type.small.size
                     }
                     DesktopLabel {
                         width: parent.width
                         horizontalAlignment: Text.AlignHCenter
                         tokens: root.tokens
-                        text: day.span
+                        text: root.large || !day.modelData.label ? day.span : day.modelData.label + " " + day.span
+                        font.pixelSize: root.large ? root.tokens.type.body.size : root.tokens.type.small.size
                         Accessible.name: (day.modelData.label || "Прогноз") + ", " + text
                     }
                 }

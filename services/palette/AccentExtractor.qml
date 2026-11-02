@@ -30,6 +30,7 @@ QtObject {
     property bool _ready: false
     readonly property color accent: _accent
     readonly property var candidates: _candidates
+    readonly property var lightestAccent: ready && !fallbackUsed ? PalettePick.lightestAccent(candidates) : null
     readonly property color background: _background
     readonly property color surface: _surface
     readonly property color surfaceAlt: _surfaceAlt

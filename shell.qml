@@ -297,6 +297,8 @@ ShellRoot {
                 editing: settingsController.widgetsEditing
                 weatherService: weatherStore
                 music: musicStore
+                audioReaction: root.islandAudio
+                wallpaperClockAccent: accentExtractor.lightestAccent
                 onLayoutEdited: next => {
                     const updated = Object.assign({}, settingsStore.desktopWidgets)
                     updated[desktopOutput.modelData.name] = next

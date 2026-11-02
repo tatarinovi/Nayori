@@ -7,6 +7,7 @@ Item {
     id: root
     required property var tokens
     property var music: null
+    property var audioReaction: null
     property bool large: false
 
     readonly property var player: music ? music.player : null
@@ -45,6 +46,12 @@ Item {
     }
     readonly property url artUrl: player && player.trackArtUrl ? player.trackArtUrl : ""
 
+    function formatTime(seconds) {
+        const value = Math.max(0, Math.floor(seconds))
+        const minutes = Math.floor(value / 60)
+        return minutes + ":" + String(value % 60).padStart(2, "0")
+    }
+
     DesktopLabel {
         anchors.fill: parent
         visible: root.player === null
@@ -57,59 +64,113 @@ Item {
         Accessible.name: text
     }
 
-    Column {
-        anchors.bottom: parent.bottom
-        width: parent.width
+    Item {
+        id: cover
+        anchors.left: parent.left
+        anchors.verticalCenter: parent.verticalCenter
+        width: Math.min(root.large ? 120 : 88, parent.height)
+        height: width
         visible: root.player !== null
-        spacing: 8
-        Row {
-            width: parent.width
-            spacing: 10
-            Rectangle {
-                id: cover
-                width: root.large ? 72 : 48
-                height: width
-                radius: root.tokens.radius.small
-                color: root.tokens.color.surface
-                clip: true
-                AlbumArt {
-                    anchors.fill: parent
-                    requestedSource: root.artUrl
-                }
+        readonly property bool visualizing: root.player && root.player.isPlaying && !root.tokens.motion.off
+            && root.audioReaction && root.audioReaction.available
+        readonly property real level: visualizing ? Math.max(0, Math.min(1, Number(root.audioReaction.energy) || 0)) : 0
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 11
+            radius: root.tokens.radius.small
+            color: root.tokens.color.surface
+            clip: true
+            AlbumArt {
+                anchors.fill: parent
+                requestedSource: root.artUrl
             }
-            Column {
-                width: Math.max(0, parent.width - cover.width - parent.spacing)
-                spacing: 2
-                DesktopLabel {
-                    width: parent.width
-                    tokens: root.tokens
-                    text: root.title
-                    display: true
-                    font.pixelSize: 16
-                    Accessible.name: "Музыка, " + text
-                    Accessible.description: root.artist
+        }
+        Canvas {
+            id: waveform
+            objectName: "desktop-music-waveform"
+            anchors.fill: parent
+            visible: cover.visualizing
+            antialiasing: true
+            readonly property real level: cover.level
+            readonly property color ink: root.tokens.color.accent
+            onLevelChanged: if (visible) requestPaint()
+            onInkChanged: if (visible) requestPaint()
+            onVisibleChanged: if (visible) requestPaint()
+            onWidthChanged: if (visible) requestPaint()
+            onHeightChanged: if (visible) requestPaint()
+            onPaint: {
+                const ctx = getContext("2d")
+                ctx.reset()
+                ctx.strokeStyle = ink
+                ctx.lineWidth = 1.5
+                ctx.lineCap = "round"
+                ctx.lineJoin = "round"
+                const inset = 5.5
+                const start = 13
+                const end = Math.max(start, width - start)
+                const far = width - inset
+                const amplitude = 0.6 + level * 3.2
+                ctx.beginPath()
+                ctx.moveTo(start, inset)
+                for (let edge = 0; edge < 4; edge++) {
+                    for (let i = 1; i <= 36; i++) {
+                        const t = i / 36
+                        const ripple = Math.sin(t * Math.PI) * Math.sin(t * Math.PI * 6) * amplitude
+                        const forward = start + (end - start) * t
+                        const reverse = end - (end - start) * t
+                        if (edge === 0) ctx.lineTo(forward, inset + ripple)
+                        else if (edge === 1) ctx.lineTo(far - ripple, forward)
+                        else if (edge === 2) ctx.lineTo(reverse, far - ripple)
+                        else ctx.lineTo(inset + ripple, reverse)
+                    }
+                    if (edge === 0) ctx.quadraticCurveTo(far, inset, far, start)
+                    else if (edge === 1) ctx.quadraticCurveTo(far, far, end, far)
+                    else if (edge === 2) ctx.quadraticCurveTo(inset, far, inset, end)
+                    else ctx.quadraticCurveTo(inset, inset, start, inset)
                 }
-                DesktopLabel {
-                    width: parent.width
-                    visible: root.artist !== ""
-                    tokens: root.tokens
-                    muted: true
-                    text: root.artist
-                    font.pixelSize: root.tokens.type.small.size
-                }
-                DesktopLabel {
-                    width: parent.width
-                    visible: root.album !== ""
-                    tokens: root.tokens
-                    muted: true
-                    text: root.album
-                    font.pixelSize: root.tokens.type.small.size
-                }
+                ctx.closePath()
+                ctx.stroke()
+            }
+        }
+    }
+    Item {
+        id: details
+        anchors.left: cover.right
+        anchors.leftMargin: 12
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        visible: root.player !== null
+        Column {
+            anchors.top: parent.top
+            width: parent.width
+            spacing: 2
+            DesktopLabel {
+                width: parent.width
+                tokens: root.tokens
+                text: root.title
+                display: true
+                font.pixelSize: root.large ? 19 : 16
+                Accessible.name: "Музыка, " + text
+                Accessible.description: root.artist
+            }
+            DesktopLabel {
+                width: parent.width
+                visible: root.artist !== ""
+                tokens: root.tokens
+                muted: true
+                text: root.artist
+                font.pixelSize: root.tokens.type.small.size
             }
         }
         Rectangle {
+            id: progress
             objectName: "desktop-music-progress"
-            width: parent.width
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: controls.top
+            anchors.bottomMargin: root.duration > 0 ? 23 : 8
             height: 3
             radius: 1.5
             visible: root.position >= 0
@@ -124,10 +185,32 @@ Item {
                 color: root.tokens.color.accent
             }
         }
+        Item {
+            anchors.top: progress.bottom
+            anchors.topMargin: 3
+            width: parent.width
+            height: 16
+            visible: progress.visible && root.duration > 0
+            DesktopLabel {
+                anchors.left: parent.left
+                tokens: root.tokens
+                muted: true
+                font.pixelSize: 11
+                text: root.formatTime(root.position)
+            }
+            DesktopLabel {
+                anchors.right: parent.right
+                tokens: root.tokens
+                muted: true
+                font.pixelSize: 11
+                text: root.formatTime(root.duration)
+            }
+        }
         Row {
+            id: controls
             anchors.horizontalCenter: parent.horizontalCenter
-            topPadding: 8
-            spacing: root.large ? 20 : 12
+            anchors.bottom: parent.bottom
+            spacing: root.large ? 12 : 4
             AbstractButton {
                 id: previousButton
                 objectName: "desktop-music-previous"
@@ -167,15 +250,15 @@ Item {
                 onClicked: root.player.togglePlaying()
                 background: Rectangle {
                     radius: width / 2
-                    color: playButton.down || playButton.hovered ? Qt.alpha(root.tokens.color.accent, 0.28) : "transparent"
+                    color: playButton.down || playButton.hovered ? root.tokens.color.accentHover : root.tokens.color.accent
                     opacity: playButton.enabled ? 1 : 0.4
-                    border.width: 1
-                    border.color: root.tokens.color.accent
+                    border.width: playButton.visualFocus ? 2 : 0
+                    border.color: root.tokens.color.text
                 }
                 contentItem: Item {
                     MusicTransportIcon {
                         name: root.player && root.player.isPlaying ? "pause" : "play"
-                        ink: root.tokens.color.text
+                        ink: root.tokens.color.accentText
                         width: 20
                         height: 20
                         anchors.centerIn: parent

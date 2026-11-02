@@ -84,6 +84,7 @@ ShellRoot {
                     root.expectDerived(286, "lavender")
                     root.check(accents.error === "" && !accents.fallbackUsed && accents.ready, "lavender flags")
                     root.check(accents.candidates[0].color === "#C4A8E0" && accents.candidates[0].share === 0.25, "lavender share")
+                    root.check(accents.lightestAccent === "#C4A8E0", "lightest wallpaper accent")
                     root.check(accents.contentId === accents.sourcePath + ":" + accents.sourceMtime + ":" + accents.contentId.split(":").pop(), "contentId")
                     root.check(/^\d+$/.test(accents.sourceMtime) && accents.sourceMtime !== "", "mtime")
                     root.heldId = accents.contentId
@@ -98,6 +99,7 @@ ShellRoot {
                 } else if (root.stage === 3) {
                     if (!root.settled("black.png") || accents.contentId === "") return
                     root.check(root.hex(accents.accent) === "#C0AFD1" && accents.fallbackUsed && accents.error === "", "black")
+                    root.check(accents.lightestAccent === null, "no chromatic accent fallback")
                     root.expectDerived(null, "black")
                     root.check(root.neutralLab(accents.background).L < 0.08, "black graphite " + accents.background)
                     accents.source = root.fixture("white.png")

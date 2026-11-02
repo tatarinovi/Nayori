@@ -14,6 +14,8 @@ FocusScope {
     property date now: new Date()
     property var weatherService: null
     property var music: null
+    property var audioReaction: null
+    property var wallpaperClockAccent: null
     property var systemReader: null
     property string focusId: ""
     signal commitPosition(string id, real x, real y, bool useSnap)
@@ -94,9 +96,9 @@ FocusScope {
     Rectangle {
         anchors.fill: parent
         radius: 18
-        color: root.card ? (root.tokens.frosted ? root.tokens.material.dense : root.tokens.color.background) : "transparent"
+        color: root.card ? (root.spec && root.spec.type === "note" ? root.tokens.color.text : (root.tokens.frosted ? root.tokens.material.dense : root.tokens.color.background)) : "transparent"
         border.width: root.card || root.editing || root.moving ? 1 : 0
-        border.color: (root.moving || (root.editing && (root.activeFocus || root.dragging))) ? root.tokens.color.accent : Qt.alpha(root.tokens.color.accent, 0.48)
+        border.color: (root.moving || (root.editing && (root.activeFocus || root.dragging))) ? root.tokens.color.accent : root.tokens.color.border
         antialiasing: true
     }
 
@@ -146,12 +148,13 @@ FocusScope {
 
     Item {
         id: content
+        objectName: "desktop-widget-content"
         z: 1
         anchors.fill: parent
         anchors.leftMargin: root.card ? 16 : 0
         anchors.rightMargin: root.card ? 16 : 0
-        anchors.bottomMargin: root.card ? 16 : 0
-        anchors.topMargin: root.editing ? 40 : (root.card ? 16 : 0)
+        anchors.bottomMargin: root.card ? (root.spec && root.spec.type === "system" ? 10 : 16) : 0
+        anchors.topMargin: root.editing ? (root.card && root.spec && root.spec.type === "system" ? 34 : 40) : (root.card ? (root.spec && root.spec.type === "system" ? 10 : 16) : 0)
         clip: true
 
         ClockWidget {
@@ -160,6 +163,9 @@ FocusScope {
             enabled: visible
             tokens: root.tokens
             now: root.now
+            wallpaperAccent: root.wallpaperClockAccent
+            card: root.card
+            editing: root.editing
             size: root.spec ? root.spec.size : "compact"
             large: root.spec && root.spec.size !== "compact"
         }
@@ -177,6 +183,7 @@ FocusScope {
             enabled: visible && !root.editing && !root.moving
             tokens: root.tokens
             music: root.music
+            audioReaction: root.audioReaction
             large: root.spec && root.spec.size === "large"
         }
         SystemWidget {
@@ -186,13 +193,15 @@ FocusScope {
             tokens: root.tokens
             reader: root.systemReader
             metrics: root.spec && root.spec.metrics ? root.spec.metrics : ["cpu", "memory", "gpu"]
-            large: root.spec && root.spec.size === "large"
+            size: root.spec ? root.spec.size : "compact"
+            large: root.spec && root.spec.size !== "compact"
         }
         NoteWidget {
             anchors.fill: parent
             visible: root.spec && root.spec.type === "note"
             enabled: visible && !root.editing && !root.moving
             tokens: root.tokens
+            paper: root.card
             savedText: root.spec && root.spec.type === "note" && root.spec.text ? root.spec.text : ""
             onTextEdited: function(text) {
                 if (root.spec)

@@ -119,6 +119,23 @@ function scoreOf(sample) {
     return sample.share * 0.45 + chroma * 0.35 + light * 0.20
 }
 
+// Candidates are already restricted to usable chromatic wallpaper buckets.
+function lightestAccent(candidates) {
+    if (!candidates || typeof candidates.length !== "number") return null
+    let lightest = null
+    let maxLightness = -1
+    for (let i = 0; i < candidates.length; i++) {
+        const parsed = candidates[i] && parseColor(candidates[i].color)
+        if (!parsed) continue
+        const lightness = measure(parsed.color).L
+        if (lightness > maxLightness) {
+            maxLightness = lightness
+            lightest = parsed.color
+        }
+    }
+    return lightest
+}
+
 function chromatic(sample) {
     return sample.L >= 0.40 && sample.L <= 0.94 && sample.C >= 0.02
 }

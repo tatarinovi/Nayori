@@ -10,6 +10,8 @@ Item {
     property date now: new Date()
     property var weatherService: null
     property var music: null
+    property var audioReaction: null
+    property var wallpaperClockAccent: null
     property var systemReader: null
 
     Repeater {
@@ -24,6 +26,8 @@ Item {
             now: root.now
             weatherService: root.weatherService
             music: root.music
+            audioReaction: root.audioReaction
+            wallpaperClockAccent: root.wallpaperClockAccent
             systemReader: root.systemReader
         }
     }

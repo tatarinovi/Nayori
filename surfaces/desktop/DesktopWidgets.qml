@@ -20,6 +20,17 @@ PanelWindow {
     property var layout: null
     property var weatherService: null
     property var music: null
+    property var audioReaction: null
+    property var wallpaperClockAccent: null
+    readonly property string audioKey: "desktop-music-" + String(root)
+    readonly property bool wantsAudio: root.visible && wantsMusic && !!music && !!music.player
+        && music.player.isPlaying && !tokens.motion.off
+    function updateAudioConsumer() {
+        if (audioReaction) audioReaction.consumer(audioKey, wantsAudio)
+    }
+    onWantsAudioChanged: updateAudioConsumer()
+    onAudioReactionChanged: updateAudioConsumer()
+    Component.onDestruction: { if (audioReaction) audioReaction.consumer(audioKey, false) }
     property string preferredTerminal: "kitty"
     property string preferredFileManager: "io.github.lgse.Strata"
     property bool editing: false
@@ -149,7 +160,7 @@ PanelWindow {
     function resizeWidget(id, direction) {
         const item = placement(id)
         if (!item) return
-        const sizes = item.type === "clock" ? ["compact", "large", "extraLarge", "huge"] : ["compact", "large"]
+        const sizes = item.type === "clock" ? ["compact", "large", "extraLarge", "huge"] : item.type === "system" ? ["compact", "large", "extraLarge"] : ["compact", "large"]
         const current = Math.max(0, sizes.indexOf(item.size))
         changeWidget(id, "size", sizes[Math.max(0, Math.min(sizes.length - 1, current + direction))])
     }
@@ -287,7 +298,8 @@ PanelWindow {
 
     SystemReader {
         id: desktopSystemReader
-        active: root.wantsSystem
+        active: root.wantsSystem && root.visible
+        showDetails: root.viewItems.some(item => item.type === "system" && item.size !== "compact")
     }
     Timer {
         interval: 1000
@@ -323,6 +335,8 @@ PanelWindow {
             now: root.now
             weatherService: root.weatherService
             music: root.music
+            audioReaction: root.audioReaction
+            wallpaperClockAccent: root.wallpaperClockAccent
             systemReader: desktopSystemReader
             focusId: root.focusedId
             z: index

@@ -45,6 +45,8 @@ PanelWindow {
         systemReader: root.widgetHost ? root.widgetHost.sharedSystemReader : null
         weatherService: root.weatherService
         music: root.music
+        audioReaction: root.widgetHost ? root.widgetHost.audioReaction : null
+        wallpaperClockAccent: root.widgetHost ? root.widgetHost.wallpaperClockAccent : null
     }
 
 }

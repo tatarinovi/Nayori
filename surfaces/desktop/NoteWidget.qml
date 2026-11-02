@@ -5,6 +5,8 @@ Item {
     id: root
     required property var tokens
     property string savedText: ""
+    property bool paper: false
+    readonly property color ink: paper ? tokens.color.background : tokens.color.text
     signal textEdited(string text)
 
     function flush() {
@@ -26,25 +28,25 @@ Item {
         tokens: root.tokens
         display: true
         text: "Заметка"
-        font.pixelSize: 15
+        color: root.ink
+        font.pixelSize: 18
     }
     Rectangle {
         id: divider
-        anchors.top: heading.bottom
-        anchors.topMargin: 8
+        anchors.bottom: parent.bottom
         width: parent.width
         height: 1
-        color: Qt.alpha(root.tokens.color.text, 0.16)
+        color: Qt.alpha(root.ink, 0.25)
     }
     DesktopLabel {
-        anchors.top: divider.bottom
-        anchors.topMargin: 8
+        anchors.top: heading.bottom
+        anchors.topMargin: 14
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
+        anchors.bottom: divider.top
         visible: editor.text === ""
         tokens: root.tokens
-        muted: true
+        color: Qt.alpha(root.ink, 0.65)
         text: "Текст заметки"
         wrapMode: Text.Wrap
         elide: Text.ElideNone
@@ -52,12 +54,13 @@ Item {
     TextEdit {
         id: editor
         objectName: "desktop-note-editor"
-        anchors.top: divider.bottom
-        anchors.topMargin: 8
+        anchors.top: heading.bottom
+        anchors.topMargin: 14
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        color: root.tokens.color.text
+        anchors.bottom: divider.top
+        anchors.bottomMargin: 10
+        color: root.ink
         selectionColor: root.tokens.color.accent
         selectedTextColor: root.tokens.color.accentText
         font.family: root.tokens.type.body.family

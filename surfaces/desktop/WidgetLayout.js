@@ -8,10 +8,10 @@ var GRID = 24
 var TYPES = { clock: true, weather: true, music: true, system: true, note: true }
 
 var BOX = {
-    clock: { compact: [220, 100], large: [420, 180], extraLarge: [560, 235], huge: [700, 290] },
+    clock: { compact: [220, 100], large: [420, 154], extraLarge: [560, 200], huge: [700, 245] },
     weather: { compact: [248, 156], large: [340, 200] },
     music: { compact: [300, 152], large: [380, 184] },
-    system: { compact: [236, 152], large: [300, 184] },
+    system: { compact: [310, 204], large: [420, 298], extraLarge: [540, 388] },
     note: { compact: [260, 168], large: [340, 240] }
 }
 
@@ -82,7 +82,7 @@ function extent(value) {
 }
 
 function normalizeSize(type, size) {
-    if (type === "clock" && (size === "extraLarge" || size === "huge")) return size
+    if ((type === "clock" && (size === "extraLarge" || size === "huge")) || (type === "system" && size === "extraLarge")) return size
     return size === "large" ? "large" : "compact"
 }
 
@@ -522,6 +522,26 @@ function cpuLoad(previous, next) {
     return Math.max(0, Math.min(1, 1 - idleElapsed / elapsed))
 }
 
+function readCpuInfo(text) {
+    if (typeof text !== "string" || !text) return null
+    var total = 0
+    var samples = 0
+    var lines = text.split("\n")
+    for (var i = 0; i < lines.length; i++) {
+        var match = /^cpu MHz\s*:\s*(\d+(?:\.\d+)?)\s*$/i.exec(lines[i])
+        if (!match) continue
+        var mhz = Number(match[1])
+        if (isFinite(mhz) && mhz > 0) { total += mhz; samples++ }
+    }
+    return samples ? { mhz: total / samples } : null
+}
+
+function cpuDetails(sample) {
+    if (!sample || typeof sample.mhz !== "number" || !isFinite(sample.mhz) || sample.mhz <= 0)
+        return ""
+    return (sample.mhz / 1000).toFixed(1) + " GHz"
+}
+
 function readMeminfo(text) {
     if (typeof text !== "string" || !text)
         return null
@@ -548,6 +568,16 @@ function readMeminfo(text) {
         availableKb: available,
         used: (total - available) / total
     }
+}
+
+function memoryAmount(usedKb, totalKb) {
+    if (typeof usedKb !== "number" || typeof totalKb !== "number" || !isFinite(usedKb) || !isFinite(totalKb)
+            || usedKb < 0 || totalKb <= 0 || usedKb > totalKb)
+        return ""
+    var totalBytes = totalKb * 1024
+    var unit = totalBytes >= 1000000000 ? 1000000000 : 1000000
+    var suffix = unit === 1000000000 ? "GB" : "MB"
+    return (usedKb * 1024 / unit).toFixed(1) + " / " + (totalBytes / unit).toFixed(1) + " " + suffix
 }
 
 function percentLabel(fraction) {

@@ -30,6 +30,11 @@ Column {
         {key: "compact", label: "Компактный"},
         {key: "large", label: "Крупный"}
     ]
+    readonly property var systemSizeOptions: [
+        {key: "compact", label: "Маленький"},
+        {key: "large", label: "Средний"},
+        {key: "extraLarge", label: "Большой"}
+    ]
     readonly property var clockSizeOptions: sizeOptions.concat([
         {key: "extraLarge", label: "Очень крупный"},
         {key: "huge", label: "Огромный"}
@@ -308,7 +313,7 @@ Column {
         for (let i = 0; i < items.length; ++i) {
             if (!root.sameItem(items[i], id, i, index))
                 continue
-            if (field === "size" && items[i].type !== "clock" && (value === "extraLarge" || value === "huge"))
+            if (field === "size" && items[i].type !== "clock" && !(items[i].type === "system" && value === "extraLarge") && (value === "extraLarge" || value === "huge"))
                 return
             if (items[i][field] === value)
                 return
@@ -560,7 +565,7 @@ Column {
                     objectName: "widgets-size-" + widgetRow.index
                     width: Math.min(280, parent.width)
                     tokens: root.tokens
-                    model: widgetRow.modelData && widgetRow.modelData.type === "clock" ? root.clockSizeOptions : root.sizeOptions
+                    model: widgetRow.modelData && widgetRow.modelData.type === "clock" ? root.clockSizeOptions : widgetRow.modelData && widgetRow.modelData.type === "system" ? root.systemSizeOptions : root.sizeOptions
                     currentKey: widgetRow.modelData && widgetRow.modelData.size ? widgetRow.modelData.size : "compact"
                     Accessible.name: "Размер, " + root.typeLabel(widgetRow.modelData && widgetRow.modelData.type)
                     onActivated: key => root.updateItem(widgetRow.modelData && widgetRow.modelData.id, widgetRow.index, "size", key)
