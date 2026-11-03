@@ -27,7 +27,7 @@ block = panels[start:panels.index('WlrLayershell.namespace: "nayori-island"', st
 focusable = re.search(r"^\s*focusable:\s*(.+)$", block, re.M)
 assert focusable and focusable.group(1).strip() == "true", \
     "focusable окна острова должен быть постоянным true: " + (focusable.group(1) if focusable else "нет")
-keyboard = re.search(r"WlrLayershell\.keyboardFocus:\s*root\.launcherHere\s*\?\s*WlrKeyboardFocus\.Exclusive", block)
+keyboard = re.search(r"WlrLayershell\.keyboardFocus:\s*root\.launcherHere(?:\s*\|\|\s*root\.quickCaptureHere)?\s*\?\s*WlrKeyboardFocus\.Exclusive", block)
 assert keyboard, "при открытом лаунчере окно острова должно просить Exclusive"
 print("LAUNCHER_FOCUS_STATIC_PASS")
 

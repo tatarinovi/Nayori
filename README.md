@@ -240,6 +240,7 @@ python3 tests/settings-window.py --wayland
 - [Naomi: облако с репликами и поглаживание](docs/NAOMI.md)
 - [Naomi v3](docs/NAOMI_SPRITE.md)
 - [Полка Dynamic Island](docs/SHELF.md)
+- [Quick Capture для Obsidian](docs/QUICK_CAPTURE.md)
 - [Журнал буфера обмена](docs/CLIPBOARD.md)
 - [Скриншоты и запись экрана](docs/CAPTURE.md)
 - [Архитектура](docs/ARCHITECTURE.md)

@@ -41,7 +41,7 @@ QtObject {
         bluetooth: 10, mouse: 11, keyboard: 12, shortcuts: 13, start: 14,
         island: 15, lockscreen: 16, windows: 17, alttab: 18, workspaces: 19,
         defaults: 20, autostart: 21, updates: 22, about: 23, integrations: 24, naomi: 25,
-        "naomi-look": 26, "naomi-place": 27,         capture: 28, "naomi-remind": 29, notifications: 30, polkit: 31, widgets: 32
+        "naomi-look": 26, "naomi-place": 27,         capture: 28, "naomi-remind": 29, notifications: 30, polkit: 31, widgets: 32, "obsidian-inbox": 33
     })
 
     function open() { return show("") }
@@ -158,6 +158,8 @@ QtObject {
             autoHideStatus: root.settingsService.autoHideStatus
             weatherCity: root.settingsService.weatherCity
             weatherRefreshMinutes: root.settingsService.weatherRefreshMinutes
+            quickCaptureValues: root.settingsService.values
+            onQuickCaptureChangedRequested: patch => root.settingsService.update(patch)
             islandRotationEnabled: root.settingsService.islandRotationEnabled
             islandRotationSeconds: root.settingsService.islandRotationSeconds
             startIconStyle: root.settingsService.startIconStyle

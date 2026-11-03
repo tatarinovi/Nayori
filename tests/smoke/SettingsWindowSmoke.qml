@@ -32,6 +32,15 @@ ShellRoot {
         wallpaperManager: wallpaper
         niri: test.waylandTest ? Niri : fakeNiri
     }
+    function findItem(item, name) {
+        if (item.objectName === name) return item
+        const children = item.children || []
+        for (let i = 0; i < children.length; i++) {
+            const found = findItem(children[i], name)
+            if (found) return found
+        }
+        return null
+    }
     function check(ok, message) { if (!ok) { console.error("WINDOW_FAIL " + message); Qt.exit(1) } }
     IpcHandler {
         target: "settings"
@@ -55,6 +64,17 @@ ShellRoot {
             if (!service.ready || !wallpaper.ready) return
             if (test.step === 0) {
                 test.check(controller.open(), "create window")
+                test.check(controller.openPage("obsidian-inbox"), "select Obsidian Inbox")
+                test.check(controller.window.selectedPage === 33, "Inbox mapping in Applications")
+                const workFolder = test.findItem(controller.window.contentItem, "quickCaptureWorkPathField")
+                const personalFolder = test.findItem(controller.window.contentItem, "quickCapturePersonalPathField")
+                test.check(!!workFolder && !!personalFolder, "Inbox folder controls")
+                workFolder.text = "Captures/Работа"
+                workFolder.editingFinished()
+                personalFolder.text = "Captures/Личное"
+                personalFolder.editingFinished()
+                test.check(service.values.quickCaptureWorkPath === "Captures/Работа"
+                    && service.values.quickCapturePersonalPath === "Captures/Личное", "Inbox folders reach SettingsService")
                 test.check(controller.openPage("weather"), "select weather")
                 test.check(!controller.openPage("missing"), "reject unknown page")
                 test.check(controller.window.selectedPage === 3, "section mapping")

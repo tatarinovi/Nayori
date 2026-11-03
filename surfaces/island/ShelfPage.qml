@@ -8,9 +8,15 @@ FocusScope {
     id: root
     required property var tokens
     property var store: null
+    property var quickCaptureService: null
+    property bool quickCaptureOpen: false
+    property bool inboxSelected: quickCaptureOpen
+    onQuickCaptureOpenChanged: if (quickCaptureOpen) inboxSelected = true
+    signal quickCaptureSettingsRequested()
+    function focusCapture() { inboxSelected = true; captureInput.focusInput() }
     property bool draggingOut: false
     property bool acceptingDrop: area.containsDrag
-    readonly property bool interacting: draggingOut || acceptingDrop || noteInput.activeFocus || editor.activeFocus
+    readonly property bool interacting: draggingOut || acceptingDrop || captureInput.interacting || noteInput.activeFocus || editor.activeFocus
     readonly property var items: store ? store.items.slice().sort((a, b) => Number(b.fav) - Number(a.fav) || b.added - a.added) : []
     property string selectedId: ""
     readonly property var selected: items.find(i => i.id === selectedId) || null
@@ -52,8 +58,29 @@ FocusScope {
             if (root.store && !event.source && root.store.add(ShelfDrop.read(event))) event.accept(Qt.CopyAction)
         }
     }
+    QuickCapture {
+        id: captureInput
+        anchors.fill: parent
+        anchors.topMargin: modeRow.height + root.tokens.spacing.small
+        visible: root.inboxSelected
+        enabled: visible
+        tokens: root.tokens
+        service: root.quickCaptureService
+        onSettingsRequested: root.quickCaptureSettingsRequested()
+    }
+    Row {
+        id: modeRow
+        anchors.top: parent.top
+        spacing: root.tokens.spacing.small
+        visible: !!root.quickCaptureService
+        Action { text: "Inbox"; onClicked: root.focusCapture() }
+        Action { text: "Полка"; onClicked: root.inboxSelected = false }
+    }
     ColumnLayout {
         anchors.fill: parent
+        anchors.topMargin: modeRow.visible ? modeRow.height + root.tokens.spacing.small : 0
+        visible: !root.inboxSelected
+        enabled: visible
         spacing: 10
         RowLayout {
             Layout.fillWidth: true

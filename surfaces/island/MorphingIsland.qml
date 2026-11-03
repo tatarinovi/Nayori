@@ -13,6 +13,9 @@ Rectangle {
     property var musicService: null
     property var systemUpdateService: null
     property var notifications: null
+    property var quickCaptureService: null
+    property bool quickCaptureOpen: false
+    signal quickCaptureSettingsRequested()
     property var shelfService: null
     property int currentPage: 0
     readonly property bool dropHover: compactDrop.containsDrag
@@ -143,6 +146,9 @@ Rectangle {
         && !compact.showingVolume
         && !root.launcherOpen
         && root.launcherBlend === 0
+    function focusCapture() {
+        if (dashboard.item) dashboard.item.focusCapture()
+    }
     function focusSearch() {
         if (!root.launcherOpen || !launcherLoader.item)
             return
@@ -240,7 +246,7 @@ Rectangle {
         enabled: root.expanded && root.progress > 0.9
         onLoaded: Qt.callLater(function() {
             if (item && root.expanded && !root.launcherOpen)
-                item.forceActiveFocus(Qt.TabFocusReason)
+                if (root.quickCaptureOpen) item.focusCapture(); else item.forceActiveFocus(Qt.TabFocusReason)
         })
         sourceComponent: IslandDashboard {
             musicService: root.musicService
@@ -253,6 +259,9 @@ Rectangle {
             weatherLoading: root.weatherService ? root.weatherService.loading : false
             onWeatherRefreshRequested: if (root.weatherService) root.weatherService.refresh()
             notifications: root.notifications
+            quickCaptureService: root.quickCaptureService
+            quickCaptureOpen: root.quickCaptureOpen
+            onQuickCaptureSettingsRequested: root.quickCaptureSettingsRequested()
             shelfService: root.shelfService
             currentPage: root.currentPage
             onCurrentPageChanged: root.currentPage = currentPage

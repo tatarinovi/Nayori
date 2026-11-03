@@ -37,7 +37,7 @@ Scope {
         dismissForFullscreen()
         Qt.callLater(function() { arrivalReady = true })
     }
-    onFullscreenRevealChanged: if (panelsReady && fullscreen && fullscreenReveal === 0) expandedOpened = false
+    onFullscreenRevealChanged: if (panelsReady && fullscreen && fullscreenReveal === 0 && !quickCaptureHere) expandedOpened = false
     readonly property int topReserved: PanelModes.reservation(shellState.panelReservations, screenName, "top", shellState.topReserved)
     readonly property int bottomReserved: PanelModes.reservation(shellState.panelReservations, screenName, "bottom", shellState.bottomReserved)
     readonly property string topMode: PanelModes.mode(shellState.panelModes, screenName, "top", shellState.autoHideTop, false)
@@ -82,7 +82,7 @@ Scope {
     }
     onFullscreenChanged: if (panelsReady) dismissForFullscreen()
     function dismissForFullscreen() {
-        if (!fullscreen) return
+        if (!fullscreen || quickCaptureHere) return
         // Collapse only after the entire surface has been hidden.
         if (fullscreenReveal === 0) expandedOpened = false
         dashboardOpenDelay.stop()
@@ -113,6 +113,23 @@ Scope {
     readonly property bool launcherHere: shellState.launcherOpened
         && panelScreen !== null
         && panelScreen === shellState.currentOverlayScreen
+    readonly property bool quickCaptureHere: !!shellState.quickCaptureOpened
+        && panelScreen !== null && panelScreen === shellState.currentOverlayScreen
+    property bool beforeCaptureExpanded: false
+    property int beforeCapturePage: 0
+    onQuickCaptureHereChanged: {
+        if (quickCaptureHere) {
+            beforeCaptureExpanded = expandedOpened
+            beforeCapturePage = capsule.currentPage
+            expandedOpened = true
+            capsule.currentPage = 2
+            dashboardCloseDelay.stop()
+            Qt.callLater(function() { capsule.focusCapture() })
+        } else {
+            expandedOpened = beforeCaptureExpanded
+            capsule.currentPage = beforeCapturePage
+        }
+    }
     function panelHoleX(win) {
         if (!root.launcherHere || !win || !win.visible || !root.panelScreen)
             return 0
@@ -154,7 +171,7 @@ Scope {
         Qt.callLater(function() { islandWindow.focusLauncherField() })
     }
     onTopEnabledChanged: {
-        if (!topEnabled) {
+        if (!topEnabled && !quickCaptureHere) {
             expandedOpened = false
             dashboardOpenDelay.stop()
             dashboardCloseDelay.stop()
@@ -172,6 +189,9 @@ Scope {
         function onStartMenuOutputChanged() {
             if (root.shellState.startMenuOutput !== root.screenName)
                 startMenu.opened = false
+        }
+        function onQuickCaptureFocusRequested() {
+            if (root.quickCaptureHere) Qt.callLater(function() { capsule.focusCapture() })
         }
         function onLauncherOpenedChanged() {
             if (root.shellState.launcherOpened) {
@@ -195,7 +215,7 @@ Scope {
         id: dashboardCloseDelay
         interval: 600
         onTriggered: {
-            if (!root.dashboardPointerInside)
+            if (!root.dashboardPointerInside && !root.quickCaptureHere)
                 root.expandedOpened = false
         }
     }
@@ -350,9 +370,9 @@ Scope {
                 width: capsule.implicitWidth,
                 height: capsule.implicitHeight
             })
-            available: root.topEnabled || root.launcherHere
+            available: root.topEnabled || root.launcherHere || root.quickCaptureHere
             pointerInside: root.dashboardPointerInside || mediaHover.hovered || topTrigger.hovered
-            heldOpen: root.expandedOpened || root.launcherHere || root.captureActive
+            heldOpen: root.expandedOpened || root.launcherHere || root.quickCaptureHere || root.captureActive
         }
         HoverHandler {
             id: topHover
@@ -365,16 +385,17 @@ Scope {
             enabled: !root.relocationHost || root.arrival === 1
         }
         readonly property real revealOpacity: topMotion.progress
-        readonly property real contentOpacity: root.launcherHere ? 1 : (root.relocationHost && root.arrival < 1 ? root.arrival : revealOpacity) * root.fullscreenReveal
-        readonly property real arrivalShift: root.launcherHere ? 0
+        readonly property real contentOpacity: (root.launcherHere || root.quickCaptureHere) ? 1 : (root.relocationHost && root.arrival < 1 ? root.arrival : revealOpacity) * root.fullscreenReveal
+        readonly property real arrivalShift: (root.launcherHere || root.quickCaptureHere) ? 0
             : -(root.tokens.spacing.small + capsule.closedHeight) * (1 - (root.relocationHost && root.arrival < 1 ? root.arrival : revealOpacity))
         function focusLauncherField() {
-            if (!root.launcherHere || !islandWindow.visible)
+            if ((!root.launcherHere && !root.quickCaptureHere) || !islandWindow.visible)
                 return
-            capsule.focusSearch()
+            if (root.quickCaptureHere) capsule.focusCapture()
+            else capsule.focusSearch()
         }
         screen: root.panelScreen
-        visible: root.launcherHere || (!root.fullscreen && root.fullscreenReveal > 0
+        visible: root.launcherHere || root.quickCaptureHere || (!root.fullscreen && root.fullscreenReveal > 0
             && (root.relocationHost ? root.arrival > 0 : root.topEnabled)
             && (topVisibility.shown || revealOpacity > 0 || (root.relocationHost && root.arrival > 0)))
         color: "transparent"
@@ -406,15 +427,15 @@ Scope {
         focusable: true
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "nayori-island"
-        WlrLayershell.keyboardFocus: root.launcherHere
+        WlrLayershell.keyboardFocus: root.launcherHere || root.quickCaptureHere
             ? WlrKeyboardFocus.Exclusive
             : (root.expandedOpened && !root.fullscreen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None)
         // У PanelWindow нет Keys: Escape ловит только Shortcut.
         Shortcut {
-            enabled: root.launcherHere
+            enabled: root.launcherHere || root.quickCaptureHere
             sequences: [StandardKey.Cancel]
             context: Qt.WindowShortcut
-            onActivated: root.shellState.launcherOpened = false
+            onActivated: { root.shellState.launcherOpened = false; root.shellState.quickCaptureOpened = false }
         }
 
         Region {
@@ -438,8 +459,8 @@ Scope {
                 radius: 24
             }
         }
-        BackgroundEffect.blurRegion: root.tokens.frosted && (root.launcherHere || (!root.fullscreen && root.fullscreenReveal === 1)) ? islandGlass : null
-        mask: (root.fullscreen || !topVisibility.shown) && !root.launcherHere ? emptyInputMask : islandMask
+        BackgroundEffect.blurRegion: root.tokens.frosted && (root.launcherHere || root.quickCaptureHere || (!root.fullscreen && root.fullscreenReveal === 1)) ? islandGlass : null
+        mask: (root.fullscreen || !topVisibility.shown) && !root.launcherHere && !root.quickCaptureHere ? emptyInputMask : islandMask
         Region {
             id: islandMask
             Region { x: Math.round(captureControls.x); y: Math.round(captureControls.y); width: captureControls.visible ? Math.round(captureControls.width) : 0; height: captureControls.visible ? 48 : 0; radius: 24 }
@@ -467,6 +488,9 @@ Scope {
 
         MorphingIsland {
             systemUpdateService: root.shellState.systemUpdateService || null
+            quickCaptureService: root.shellState.quickCaptureService || null
+            quickCaptureOpen: root.quickCaptureHere
+            onQuickCaptureSettingsRequested: root.shellState.openSettings("obsidian-inbox")
             shelfService: root.shellState.shelfService || null
             musicService: root.shellState.islandMusic
             audioReaction: root.shellState.islandAudio
@@ -481,6 +505,7 @@ Scope {
             islandRotationEnabled: root.shellState.islandRotationEnabled
             islandRotationSeconds: root.shellState.islandRotationSeconds
             onCloseRequested: {
+                if (root.quickCaptureHere) root.shellState.quickCaptureOpened = false
                 root.expandedOpened = false
                 root.dashboardHoverBlocked = topHover.hovered
             }

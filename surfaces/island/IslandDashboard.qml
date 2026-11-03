@@ -17,8 +17,12 @@ FocusScope {
     function closePopups() { musicCard.closePopups() }
     property var selectedPlayer: null
     property var notifications: null
+    property var quickCaptureService: null
+    property bool quickCaptureOpen: false
+    signal quickCaptureSettingsRequested()
     property var shelfService: null
     readonly property bool shelfInteracting: shelfView.interacting
+    function focusCapture() { currentPage = 2; shelfView.focusCapture() }
     property int currentPage: 0
     readonly property int pageCount: 3
     property real pagePosition: currentPage
@@ -400,6 +404,9 @@ FocusScope {
                 enabled: root.currentPage === 2
                 tokens: root.tokens
                 store: root.shelfService
+                quickCaptureService: root.quickCaptureService
+                quickCaptureOpen: root.quickCaptureOpen
+                onQuickCaptureSettingsRequested: root.quickCaptureSettingsRequested()
             }
         }
     }

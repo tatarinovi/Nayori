@@ -39,6 +39,8 @@ FloatingWindow {
     signal sectionVisited(string key)
     property string weatherCity: ""
     property int weatherRefreshMinutes: 15
+    property var quickCaptureValues: ({})
+    signal quickCaptureChangedRequested(var patch)
     property bool islandRotationEnabled: true
     property int islandRotationSeconds: 15
     property string startIconStyle: "current"
@@ -172,6 +174,8 @@ FloatingWindow {
         onSectionVisited: key => root.sectionVisited(key)
         weatherCity: root.weatherCity
         weatherRefreshMinutes: root.weatherRefreshMinutes
+        quickCaptureValues: root.quickCaptureValues
+        onQuickCaptureChangedRequested: patch => root.quickCaptureChangedRequested(patch)
         islandRotationEnabled: root.islandRotationEnabled
         islandRotationSeconds: root.islandRotationSeconds
         startIconStyle: root.startIconStyle

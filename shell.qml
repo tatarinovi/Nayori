@@ -27,6 +27,7 @@ import "surfaces/desktop"
 import "surfaces/companion"
 import "services/clipboard"
 import "services/shelf"
+import "services/quickcapture"
 import "services/lock"
 import "surfaces/lock"
 import "surfaces/polkit"
@@ -105,6 +106,81 @@ ShellRoot {
     ClipboardService { id: clipboardStore }
     readonly property var shelfService: shelfStore
     ShelfService { id: shelfStore; clipboard: clipboardStore }
+    readonly property var quickCaptureService: quickCaptureStore
+    QuickCaptureService {
+        id: quickCaptureStore
+        settings: settingsStore
+        onSaved: quickCaptureFeedback.restart()
+        onTextChanged: if (text) quickCaptureFeedback.stop()
+    }
+    property bool quickCaptureOpened: false
+    onQuickCaptureOpenedChanged: if (!quickCaptureOpened) quickCaptureFeedback.stop()
+    property bool locatingQuickCapture: false
+    signal quickCaptureFocusRequested()
+    function openQuickCapture() {
+        if (lockService.locked) return
+        quickCaptureFeedback.stop()
+        if (captureStore.editing) return
+        if (root.quickCaptureOpened) { root.quickCaptureFocusRequested(); return }
+        if (!quickCaptureStore.text) quickCaptureStore.context = settingsStore.values.quickCaptureContext
+        root.locatingQuickCapture = true
+        quickCaptureLocation.restart()
+    }
+    function finishQuickCaptureLocation(screen) {
+        if (!root.locatingQuickCapture) return
+        root.locatingQuickCapture = false
+        quickCaptureLocation.stop()
+        if (lockService.locked || !screen || Quickshell.screens.indexOf(screen) < 0) return
+        root.launcherOpened = false
+        root.clipboardOpened = false
+        clipboardStore.cancelPaste()
+        if (root.startMenuOutput !== "") root.startMenuToggleRequested(root.startMenuOutput)
+        root.overlayScreen = screen
+        root.quickCaptureOpened = true
+        root.quickCaptureFocusRequested()
+    }
+    Timer {
+        id: quickCaptureLocation
+        interval: 250
+        onTriggered: root.finishQuickCaptureLocation(root.screenNamed(Niri.focusedOutput))
+    }
+    Timer {
+        id: quickCaptureFeedback
+        interval: 800
+        onTriggered: root.quickCaptureOpened = false
+    }
+    Variants {
+        model: root.locatingQuickCapture ? Quickshell.screens : []
+        LauncherPointerProbe {
+            required property var modelData
+            screen: modelData
+            onLocated: output => root.finishQuickCaptureLocation(output)
+        }
+    }
+    IpcHandler {
+        target: "inbox"
+        function open(): void { root.openQuickCapture() }
+        function close(): void {
+            root.locatingQuickCapture = false
+            quickCaptureLocation.stop()
+            root.quickCaptureOpened = false
+        }
+    }
+    Connections {
+        target: root
+        function onLauncherOpenedChanged() { if (root.launcherOpened) root.quickCaptureOpened = false }
+        function onClipboardOpenedChanged() { if (root.clipboardOpened) root.quickCaptureOpened = false }
+        function onStartMenuOutputChanged() { if (root.startMenuOutput !== "") root.quickCaptureOpened = false }
+        function onSettingsOpenedChanged() { if (root.settingsOpened) root.quickCaptureOpened = false }
+    }
+    Connections {
+        target: lockService
+        function onLockedChanged() { if (lockService.locked) root.quickCaptureOpened = false }
+    }
+    Connections {
+        target: captureStore
+        function onEditingChanged() { if (captureStore.editing) root.quickCaptureOpened = false }
+    }
     readonly property var captureService: captureStore
     CaptureService { id: captureStore; settings: settingsStore; notifications: notificationModel }
     function beginCapture(kind) {

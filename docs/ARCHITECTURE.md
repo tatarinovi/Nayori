@@ -198,3 +198,7 @@ surfaces/clipboard/
 ## Bluetooth
 
 `ShellRoot` владеет общим `services/system/BluetoothService.qml`: меню `StatusIsland` и страница настроек используют его модель. Динамический `BluetoothBackend.qml` получает состояния через `Quickshell.Bluetooth`; событийный `scripts/bluetooth-bridge.py` на PyGObject/Gio дополняет API результатами операций и агентом сопряжения BlueZ. Состояние не опрашивается внешними командами. Видимость значка хранится в существующем `SettingsService`. Подробности и проверки — [Bluetooth](BLUETOOTH.md).
+
+## Obsidian Quick Capture
+
+`ShellRoot` владеет одним `services/quickcapture/QuickCaptureService.qml`: JSON Lines связывает его с локальным Python-worker. Общий черновик передаётся существующей цепочкой ScreenPanels → MorphingIsland → IslandDashboard → ShelfPage → QuickCapture. Настройки проходят через SettingsController/SettingsService; `inbox.open`/`inbox.close` управляют маршрутом и фокусом существующего острова. Контракт хранения и проверки: [QUICK_CAPTURE.md](QUICK_CAPTURE.md).

@@ -185,6 +185,11 @@ QtObject {
             "startIconStyle": "current",
             "weatherCity": "",
             "weatherRefreshMinutes": 15,
+            "quickCaptureEnabled": false,
+            "quickCaptureVault": "",
+            "quickCaptureContext": "Work",
+            "quickCaptureWorkPath": "Inbox/Work",
+            "quickCapturePersonalPath": "Inbox/Personal",
             "islandRotationEnabled": true,
             "islandRotationSeconds": 15,
             "preferredTerminal": "kitty",
@@ -213,6 +218,11 @@ QtObject {
 
     function normalize(key, value) {
         const fallback = defaults()[key];
+        if (key === "quickCaptureContext") return value === "Personal" ? value : "Work";
+        if (key === "quickCaptureVault") return typeof value === "string" && !/[\x00-\x1f]/.test(value) ? value.trim() : fallback;
+        if (key === "quickCaptureWorkPath" || key === "quickCapturePersonalPath")
+            return typeof value === "string" && value.length < 4096 && !/[\x00-\x1f\\]/.test(value)
+                && value.split("/").every(part => part !== "" && part !== "." && part !== "..") ? value : fallback;
         if (key === "desktopWidgets") return WidgetLayout.normalize(value);
         if (key === "panelModes") return PanelModes.normalize(value);
         if (key === "panelReservations") return PanelModes.normalizeReservations(value);

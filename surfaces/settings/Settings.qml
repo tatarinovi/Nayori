@@ -53,6 +53,8 @@ FocusScope {
     }).filter(item => item !== null).slice(0, 4)
     property string weatherCity: ""
     property int weatherRefreshMinutes: 15
+    property var quickCaptureValues: ({})
+    signal quickCaptureChangedRequested(var patch)
     property bool islandRotationEnabled: true
     property int islandRotationSeconds: 15
     property string startIconStyle: "current"
@@ -220,6 +222,7 @@ FocusScope {
         {key: "workspaces", page: 19, title: "Рабочие столы", group: "Окна и столы", description: "Столы, которые сейчас сообщает niri"},
         {key: "defaults", page: 20, title: "По умолчанию", group: "Приложения", description: "Приложения по умолчанию через xdg-mime"},
         {key: "autostart", page: 21, title: "Автозапуск", group: "Приложения", description: "Записи автозапуска пользователя и системы"},
+        {key: "obsidian-inbox", page: 33, title: "Obsidian Inbox", group: "Приложения", glyph: "apps", description: "Быстрые заметки: Vault, папки Work и Personal и контекст по умолчанию"},
         {key: "capture", page: 28, title: "Запись экрана", group: "Приложения", description: "Скриншоты, скринкасты, папки сохранения, цвет разметки, звук и частота кадров"},
         {key: "naomi", page: 25, title: "Обзор", group: "Naomi", description: "Включение Naomi и предпросмотр"},
         {key: "naomi-look", page: 26, title: "Внешний вид", group: "Naomi", description: "Рисунок и цвет с обоев"},
@@ -234,7 +237,7 @@ FocusScope {
     readonly property bool persistsSettings: {
         const key = section.key
         const naomiSettings = key === "naomi" || key === "naomi-look" || key === "naomi-place"
-        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key === "capture" || key === "notifications" || key === "widgets" || naomiSettings
+        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key === "capture" || key === "notifications" || key === "widgets" || key === "obsidian-inbox" || naomiSettings
     }
     readonly property var categories: [
         {name: "Обзор", caption: "Обзор", glyph: "home"},
@@ -865,6 +868,14 @@ FocusScope {
                     editing: root.widgetsEditing
                     onLayoutEdited: layout => { if (root.settingsService) root.settingsService.update({ desktopWidgets: layout }) }
                     onEditModeChanged: on => root.widgetsEditingRequested(on)
+                }
+            }
+            SettingsScroll {
+                ObsidianInboxPage {
+                    width: parent.width
+                    tokens: root.tokens
+                    values: root.quickCaptureValues
+                    onChanged: patch => root.quickCaptureChangedRequested(patch)
                 }
             }
         }
