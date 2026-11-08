@@ -7,16 +7,26 @@ import "islands/status"
 ShellRoot {
     id: root
     Tokens { id: theme; surfaceStyle: "frosted" }
+    QtObject {
+        id: codex
+        property bool enabled: true
+        property bool busy: false
+        property var data: ({status: "ok"})
+        property var windows: [{left: 94, minutes: 300, resetText: "4h"}, {left: 57, minutes: 10080, resetText: "7h"}]
+        function label(w) { return w.minutes === 300 ? "5 часов" : "Неделя" }
+        function stale(w) { return false }
+        function refresh() {}
+    }
     FloatingWindow {
         id: window
         visible: true
         implicitWidth: 500; implicitHeight: 300
-        StatusIsland { id: status; tokens: theme; menuWindow: window; x: 100; y: 200 }
+        StatusIsland { id: status; tokens: theme; menuWindow: window; codexService: codex; x: 100; y: 200 }
     }
     property var popup: null
     property int stage: 0
     property int index: 0
-    property var names: ["tray", "bluetooth", "audio", "network"]
+    property var names: ["tray", "bluetooth", "audio", "network", "codex"]
     function check(value, message) { if (!value) throw new Error("STATUS_POPUP_FAIL: " + message) }
     Timer {
         interval: 200; running: true; repeat: true

@@ -20,6 +20,13 @@ Rectangle {
     required property var tokens
     property var bluetoothService: null
     property var settingsService: null
+    property var codexService: null
+    Connections {
+        target: root.codexService
+        function onEnabledChanged() {
+            if (!root.codexService.enabled && root.opened === "codex") root.opened = ""
+        }
+    }
     signal bluetoothSettingsRequested()
     signal networkSettingsRequested()
     property var menuWindow: null
@@ -222,6 +229,18 @@ Rectangle {
 
         StatusButton {
             tokens: root.tokens
+            visible: !!root.codexService && root.codexService.enabled
+            width: 100
+            iconName: "codex"
+            iconWithText: true
+            text: root.codexService && root.codexService.windows.length && !root.codexService.stale(root.codexService.windows[0]) ? root.codexService.windows[0].left + "%" : "—"
+            progress: root.codexService && root.codexService.windows.length ? root.codexService.windows[0].left / 100 : -1
+            hint: "Лимиты Codex: " + text
+            checked: root.opened === "codex"
+            onClicked: root.togglePopup("codex")
+        }
+        StatusButton {
+            tokens: root.tokens
             visible: trayIcons.count > 0
             iconName: root.opened === "tray" ? "chevron-down" : "chevron-up"
             hint: "System tray (" + trayIcons.count + ")"
@@ -326,7 +345,7 @@ Rectangle {
         Region { id: popupGlass; item: popupGlassSurface; radius: root.networkPopup ? root.tokens.radius.medium : root.tokens.radius.small + 12 }
         BackgroundEffect.blurRegion: root.tokens.frosted && root.opened !== "" && root.popupReveal === 1 ? popupGlass : null
         mask: Region { width: root.opened !== "" ? popup.width : 0; height: root.opened !== "" ? popup.height : 0 }
-        implicitWidth: root.displayedPopup === "bluetooth" || root.networkPopup ? 360
+            implicitWidth: root.displayedPopup === "codex" ? 360 : root.displayedPopup === "bluetooth" || root.networkPopup ? 360
                      : root.displayedPopup === "tray" && !root.trayMenuStack.length ? 248 : 320
         implicitHeight: popupColumn.implicitHeight + 24
         color: "transparent"
@@ -370,13 +389,13 @@ Rectangle {
                 }
 
                 Row {
-                    visible: !root.networkPopup
+                    visible: !root.networkPopup && root.displayedPopup !== "codex"
                     width: parent.width
                     StatusText {
                         width: parent.width - 32 - (root.displayedPopup === "bluetooth" ? 84 : 0)
                         height: 32
                         verticalAlignment: Text.AlignVCenter
-                        text: root.displayedPopup === "tray" ? "Трей" : root.displayedPopup === "audio" ? "Звук" : root.displayedPopup.startsWith("bluetooth") ? "Bluetooth" : "Сеть"
+                        text: root.displayedPopup === "codex" ? "Codex" : root.displayedPopup === "tray" ? "Трей" : root.displayedPopup === "audio" ? "Звук" : root.displayedPopup.startsWith("bluetooth") ? "Bluetooth" : "Сеть"
                         font.family: root.tokens.type.display.family
                         font.pixelSize: root.tokens.type.display.size
                     }
@@ -407,6 +426,13 @@ Rectangle {
                         hint: "Close"
                         onClicked: root.opened = ""
                     }
+                }
+                CodexPanel {
+                    visible: root.displayedPopup === "codex"
+                    width: parent.width
+                    tokens: root.tokens
+                    service: root.codexService
+                    onCloseRequested: root.opened = ""
                 }
                 StatusButton {
                     tokens: root.tokens

@@ -718,6 +718,7 @@ Scope {
         island: status
 
         StatusIsland {
+            codexService: root.shellState.codexLimitsService || null
             bluetoothService: root.shellState.bluetoothService || null
             settingsService: root.shellState.settingsService || null
             onBluetoothSettingsRequested: root.shellState.openSettings("bluetooth")

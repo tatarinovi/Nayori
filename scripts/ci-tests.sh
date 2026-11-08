@@ -11,6 +11,7 @@ case "${1:-}" in
         python3 tests/yay-isolation.py
         python3 tests/wireguard.py --unit
         python3 tests/polkit-status.py
+        python3 tests/codex-limits.py
         for test in tests/*.cjs; do
             printf '\n>>> %s\n' "$test"
             node "$test"

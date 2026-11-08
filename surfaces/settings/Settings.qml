@@ -661,6 +661,7 @@ FocusScope {
             PanelsPage {
                 Layout.maximumWidth: 960
                 tokens: root.tokens
+                settingsService: root.settingsService
                 showHeading: false
                 wallpapers: root.wallpaperManager
                 topReserved: root.topReserved

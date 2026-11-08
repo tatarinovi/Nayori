@@ -7,6 +7,8 @@ Button {
     required property var tokens
     property string iconName: ""
     property string hint: ""
+    property bool iconWithText: false
+    property real progress: -1
     implicitWidth: 32
     implicitHeight: 32
     hoverEnabled: true
@@ -31,7 +33,8 @@ Button {
     contentItem: Item {
         Canvas {
             id: glyph
-            anchors.centerIn: parent
+            anchors.verticalCenter: parent.verticalCenter
+            x: root.iconWithText ? 0 : (parent.width - width) / 2
             width: 20
             height: 20
             visible: root.iconName !== ""
@@ -80,6 +83,15 @@ Button {
                     if (kind === "device-disconnect") {
                         ctx.moveTo(3, 3); ctx.lineTo(17, 17)
                     }
+                } else if (kind === "refresh") {
+                    ctx.arc(10, 10, 6, -Math.PI * 0.8, Math.PI * 0.7)
+                    ctx.moveTo(4, 5); ctx.lineTo(4, 9); ctx.lineTo(8, 9)
+                } else if (kind === "codex") {
+                    ctx.roundedRect(2.5, 3.5, 15, 13, 2, 2)
+                    ctx.moveTo(5.5, 8); ctx.lineTo(8, 10); ctx.lineTo(5.5, 12)
+                    ctx.moveTo(10, 12); ctx.lineTo(12.5, 12)
+                    ctx.moveTo(14.5, 1); ctx.lineTo(14.5, 5)
+                    ctx.moveTo(12.5, 3); ctx.lineTo(16.5, 3)
                 } else if (kind.indexOf("bluetooth") === 0) {
                     ctx.moveTo(6, 6); ctx.lineTo(14, 13); ctx.lineTo(10, 17)
                     ctx.lineTo(10, 3); ctx.lineTo(14, 7); ctx.lineTo(6, 14)
@@ -122,18 +134,33 @@ Button {
         }
         Text {
             anchors.fill: parent
-            anchors.leftMargin: root.width > 64 ? 10 : 0
-            anchors.rightMargin: root.width > 64 ? 10 : 0
-            horizontalAlignment: root.width > 64 ? Text.AlignLeft : Text.AlignHCenter
+            anchors.leftMargin: root.iconWithText ? 22 : root.width > 64 ? 10 : 0
+            anchors.rightMargin: root.iconWithText ? 0 : root.width > 64 ? 10 : 0
+            horizontalAlignment: root.iconWithText || root.width > 64 ? Text.AlignLeft : Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
             textFormat: Text.PlainText
-            visible: root.iconName === ""
+            visible: root.iconName === "" || root.iconWithText
             text: root.text
             color: root.down || root.checked ? root.tokens.color.accentSoftText : root.tokens.color.text
             font.family: root.tokens.type.body.family
             font.pixelSize: root.tokens.type.body.size
             font.weight: root.tokens.type.body.weight
+        }
+        Rectangle {
+            visible: root.progress >= 0
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            width: 26
+            height: 4
+            radius: 2
+            color: root.tokens.color.border
+            Rectangle {
+                width: parent.width * Math.max(0, Math.min(1, root.progress))
+                height: parent.height
+                radius: parent.radius
+                color: root.tokens.color.accent
+            }
         }
     }
 }

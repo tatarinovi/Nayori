@@ -13,6 +13,7 @@
   "autoHideApps": false,
   "autoHideWorkspaces": false,
   "autoHideStatus": false,
+  "codexWidgetEnabled": true,
   "hideSecondaryIsland": false,
   "fullscreenIslandOutput": "",
   "topReserved": 0,

@@ -575,6 +575,11 @@ ShellRoot {
                     test.check(settings.topReserved === 4 && settings.bottomReserved === 0, "normalize loaded reservations");
                     test.check(settings.autoHideTop === false && settings.animationsEnabled === true && settings.weatherCity === "", "invalid and missing fields use defaults");
                     test.check(!settings.dirty, "load normalization does not write");
+                    test.check(settings.codexWidgetEnabled, "Codex widget enabled by default")
+                    settings.update({codexWidgetEnabled: false})
+                    test.check(!settings.codexWidgetEnabled, "Codex widget can be disabled")
+                    settings.update({codexWidgetEnabled: "no"})
+                    test.check(settings.codexWidgetEnabled, "invalid Codex setting uses default")
                     test.check(settings.companionStyle === "current", "existing Naomi remains the default");
                     settings.update({companionStyle: "pixel-art"});
                     test.check(settings.companionStyle === "pixel-art", "pixel-art style applies immediately");

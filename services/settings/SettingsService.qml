@@ -22,6 +22,7 @@ QtObject {
     readonly property bool autoHideApps: values.autoHideApps
     readonly property bool autoHideWorkspaces: values.autoHideWorkspaces
     readonly property bool bluetoothIconVisible: values.bluetoothIconVisible
+    readonly property bool codexWidgetEnabled: values.codexWidgetEnabled
     readonly property bool autoHideStatus: values.autoHideStatus
     readonly property bool hideSecondaryIsland: values.hideSecondaryIsland
     readonly property string fullscreenIslandOutput: values.fullscreenIslandOutput
@@ -162,6 +163,7 @@ QtObject {
             "autoHideWorkspaces": false,
             "autoHideStatus": false,
             "bluetoothIconVisible": true,
+            "codexWidgetEnabled": true,
             "hideSecondaryIsland": false,
             "fullscreenIslandOutput": "",
             "topReserved": 0,

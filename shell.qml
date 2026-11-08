@@ -12,6 +12,7 @@ import "services/strata"
 import "services/settings"
 import "services/system"
 import "services/weather"
+import "services/status"
 import "surfaces/settings"
 import "surfaces/panel"
 import "services/canvas"
@@ -48,6 +49,8 @@ ShellRoot {
     readonly property var systemUpdateService: systemUpdate
     SettingsService { id: settingsStore }
     BluetoothService { id: bluetoothStore }
+    CodexLimits { id: codexLimits; enabled: settingsStore.ready && settingsStore.codexWidgetEnabled }
+    readonly property var codexLimitsService: codexLimits
     readonly property var bluetoothService: bluetoothStore
     readonly property var settingsService: settingsStore
     readonly property var mixerSources: settingsStore.mixerSources

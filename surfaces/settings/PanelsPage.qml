@@ -9,6 +9,7 @@ FocusScope {
     id: root
     property bool showHeading: true
     required property var tokens
+    property var settingsService: null
     property int topReserved: 0
     property int bottomReserved: 0
     property bool hideSecondaryIsland: false
@@ -94,6 +95,26 @@ FocusScope {
             width: panelsFlick.width - 12
             spacing: 12
             Label { visible: root.showHeading; text: "Панель задач"; font.family: root.tokens.type.display.family; font.pixelSize: 20 }
+
+            SettingsCard {
+                tokens: root.tokens
+                title: "Виджеты"
+                SettingsToggle {
+                    objectName: "codex-widget-toggle"
+                    tokens: root.tokens
+                    text: "Показывать лимиты Codex"
+                    checked: root.settingsService ? root.settingsService.codexWidgetEnabled : true
+                    enabled: !!root.settingsService && root.settingsService.ready
+                    onClicked: {
+                        root.settingsService.update({codexWidgetEnabled: !root.settingsService.codexWidgetEnabled})
+                        checked = Qt.binding(() => root.settingsService.codexWidgetEnabled)
+                    }
+                }
+                SettingsInfoRow {
+                    tokens: root.tokens
+                    text: "При выключении обновление лимитов через AI Usage Bar остановится."
+                }
+            }
 
             SettingsCard {
                 objectName: "panels-monitors"
