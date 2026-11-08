@@ -341,7 +341,8 @@ Rectangle {
         anchor.item: root
         anchor.edges: Edges.Top | Edges.Right
         anchor.gravity: Edges.Top | Edges.Left
-        anchor.margins.top: 8
+        // Margins shrink the anchor rectangle: a negative top margin moves it above the island.
+        anchor.margins.top: -root.tokens.spacing.small
         Region { id: popupGlass; item: popupGlassSurface; radius: root.networkPopup ? root.tokens.radius.medium : root.tokens.radius.small + 12 }
         BackgroundEffect.blurRegion: root.tokens.frosted && root.opened !== "" && root.popupReveal === 1 ? popupGlass : null
         mask: Region { width: root.opened !== "" ? popup.width : 0; height: root.opened !== "" ? popup.height : 0 }

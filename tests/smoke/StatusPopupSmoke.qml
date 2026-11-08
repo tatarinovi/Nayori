@@ -41,6 +41,7 @@ ShellRoot {
                 root.stage = 1
             } else if (root.stage === 1) {
                 root.check(status.popupReveal === 1 && root.popup.visible, "open " + root.names[root.index])
+                root.check(root.popup.anchor.edges === (Edges.Top | Edges.Right) && root.popup.anchor.gravity === (Edges.Top | Edges.Left) && root.popup.anchor.margins.top === -theme.spacing.small, "popup anchored above panel " + root.names[root.index])
                 root.check(root.popup.BackgroundEffect.blurRegion !== null, "blur enabled when open")
                 status.opened = ""
                 root.check(status.displayedPopup === root.names[root.index], "content retained during close")
