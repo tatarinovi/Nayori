@@ -5,12 +5,13 @@
 // половины шага (12), поэтому порог совпадает с обычным округлением.
 var GRID = 24
 
-var TYPES = { clock: true, weather: true, music: true, system: true, note: true }
+var TYPES = { clock: true, weather: true, music: true, nowplaying: true, system: true, note: true }
 
 var BOX = {
     clock: { compact: [220, 100], large: [420, 154], extraLarge: [560, 200], huge: [700, 245] },
     weather: { compact: [248, 156], large: [340, 200] },
     music: { compact: [300, 152], large: [380, 184] },
+    nowplaying: { compact: [520, 300], large: [680, 390] },
     system: { compact: [310, 204], large: [420, 298], extraLarge: [540, 388] },
     note: { compact: [260, 168], large: [340, 240] }
 }

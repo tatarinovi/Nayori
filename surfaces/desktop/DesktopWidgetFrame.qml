@@ -25,6 +25,7 @@ FocusScope {
     signal menuRequested(string id, real x, real y)
     signal resizeRequested(string id, int direction)
     signal moveFinished()
+    signal musicStageRequested()
     property bool moving: false
     property bool inputOverlay: false
     readonly property bool inputVisible: editing || moving || dragging || activeFocus || contextArea.containsMouse
@@ -43,6 +44,8 @@ FocusScope {
             return "Погода"
         if (type === "music")
             return "Музыка"
+        if (type === "nowplaying")
+            return "Сейчас играет"
         if (type === "system")
             return "Система"
         if (type === "note")
@@ -185,6 +188,16 @@ FocusScope {
             music: root.music
             audioReaction: root.audioReaction
             large: root.spec && root.spec.size === "large"
+        }
+        NowPlayingWidget {
+            anchors.fill: parent
+            visible: root.spec && root.spec.type === "nowplaying"
+            enabled: visible && !root.editing && !root.moving
+            tokens: root.tokens
+            music: root.music
+            audioReaction: root.audioReaction
+            visualActive: !root.inputOverlay || root.inputVisible
+            onStageRequested: root.musicStageRequested()
         }
         SystemWidget {
             anchors.fill: parent

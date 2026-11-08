@@ -22,6 +22,22 @@ Column {
     property color accentPreview: "#C0AFD1"
     property var accentCandidates: []
     signal accentResetRequested()
+    property var windowBorderValues: ({})
+    property string windowBorderError: ""
+    signal windowBorderChangedRequested(var patch)
+    property string borderDraftSource: "wallpaper"
+    property string borderDraftFirst: "#C0AFD1"
+    property string borderDraftSecond: "#CAA7AA"
+    property string borderDraftError: ""
+    property bool borderDraftDirty: false
+    function resetBorderDraft() {
+        borderDraftSource = windowBorderValues.windowBorderSource || "wallpaper"
+        borderDraftFirst = windowBorderValues.windowBorderFirst || "#C0AFD1"
+        borderDraftSecond = windowBorderValues.windowBorderSecond || "#CAA7AA"
+        borderDraftError = ""
+    }
+    onWindowBorderValuesChanged: if (!borderDraftDirty) resetBorderDraft()
+    Component.onCompleted: resetBorderDraft()
     property string hexNotice: ""
     property bool hexDirty: false
     readonly property string previewHex: root.canonicalHex(root.accentPreview) || "#C0AFD1"
@@ -343,6 +359,80 @@ Column {
                 objectName: "accentColorDialog"
                 title: "Цвет акцента"
                 onAccepted: root.applyPickedColor(selectedColor)
+            }
+            Label { text: "Рамки окон"; font.pixelSize: 18 }
+            Label {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: "Niri рисует статический градиент вокруг активного окна. Анимация недоступна."
+                color: root.tokens.color.textMuted
+                font.pixelSize: 13
+            }
+            CheckBox {
+                text: "Градиентная рамка"
+                checked: root.windowBorderValues.windowBorderEnabled === true
+                onClicked: root.windowBorderChangedRequested({windowBorderEnabled: checked})
+            }
+            SettingsSegmented {
+                tokens: root.tokens
+                width: parent.width
+                equalWidth: true
+                model: [{key: "wallpaper", label: "Из обоев"}, {key: "custom", label: "Свои цвета"}]
+                currentKey: root.borderDraftSource
+                onActivated: key => { root.borderDraftDirty = true; root.borderDraftSource = key }
+            }
+            Repeater {
+                model: root.borderDraftSource === "custom" ? ["windowBorderFirst", "windowBorderSecond"] : []
+                delegate: SettingsField {
+                    required property string modelData
+                    tokens: root.tokens
+                    width: root.width
+                    text: modelData === "windowBorderFirst" ? root.borderDraftFirst : root.borderDraftSecond
+                    Accessible.name: modelData === "windowBorderFirst" ? "Первый цвет рамки" : "Второй цвет рамки"
+                    onTextEdited: {
+                        root.borderDraftDirty = true
+                        root.borderDraftError = ""
+                        if (modelData === "windowBorderFirst") root.borderDraftFirst = text
+                        else root.borderDraftSecond = text
+                    }
+                }
+            }
+            Action {
+                text: "Сохранить цвета рамки"
+                selected: true
+                onClicked: {
+                    const first = root.canonicalHex(root.borderDraftFirst)
+                    const second = root.canonicalHex(root.borderDraftSecond)
+                    if (root.borderDraftSource === "custom" && (!first || !second)) {
+                        root.borderDraftError = "Введите два цвета в формате #RRGGBB"
+                        return
+                    }
+                    root.borderDraftError = ""
+                    root.borderDraftDirty = false
+                    root.windowBorderChangedRequested({windowBorderSource: root.borderDraftSource,
+                        windowBorderFirst: first || "#C0AFD1", windowBorderSecond: second || "#CAA7AA"})
+                }
+                onActiveFocusChanged: if (activeFocus) root.revealRequested(this)
+            }
+            Label {
+                visible: root.borderDraftError !== ""
+                width: parent.width
+                text: root.borderDraftError
+                color: root.tokens.color.textMuted
+            }
+            Label { text: "Толщина рамки: " + (root.windowBorderValues.windowBorderWidth || 3) + " px" }
+            Slider {
+                width: parent.width
+                from: 1; to: 12; stepSize: 1
+                value: root.windowBorderValues.windowBorderWidth || 3
+                onMoved: root.windowBorderChangedRequested({windowBorderWidth: Math.round(value)})
+            }
+            Label {
+                visible: root.windowBorderError !== ""
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: root.windowBorderError
+                color: root.tokens.color.textMuted
             }
             CheckBox {
                 id: animations

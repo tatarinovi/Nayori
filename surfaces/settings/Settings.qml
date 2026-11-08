@@ -53,6 +53,9 @@ FocusScope {
     }).filter(item => item !== null).slice(0, 4)
     property string weatherCity: ""
     property int weatherRefreshMinutes: 15
+    property var windowBorderValues: ({})
+    property string windowBorderError: ""
+    signal windowBorderChangedRequested(var patch)
     property var quickCaptureValues: ({})
     signal quickCaptureChangedRequested(var patch)
     property bool islandRotationEnabled: true
@@ -707,6 +710,9 @@ FocusScope {
                     accentStatus: root.accentStatus
                     accentPreview: root.accentPreview
                     accentCandidates: root.accentCandidates
+                    windowBorderValues: root.windowBorderValues
+                    windowBorderError: root.windowBorderError
+                    onWindowBorderChangedRequested: patch => root.windowBorderChangedRequested(patch)
                     onAccentResetRequested: root.accentResetRequested()
                     animationsEnabled: root.animationsEnabled
                     onAnimationsChangedRequested: enabled => root.animationsChangedRequested(enabled)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stream cava energy/beats and broadband PCM RMS from the output monitor."""
+"""Stream energy, beats, RMS and 48 low-to-high cava frequency bands."""
 import array
 import math
 import os
@@ -31,7 +31,7 @@ def main():
         return 2
     config = f'''[general]
 framerate = 30
-bars = 8
+bars = 48
 [input]
 method = pulse
 source = {sink}.monitor
@@ -69,10 +69,12 @@ noise_reduction = 30
             for line in child.stdout:
                 try:
                     values = [float(v) / 1000 for v in line.strip().split(';') if v]
-                    if not values:
+                    if len(values) != 48 or not all(math.isfinite(v) for v in values):
                         continue
+                    values = [max(0.0, min(1.0, v)) for v in values]
                     energy = min(1.0, sum(values) / len(values))
-                    bass = sum(values[:3]) / min(3, len(values))
+                    # Preserve the low 3/8 of the spectrum used by the old 8-band feed.
+                    bass = sum(values[:18]) / 18
                     beat = min(1.0, max(0.0, bass - baseline * 1.3) * 3) if bass > 0.08 else 0
                     now = time.monotonic()
                     if beat < 0.12 or now - last_beat < 0.16:
@@ -82,7 +84,8 @@ noise_reduction = 30
                     baseline += (bass - baseline) * 0.12
                     amplitude, sampled_at = level
                     volume = amplitude if now - sampled_at < 0.5 else 0.0
-                    print(f'{energy:.4f} {beat:.4f} {volume:.5f}', flush=True)
+                    spectrum = ' '.join(f'{value:.4f}' for value in values)
+                    print(f'{energy:.4f} {beat:.4f} {volume:.5f} {spectrum}', flush=True)
                 except ValueError:
                     continue
         finally:

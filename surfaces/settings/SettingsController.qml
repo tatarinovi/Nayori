@@ -19,6 +19,7 @@ QtObject {
     property var niri: null
     property string accentStatus: ""
     property string niriAccentError: ""
+    property string windowBorderError: ""
     property var accentCandidates: []
     property string strataError: ""
     property string strataNotice: ""
@@ -158,6 +159,9 @@ QtObject {
             autoHideStatus: root.settingsService.autoHideStatus
             weatherCity: root.settingsService.weatherCity
             weatherRefreshMinutes: root.settingsService.weatherRefreshMinutes
+            windowBorderValues: root.settingsService.values
+            windowBorderError: root.windowBorderError
+            onWindowBorderChangedRequested: patch => root.settingsService.update(patch)
             quickCaptureValues: root.settingsService.values
             onQuickCaptureChangedRequested: patch => root.settingsService.update(patch)
             islandRotationEnabled: root.settingsService.islandRotationEnabled

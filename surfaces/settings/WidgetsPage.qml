@@ -247,6 +247,8 @@ Column {
             return "Погода"
         if (type === "music")
             return "Музыка"
+        if (type === "nowplaying")
+            return "Сейчас играет"
         if (type === "system")
             return "Система"
         if (type === "note")
@@ -266,7 +268,7 @@ Column {
     }
 
     function addWidget(type, size, style) {
-        const allowed = type === "clock" || type === "weather" || type === "music" || type === "system" || type === "note"
+        const allowed = type === "clock" || type === "weather" || type === "music" || type === "nowplaying" || type === "system" || type === "note"
         const name = root.activeScreen
         if (!allowed || !name || root.currentItems.length >= 16)
             return
@@ -482,6 +484,13 @@ Column {
                 tokens: root.tokens
                 text: "Добавить музыку"
                 onClicked: root.addWidget("music", "compact", "card")
+                onActiveFocusChanged: if (activeFocus) root.reveal(this)
+            }
+            SettingsButton {
+                objectName: "widgets-add-nowplaying"
+                tokens: root.tokens
+                text: "Добавить «Сейчас играет»"
+                onClicked: root.addWidget("nowplaying", "compact", "card")
                 onActiveFocusChanged: if (activeFocus) root.reveal(this)
             }
             SettingsButton {

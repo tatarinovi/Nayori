@@ -17,6 +17,8 @@ QtObject {
     readonly property string sinkName: testMode ? testSink : (sink ? sink.name : "")
     readonly property bool enabled: wanted && playing && (testMode || Pw.Pipewire.ready) && sinkName !== ""
     property real energy: 0
+    // Cava's 48 frequency bands, ordered from bass to treble. Empty when unavailable.
+    property var spectrum: []
     property real volume: 0
     property real volumeReference: 0
     property double volumeSampleAt: 0
@@ -40,7 +42,7 @@ QtObject {
         acceptSamples = false
         root.process.running = false
         root.stale.stop()
-        available = false; energy = 0; clearVolume(); failures = 0
+        available = false; energy = 0; spectrum = []; clearVolume(); failures = 0
         root.retry.interval = 500; root.retry.restart()
     }
     onEnabledChanged: restart()
@@ -55,23 +57,24 @@ QtObject {
             }
         }
     }
-    property Timer stale: Timer { interval: 1500; onTriggered: { root.available = false; root.energy = 0; root.clearVolume() } }
+    property Timer stale: Timer { interval: 1500; onTriggered: { root.available = false; root.energy = 0; root.spectrum = []; root.clearVolume() } }
     property Process process: Process {
         onStarted: root.acceptSamples = true
         stdout: SplitParser {
             onRead: data => {
                 if (!root.acceptSamples) return
                 const values = data.trim().split(/\s+/).map(Number)
-                if ((values.length !== 2 && values.length !== 3) || !values.every(isFinite)) return
+                if (![2, 3, 51].includes(values.length) || !values.every(isFinite)) return
                 root.available = true; root.failures = 0
-                root.updateVolume(values.length === 3 ? Math.max(0, Math.min(1, values[2])) : 0)
+                root.updateVolume(values.length >= 3 ? Math.max(0, Math.min(1, values[2])) : 0)
+                root.spectrum = values.length === 51 ? values.slice(3).map(v => Math.max(0, Math.min(1, v))) : []
                 root.energy = Math.max(0, Math.min(1, values[0])); root.stale.restart()
                 if (values[1] > 0) root.beat(Math.min(1, values[1]))
             }
         }
         onExited: {
             root.acceptSamples = false
-            root.available = false; root.energy = 0; root.clearVolume()
+            root.available = false; root.energy = 0; root.spectrum = []; root.clearVolume()
             if (root.intentionalStop) {
                 root.intentionalStop = false
                 root.retry.interval = 500; root.retry.restart()

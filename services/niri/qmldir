@@ -2,4 +2,5 @@
 # import "../../services/niri"
 singleton Niri 1.0 Niri.qml
 NiriAccent 1.0 NiriAccent.qml
+NiriBorder 1.0 NiriBorder.qml
 OverviewRule 1.0 OverviewRule.qml

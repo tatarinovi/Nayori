@@ -182,6 +182,11 @@ QtObject {
             "surfaceStyle": "solid",
             "accentMode": "default",
             "manualAccent": "#C0AFD1",
+            "windowBorderEnabled": false,
+            "windowBorderSource": "wallpaper",
+            "windowBorderFirst": "#C0AFD1",
+            "windowBorderSecond": "#CAA7AA",
+            "windowBorderWidth": 3,
             "startIconStyle": "current",
             "weatherCity": "",
             "weatherRefreshMinutes": 15,
@@ -294,6 +299,8 @@ QtObject {
             return trimmed.length > 256 ? fallback : trimmed;
         }
 
+        if (key === "windowBorderSource") return value === "wallpaper" || value === "custom" ? value : fallback;
+        if (key === "windowBorderWidth") return typeof value === "number" && isFinite(value) ? Math.max(1, Math.min(12, Math.round(value))) : fallback;
         if (key === "accentMode")
             return value === "default" || value === "automatic" || value === "manual" ? value : fallback;
 
@@ -303,7 +310,7 @@ QtObject {
         if (key === "polkitAgent")
             return value === true;
 
-        if (key === "manualAccent" || key === "captureColor") {
+        if (key === "manualAccent" || key === "captureColor" || key === "windowBorderFirst" || key === "windowBorderSecond") {
             if (typeof value !== "string")
                 return fallback;
             const match = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.exec(value.trim());

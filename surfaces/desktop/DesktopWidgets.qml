@@ -30,7 +30,7 @@ PanelWindow {
     }
     onWantsAudioChanged: updateAudioConsumer()
     onAudioReactionChanged: updateAudioConsumer()
-    Component.onDestruction: { if (audioReaction) audioReaction.consumer(audioKey, false) }
+    Component.onDestruction: { if (audioReaction) audioReaction.consumer(audioKey, false); if (music) music.consumer(lyricsKey, false) }
     property string preferredTerminal: "kitty"
     property string preferredFileManager: "io.github.lgse.Strata"
     property bool editing: false
@@ -47,6 +47,12 @@ PanelWindow {
     }
     signal layoutEdited(var next)
     signal editingRequested(bool enabled)
+    signal musicStageRequested()
+    readonly property string lyricsKey: "desktop-lyrics-" + String(root)
+    function updateLyricsConsumer() { if (music) music.consumer(lyricsKey, root.visible && root.wantsNowPlaying) }
+    onWantsNowPlayingChanged: updateLyricsConsumer()
+    onVisibleChanged: updateLyricsConsumer()
+    onMusicChanged: updateLyricsConsumer()
 
     property var pendingLayout: null
     property var order: []
@@ -77,7 +83,8 @@ PanelWindow {
     readonly property bool wantsClock: containsType("clock")
     readonly property bool wantsSystem: containsType("system")
     readonly property bool wantsNote: containsType("note")
-    readonly property bool wantsMusic: containsType("music")
+    readonly property bool wantsNowPlaying: containsType("nowplaying")
+    readonly property bool wantsMusic: containsType("music") || wantsNowPlaying
     readonly property var maskItems: {
         const epoch = inputEpoch
         const list = []
@@ -346,6 +353,7 @@ PanelWindow {
             onMenuRequested: function(id, x, y) { root.openMenu(id, x, y) }
             onResizeRequested: function(id, direction) { root.resizeWidget(id, direction) }
             onMoveFinished: root.movingId = ""
+            onMusicStageRequested: root.musicStageRequested()
             onMaskDirty: root.bumpMask()
             onFocusIdChanged: root.focusedId = focusId
         }

@@ -318,6 +318,14 @@ ShellRoot {
         accent: tokens.color.accent
         settled: settingsStore.ready && (settingsStore.accentMode !== "automatic" || accentExtractor.ready)
     }
+    NiriBorder {
+        id: niriBorder
+        ready: settingsStore.ready && (!settingsStore.values.windowBorderEnabled || settingsStore.values.windowBorderSource !== "wallpaper" || accentExtractor.ready)
+        enabled: settingsStore.values.windowBorderEnabled
+        first: settingsStore.values.windowBorderSource === "wallpaper" && accentExtractor.ready && !accentExtractor.fallbackUsed ? accentExtractor.accent : settingsStore.values.windowBorderSource === "custom" ? settingsStore.values.windowBorderFirst : "#C0AFD1"
+        second: settingsStore.values.windowBorderSource === "custom" ? settingsStore.values.windowBorderSecond : accentExtractor.candidates && accentExtractor.candidates.length > 1 && accentExtractor.candidates[1].color ? accentExtractor.candidates[1].color : "#CAA7AA"
+        width: settingsStore.values.windowBorderWidth
+    }
     Tokens {
         id: naomiTokens
         colorScheme: settingsStore.colorScheme
@@ -369,6 +377,7 @@ ShellRoot {
                 preferredTerminal: settingsStore.preferredTerminal
                 preferredFileManager: settingsStore.preferredFileManager
                 onEditingRequested: enabled => settingsController.widgetsEditing = enabled
+                onMusicStageRequested: root.openMusicStage(desktopOutput.modelData)
                 layout: settingsStore.desktopWidgets[desktopOutput.modelData.name] || null
                 editing: settingsController.widgetsEditing
                 weatherService: weatherStore
@@ -395,6 +404,33 @@ ShellRoot {
         }
     }
 
+    property var musicStageScreen: null
+    function openMusicStage(target) {
+        if (lockService.locked) return
+        musicStageScreen = target || root.probeScreen
+    }
+    LazyLoader {
+        id: musicStageHost
+        active: root.musicStageScreen !== null && !lockService.locked
+        component: MusicStage {
+            screen: root.musicStageScreen
+            tokens: root.tokenSet
+            music: musicStore
+            audioReaction: root.islandAudio
+            onCloseRequested: root.musicStageScreen = null
+        }
+    }
+    Connections {
+        target: lockService
+        function onLockedChanged() { if (lockService.locked) root.musicStageScreen = null }
+    }
+    IpcHandler {
+        target: "musicstage"
+        function toggle(): void {
+            if (root.musicStageScreen) root.musicStageScreen = null
+            else root.openMusicStage(root.screenNamed(Niri.focusedOutput))
+        }
+    }
     LazyLoader {
         id: companionHost
         active: settingsStore.ready && settingsStore.companionEnabled && root.probeScreen !== null
@@ -638,6 +674,7 @@ ShellRoot {
         niri: Niri
         accentStatus: root.accentStatus
         niriAccentError: root.niriAccentError
+        windowBorderError: niriBorder.error
         accentCandidates: root.accentCandidates
         strataError: strataTheme.error
         strataNotice: strataTheme.notice
