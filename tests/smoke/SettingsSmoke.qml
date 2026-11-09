@@ -284,6 +284,21 @@ ShellRoot {
                     const animationY = animationsControl.mapToItem(appearance.contentItem, 0, 0).y
                     test.check(animationY >= -1 && animationY + animationsControl.height <= appearance.height + 1,
                         "compact appearance scroll reveals keyboard focus")
+                    openKey("cursor")
+                    test.check(currentPage === 34 && section.title === "Курсор", "dedicated cursor page opens")
+                    const cursorControls = test.findItem(view, "cursorControls")
+                    const cursorTheme = test.findItem(view, "cursorThemeSelector")
+                    const cursorSize = test.findItem(view, "cursorSizeSelector")
+                    const originalTheme = cursorControls.draftTheme
+                    const originalSize = cursorControls.draftSize
+                    cursorTheme.activated("preview-only")
+                    cursorSize.activated("48")
+                    test.check(cursorControls.draftTheme === "preview-only" && cursorControls.draftSize === 48,
+                        "cursor selection edits a draft")
+                    test.findItem(view, "cursorCancel").clicked()
+                    test.check(cursorControls.draftTheme === originalTheme && cursorControls.draftSize === originalSize,
+                        "cursor cancellation restores saved values")
+                    test.check(test.findItem(view, "cursorApply") !== null, "cursor has explicit apply action")
                     openKey("naomi")
                     test.check(currentPage === 25, "dedicated Naomi page opens")
                     const naomiPreview = test.findItem(view, "naomiPreview")

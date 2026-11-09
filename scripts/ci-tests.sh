@@ -4,6 +4,7 @@ cd "$(dirname "$0")/.."
 
 case "${1:-}" in
     unit)
+        python3 tests/cursor-theme.py
         python3 tests/calendar.py
         python3 tests/installer.py
         python3 tests/nayori-update.py
@@ -36,7 +37,7 @@ case "${1:-}" in
             printf '\n>>> %s\n' "$suite"
             bash "scripts/check-$suite.sh"
         done
-        for test in bluetooth color-scheme settings panel-modes weather-service settings-window settings-usage desktop-widgets naomi-sprite wallpaper-library lockscreen wireguard launcher-search launcher-usage launcher-interaction; do
+        for test in cursor-preview bluetooth color-scheme settings panel-modes weather-service settings-window settings-usage desktop-widgets naomi-sprite wallpaper-library lockscreen wireguard launcher-search launcher-usage launcher-interaction; do
             printf '\n>>> %s\n' "$test"
             python3 "tests/$test.py"
         done

@@ -215,6 +215,7 @@ FocusScope {
         {key: "start", page: 14, title: "Пуск", group: "Персонализация", description: "Значок и приложения кнопки «Пуск»"},
         {key: "island", page: 15, title: "Dynamic Island", group: "Персонализация", description: "Чередование часов и погоды, город и интервал"},
         {key: "lockscreen", page: 16, title: "Экран блокировки", group: "Персонализация", description: "Предпросмотр экрана блокировки с\u00A0обоями и цветами Nayori"},
+        {key: "cursor", page: 34, title: "Курсор", group: "Персонализация", description: "Единая тема и размер указателя для системы и приложений"},
         {key: "weather", page: 3, title: "Погода", group: "Персонализация", description: "Город для прогноза в Dynamic Island", sidebar: false},
         {key: "windows", page: 17, title: "Окна", group: "Окна и столы", description: "Фокус окон и ограничения конфигурации niri"},
         {key: "alttab", page: 18, title: "Alt+Tab", group: "Окна и столы", description: "Переключение окон в этой сессии niri"},
@@ -874,6 +875,14 @@ FocusScope {
                     width: parent.width
                     tokens: root.tokens
                     service: root.calendarService
+                }
+            }
+            SettingsScroll {
+                id: cursorScroll
+                CursorControls {
+                    width: parent.width
+                    tokens: root.tokens
+                    onRevealRequested: item => cursorScroll.reveal(item)
                 }
             }
         }
