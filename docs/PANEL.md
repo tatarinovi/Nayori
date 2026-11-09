@@ -155,3 +155,5 @@ QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QPA_PLATFORMTHEME=basic \
 `tests/smoke/PanelSmoke.qml` читает живые модели и не запускает приложения, не меняет громкость и не трогает сеть. Ищите `PANEL_SMOKE_PASS`. Код 124 у `timeout` ожидаем. Снимки пишутся в `/tmp/nayori-*.png`. Маска окна и захват указателя в offscreen не проверяются.
 
 `tests/smoke/MorphSmoke.qml` проверяет промежуточные размеры, полное раскрытие и мгновенный переход при выключенных анимациях. Позы лисы проверяет `tests/island-controller.cjs`.
+
+CalDAV-события в календаре: [подключение и ограничения](CALENDAR.md).

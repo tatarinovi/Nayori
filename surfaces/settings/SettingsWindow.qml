@@ -10,6 +10,7 @@ FloatingWindow {
     id: root
     property var wallpaperManager: null
     property var companionTokens: tokens
+    property var calendarService: null
     property var bluetoothService: null
     property var settingsService: null
     property var polkitService: null
@@ -139,6 +140,7 @@ FloatingWindow {
     readonly property int selectedPage: settings.currentPage
 
     Settings {
+        calendarService: root.calendarService
         bluetoothService: root.bluetoothService
         settingsService: root.settingsService
         widgetsEditing: root.widgetsEditing

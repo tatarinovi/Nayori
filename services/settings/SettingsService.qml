@@ -183,6 +183,8 @@ QtObject {
             "accentMode": "default",
             "manualAccent": "#C0AFD1",
             "startIconStyle": "current",
+            "calendarUrl": "",
+            "calendarUser": "",
             "weatherCity": "",
             "weatherRefreshMinutes": 15,
             "islandRotationEnabled": true,
@@ -267,7 +269,7 @@ QtObject {
         if (key === "surfaceStyle")
             return value === "solid" || value === "frosted" ? value : fallback;
 
-        if (key === "weatherCity")
+        if (key === "weatherCity" || key === "calendarUrl" || key === "calendarUser")
             return typeof value === "string" ? value.trim() : fallback;
 
         if (key === "preferredTerminal" || key === "preferredFileManager") {

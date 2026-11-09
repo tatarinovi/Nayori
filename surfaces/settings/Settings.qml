@@ -11,6 +11,7 @@ FocusScope {
     id: root
     property var wallpaperManager: null
     property var companionTokens: tokens
+    property var calendarService: null
     property var bluetoothService: null
     property var settingsService: null
     property var polkitService: null
@@ -226,6 +227,7 @@ FocusScope {
         {key: "naomi-place", page: 27, title: "Отображение", group: "Naomi", description: "Монитор, угол и слой"},
         {key: "naomi-remind", page: 29, title: "Напоминания", group: "Naomi", description: "Вода, глаза и разминка без ожидания"},
         {key: "integrations", page: 24, title: "Интеграции", group: "Приложения", description: "Цвета Nayori в\u00A0niri и тема Strata"},
+        {key: "calendar", page: 33, title: "Календарь", group: "Приложения", description: "Подключение CalDAV, учётная запись и события в острове"},
         {key: "updates", page: 22, title: "Обновления", group: "NayoriOS", description: "Обновление системы и приложений"},
         {key: "about", page: 23, title: "О системе", group: "NayoriOS", description: "Версии Nayori, niri, Quickshell и системы"}
     ]
@@ -234,7 +236,7 @@ FocusScope {
     readonly property bool persistsSettings: {
         const key = section.key
         const naomiSettings = key === "naomi" || key === "naomi-look" || key === "naomi-place"
-        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key === "capture" || key === "notifications" || key === "widgets" || naomiSettings
+        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key === "capture" || key === "notifications" || key === "widgets" || key === "calendar" || naomiSettings
     }
     readonly property var categories: [
         {name: "Обзор", caption: "Обзор", glyph: "home"},
@@ -865,6 +867,13 @@ FocusScope {
                     editing: root.widgetsEditing
                     onLayoutEdited: layout => { if (root.settingsService) root.settingsService.update({ desktopWidgets: layout }) }
                     onEditModeChanged: on => root.widgetsEditingRequested(on)
+                }
+            }
+            SettingsScroll {
+                CalendarControls {
+                    width: parent.width
+                    tokens: root.tokens
+                    service: root.calendarService
                 }
             }
         }

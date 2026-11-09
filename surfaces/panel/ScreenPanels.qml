@@ -477,6 +477,7 @@ Scope {
             launcherOpen: root.launcherHere
             onLauncherDismissed: root.shellState.launcherOpened = false
             weatherCity: root.shellState.weatherCity
+            calendarService: root.shellState.calendarService
             weatherService: root.shellState.weatherService
             islandRotationEnabled: root.shellState.islandRotationEnabled
             islandRotationSeconds: root.shellState.islandRotationSeconds
