@@ -12,6 +12,8 @@ ShellRoot {
     property int phase: 0
     property string note: ""
     property int moved: 0
+    property real resizedWidth: 0
+    property real resizedHeight: 0
     property int menus: 0
     property int plays: 0
     function check(ok, message) { if (!ok) { console.error("DESKTOP_CONTENT_FAIL " + message); Qt.exit(1) } }
@@ -53,6 +55,7 @@ ShellRoot {
             onNoteEdited: (id, value) => test.note = value
             onMenuRequested: (id, x, y) => test.menus++
             onCommitPosition: (id, x, y, snap) => test.moved++
+            onCommitGeometry: (id, x, y, width, height) => { test.resizedWidth = width; test.resizedHeight = height }
         }
         DesktopWidgetFrame {
             id: clockFrame
@@ -259,6 +262,12 @@ ShellRoot {
                 frame.forceActiveFocus()
                 input.keyClick(Qt.Key_Right, Qt.NoModifier, -1)
                 test.check(test.moved === 1, "keyboard moves widget")
+                const grip = test.findItem(frame, "desktop-widget-resize")
+                test.check(grip && grip.visible, "resize grip shown")
+                input.mousePress(grip, 14, 14, Qt.LeftButton, Qt.NoModifier, -1)
+                input.mouseMove(frame, 286, 184, 20, Qt.LeftButton, Qt.NoModifier)
+                input.mouseRelease(frame, 286, 184, Qt.LeftButton, Qt.NoModifier, -1)
+                test.check(test.resizedWidth > 260 && test.resizedHeight > 168 && Math.abs(test.resizedWidth / test.resizedHeight - 260 / 168) < 0.02, "resize drag commits custom dimensions")
             } else if (test.phase === 3) {
                 const networkGraph = test.findItem(systemDetailed, "desktop-network-graph")
                 test.check(networkGraph && networkGraph.mapToItem(systemDetailed, 0, networkGraph.height).y <= systemDetailed.height, "network graph fits large size")
@@ -270,6 +279,12 @@ ShellRoot {
                 const progress = test.findItem(musicWidget, "desktop-music-progress")
                 const progressBottom = progress.mapToItem(musicWidget, 0, progress.height).y
                 test.check(progressBottom <= pos.y && pos.y + play.height <= musicWidget.height, "large music progress and controls fit")
+                frame.spec = ({ id: "note", type: "note", x: 20, y: 20, size: "compact", style: "card", text: "a", opacity: 0.6, width: 320, height: 210 })
+                test.check(frame.opacity === 0.6 && frame.width === 320 && frame.height === 210, "instance appearance applied")
+                frame.inputOverlay = true
+                frame.editing = false
+                frame.focusId = ""
+                test.check(frame.box.width === 320 && frame.box.height === 210, "saved dimensions reach frame")
                 console.log("DESKTOP_CONTENT_PASS")
                 Qt.quit()
             }

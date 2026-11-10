@@ -11,9 +11,9 @@ PanelWindow {
     property bool widgetsReady: false
     property var weatherService: null
     property var music: null
-    readonly property var wallpaper: manager.wallpaper(screen ? screen.name : "")
+    readonly property var wallpaper: manager.displayWallpaper(screen ? screen.name : "")
     anchors { top: true; bottom: true; left: true; right: true }
-    visible: manager.enabled
+    visible: manager.displayEnabled(screen ? screen.name : "")
     color: tokens.color.background
     exclusionMode: ExclusionMode.Ignore
     exclusiveZone: 0

@@ -753,6 +753,8 @@ FocusScope {
                 tokens: root.tokens
                 showHeading: false
                 manager: root.wallpaperManager
+                accentMode: root.accentMode
+                onAccentModeChangedRequested: mode => root.accentModeChangedRequested(mode)
             }
             SettingsScroll { DisplayPage { id: displayPage; width: parent.width; tokens: root.tokens } }
             SettingsScroll {

@@ -62,6 +62,7 @@ QtObject {
     Component.onCompleted: {
         root.watchCatalog()
         Qt.callLater(function() {
+            if (!root) return
             root.bump()
             root.catalogReady = true
         })

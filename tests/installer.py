@@ -524,6 +524,8 @@ class EngineTests(Fixture):
         current = (self.paths.base / "current").resolve()
         self.assertTrue((current / "sddm/nayori/Main.qml").is_file())
         self.assertTrue((current / "configs/niri/config.kdl").is_file())
+        for name in ("LICENSE", "NOTICE", "LICENSES/OFL-1.1.txt"):
+            self.assertTrue((current / name).is_file(), name)
         self.assertEqual(self.engine.modified_files(), [])
 
 

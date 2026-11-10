@@ -19,6 +19,7 @@ import "surfaces/panel"
 import "services/canvas"
 import "services/palette"
 import "services/ui"
+import "services/desktop"
 import "services/ui/StartRouting.js" as StartRouting
 import "services/status/MixerSources.js" as MixerSources
 import "services/ui/IslandRouting.js" as IslandRouting
@@ -49,6 +50,15 @@ ShellRoot {
     SystemUpdate { id: systemUpdate }
     readonly property var systemUpdateService: systemUpdate
     SettingsService { id: settingsStore }
+    StageSession { id: desktopStage }
+    Connections {
+        target: settingsController
+        function onWidgetsEditingChanged() {
+            if (!settingsController.widgetsEditing) desktopStage.leave()
+            else if (!desktopStage.widgets && root.probeScreen)
+                desktopStage.enterWidgets(root.probeScreen.name, "widgets")
+        }
+    }
     BluetoothService { id: bluetoothStore }
     CodexLimits { id: codexLimits; enabled: settingsStore.ready && settingsStore.codexWidgetEnabled }
     readonly property var codexLimitsService: codexLimits
@@ -379,13 +389,31 @@ ShellRoot {
                 visible: settingsStore.ready && !Niri.overviewOpen
                 screen: desktopOutput.modelData
                 tokens: root.tokenSet
-                visualBackdrop: wallpaperStore.enabled
+                visualBackdrop: wallpaperStore.displayEnabled(desktopOutput.modelData.name)
+                wallpaperManager: wallpaperStore
                 preferredTerminal: settingsStore.preferredTerminal
                 preferredFileManager: settingsStore.preferredFileManager
-                onEditingRequested: enabled => settingsController.widgetsEditing = enabled
+                onWallpaperRequested: {
+                    settingsController.widgetsEditing = false
+                    desktopStage.leave()
+                    root.openSettings("wallpapers")
+                }
+                onEditingRequested: enabled => {
+                    if (enabled) desktopStage.enterWidgets(desktopOutput.modelData.name, "widgets")
+                    settingsController.widgetsEditing = enabled
+                }
+                onMonitorCycleRequested: {
+                    const screens = Quickshell.screens
+                    if (screens.length < 2) return
+                    let index = -1
+                    for (let i = 0; i < screens.length; i++)
+                        if (screens[i].name === desktopStage.monitor) { index = i; break }
+                    desktopStage.enterWidgets(screens[(index + 1) % screens.length].name, "widgets")
+                }
                 onMusicStageRequested: root.openMusicStage(desktopOutput.modelData)
                 layout: settingsStore.desktopWidgets[desktopOutput.modelData.name] || null
-                editing: settingsController.widgetsEditing
+                editing: settingsController.widgetsEditing && desktopStage.onMonitor(desktopOutput.modelData.name)
+                stageSession: desktopStage
                 weatherService: weatherStore
                 music: musicStore
                 audioReaction: root.islandAudio

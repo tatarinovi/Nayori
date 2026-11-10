@@ -8,6 +8,7 @@ import QtCore as Core
 import Qt.labs.folderlistmodel
 import Quickshell
 import "../canvas"
+import "../../services/palette"
 
 ScrollView {
     id: root
@@ -19,13 +20,86 @@ ScrollView {
     property string draftMode: "fill"
     property bool draftShared: true
     property bool draftEnabled: true
-    property alias libraryFolder: library.folder
+    property url libraryFolder: ""
+    property string searchText: ""
+    property string appliedSearch: ""
+    property bool desktopPreview: true
+    property string accentMode: "default"
+    signal accentModeChangedRequested(string mode)
+    property bool draftDynamic: accentMode === "automatic"
+    property bool restoringLibrary: false
+    property bool libraryLoaded: false
+    property string loadedWallpaperState: ""
+    onAccentModeChanged: draftDynamic = accentMode === "automatic"
+    function wallpaperStateKey() {
+        if (!manager) return ""
+        return JSON.stringify([manager.state.wallpaper, manager.state.outputs, manager.state.shared, manager.state.enabled])
+    }
+    readonly property bool paletteReady: draftPalette.ready && draftPalette.sourcePath === draftPalette.filePath(draftSource)
+    function loadLibrary() {
+        if (!manager || !manager.ready || libraryLoaded) return
+        restoringLibrary = true
+        const savedFolder = manager.state.libraryFolder
+        if (String(libraryFolder) === "") libraryFolder = typeof savedFolder === "string" && /^file:\/\/\//.test(savedFolder)
+            ? savedFolder : legacyLibrary.folder
+        restoringLibrary = false
+        libraryLoaded = true
+    }
+    onLibraryFolderChanged: if (!restoringLibrary && libraryLoaded) librarySave.restart()
+    onSearchTextChanged: searchDelay.restart()
+    onDraftSourceChanged: previewDelay.restart()
+    onDraftModeChanged: previewDelay.restart()
+    onDraftSharedChanged: previewDelay.restart()
+    onDraftEnabledChanged: previewDelay.restart()
+    onDesktopPreviewChanged: previewDelay.restart()
+    onVisibleChanged: {
+        if (!visible && manager) manager.cancelPreview()
+        else previewDelay.restart()
+    }
+    Component.onDestruction: if (manager) manager.cancelPreview()
+    Keys.onEscapePressed: event => {
+        if (manager && manager.previewing) { cancel(); event.accepted = true }
+    }
+    function cancel() {
+        manager.cancelPreview()
+        desktopPreview = false
+        load()
+    }
+    function updatePreview() {
+        if (!manager) return
+        if (!visible || !desktopPreview || !draftEnabled || preview.failed) { manager.cancelPreview(); return }
+        // Keep the last paint while the next asynchronous image is loading.
+        if (!preview.loaded) return
+        const committed = manager.wallpaper(output)
+        if (String(committed.source) === String(draftSource) && committed.mode === draftMode
+                && manager.state.shared === draftShared) { manager.cancelPreview(); return }
+        manager.preview(output, draftSource, draftMode, draftShared)
+    }
+    function filters() {
+        // QDir wildcard character classes keep the query literal.
+        const query = appliedSearch.replace(/[\[\]*?]/g, ch => ch === "[" ? "[[]" : ch === "]" ? "[]]" : "[" + ch + "]")
+        return ["png", "jpg", "jpeg", "webp"].map(ext => "*" + query + "*." + ext)
+    }
+    Timer { id: searchDelay; interval: 120; onTriggered: root.appliedSearch = root.searchText.trim() }
+    Timer { id: previewDelay; interval: 80; onTriggered: root.updatePreview() }
+    Timer {
+        id: librarySave; interval: 100; repeat: true
+        onTriggered: {
+            if (!root.manager || !root.manager.ready || root.manager.saving) return
+            stop()
+            root.manager.setLibraryFolder(root.libraryFolder)
+        }
+    }
+    AccentExtractor { id: draftPalette; source: root.visible ? root.draftSource : "" }
     readonly property int imageCount: images.count
     readonly property bool canApply: manager && manager.ready && !manager.saving
         && (preview.loaded || !draftEnabled) && (draftShared || selectedScreen !== null)
     function apply() {
-        if (canApply) manager.apply(output, String(draftSource) === String(manager.defaultSource) ? "" : draftSource,
-            draftMode, draftShared, draftEnabled)
+        if (!canApply) return
+        const mode = draftDynamic ? "automatic" : accentMode === "manual" ? "manual" : "default"
+        manager.apply(output, String(draftSource) === String(manager.defaultSource) ? "" : draftSource,
+            draftMode, draftShared, draftEnabled, libraryFolder)
+        if (mode !== accentMode) accentModeChangedRequested(mode)
     }
     readonly property var selectedScreen: {
         for (const screen of Quickshell.screens) if (screen.name === output) return screen
@@ -45,7 +119,7 @@ ScrollView {
         return items
     }
     readonly property string folderText: {
-        let path = decodeURIComponent(String(library.folder).replace(/^file:\/\//, ""))
+        let path = decodeURIComponent(String(root.libraryFolder).replace(/^file:\/\//, ""))
         const home = Quickshell.env("HOME") || ""
         if (home && (path === home || path.startsWith(home + "/"))) path = "~" + path.slice(home.length)
         return path
@@ -84,6 +158,8 @@ ScrollView {
         loadWallpaper()
         draftShared = manager.state.shared
         draftEnabled = manager.state.enabled
+        draftDynamic = accentMode === "automatic"
+        loadedWallpaperState = wallpaperStateKey()
     }
     function selectAll() {
         if (!manager) return
@@ -97,18 +173,23 @@ ScrollView {
         output = name
         loadWallpaper()
     }
-    Component.onCompleted: load()
+    Component.onCompleted: { load(); loadLibrary() }
     onOutputChanged: loadWallpaper()
     Connections {
         target: root.manager
-        function onReadyChanged() { root.load() }
-        function onStateChanged() { root.load() }
+        function onReadyChanged() { root.load(); root.loadLibrary() }
+        function onStateChanged() {
+            // A collection-path save must not discard the selected image.
+            if (root.loadedWallpaperState !== root.wallpaperStateKey()) root.load()
+        }
     }
     Connections {
         target: Quickshell
         function onScreensChanged() {
-            if (!root.selectedScreen)
+            if (!root.selectedScreen) {
+                root.manager.cancelPreview()
                 root.output = Quickshell.screens.length ? Quickshell.screens[0].name : ""
+            }
         }
     }
 
@@ -171,23 +252,25 @@ ScrollView {
     }
 
     Core.Settings {
-        id: library
+        id: legacyLibrary
+        // Read the old collection path once; all new writes belong to canvas.json.
         location: root.manager ? "file://" + root.manager.storageDirectory + "/wallpaper-library.ini" : ""
         property url folder: "file://" + Core.StandardPaths.writableLocation(Core.StandardPaths.PicturesLocation)
     }
     FolderDialog {
         id: folderPicker
         title: "Папка с обоями"
-        currentFolder: library.folder
-        onAccepted: library.folder = selectedFolder
+        currentFolder: root.libraryFolder
+        onAccepted: root.libraryFolder = selectedFolder
     }
     FolderListModel {
         id: images
         objectName: "wallpaper-library-model"
-        folder: library.folder
+        folder: root.libraryFolder
         showDirs: false
         showHidden: false
-        nameFilters: ["*.png", "*.jpg", "*.jpeg", "*.webp", "*.PNG", "*.JPG", "*.JPEG", "*.WEBP"]
+        nameFilters: root.filters()
+        caseSensitive: false
         sortField: FolderListModel.Name
     }
     FileDialog {
@@ -250,6 +333,7 @@ ScrollView {
                                 mode: root.draftMode
                                 nativeScale: root.selectedScreen ? previewBox.width / root.selectedScreen.width : 1
                                 backgroundColor: root.tokens.color.background
+                                onLoadedChanged: previewDelay.restart()
                             }
                             Rectangle {
                                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
@@ -327,6 +411,58 @@ ScrollView {
 
             RowLayout {
                 Layout.fillWidth: true
+                SettingsSwitch {
+                    Layout.fillWidth: true
+                    tokens: root.tokens
+                    text: "Предпросмотр на рабочем столе"
+                    checked: root.desktopPreview
+                    onClicked: root.desktopPreview = checked
+                }
+                Action { text: "Отменить"; enabled: root.manager && root.manager.previewing; onClicked: root.cancel() }
+            }
+            SettingsSwitch {
+                Layout.fillWidth: true
+                tokens: root.tokens
+                text: "Цвета интерфейса из обоев"
+                checked: root.draftDynamic
+                onClicked: root.draftDynamic = checked
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Caption { text: root.paletteReady ? "Палитра изображения" : "Извлечение палитры…"; color: root.tokens.color.textMuted }
+                Repeater {
+                    model: root.paletteReady ? [draftPalette.accent, draftPalette.background, draftPalette.surface, draftPalette.surfaceAlt] : []
+                    Rectangle {
+                        required property var modelData
+                        implicitWidth: 24; implicitHeight: 24; radius: 6
+                        color: modelData
+                        border.width: 1; border.color: root.tokens.color.border
+                        Accessible.name: String(modelData)
+                    }
+                }
+                Item { Layout.fillWidth: true }
+            }
+            Caption {
+                Layout.fillWidth: true
+                text: "Сейчас: " + decodeURIComponent(String(root.manager ? root.manager.wallpaper(root.output).source : "").split("/").pop())
+                elide: Text.ElideMiddle; wrapMode: Text.NoWrap
+            }
+            TextField {
+                objectName: "wallpaper-search"
+                Layout.fillWidth: true
+                placeholderText: "Поиск по имени файла"
+                text: root.searchText
+                onTextEdited: root.searchText = text
+                color: root.tokens.color.text
+                placeholderTextColor: root.tokens.color.textMuted
+                font.family: root.tokens.type.body.family
+                font.pixelSize: root.tokens.type.small.size
+                background: Rectangle { radius: root.tokens.radius.small; color: root.tokens.material.sidebar; border.width: 1; border.color: root.tokens.color.border }
+                leftPadding: 12; rightPadding: 12
+                implicitHeight: 40
+            }
+            RowLayout {
+                Layout.fillWidth: true
                 Layout.fillHeight: false
                 spacing: 8
                 Rectangle {
@@ -394,7 +530,7 @@ ScrollView {
             Caption {
                 visible: images.count === 0
                 Layout.fillWidth: true
-                text: images.status === FolderListModel.Loading ? "Загрузка изображений…" : "В папке нет доступных изображений. Выберите другую папку."
+                text: images.status === FolderListModel.Loading ? "Загрузка изображений…" : root.appliedSearch ? "Изображения не найдены. Измените запрос." : "В папке нет доступных изображений. Выберите другую папку."
                 color: root.tokens.color.textMuted
             }
             GridView {
@@ -410,6 +546,8 @@ ScrollView {
                 cellWidth: width / columns
                 cellHeight: (cellWidth - gap) * 9 / 16 + 6 + labelHeight + gap
                 model: images
+                reuseItems: true
+                cacheBuffer: cellHeight
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 ScrollBar.vertical: ScrollBar {}

@@ -24,7 +24,11 @@ FocusScope {
     signal maskDirty()
     signal menuRequested(string id, real x, real y)
     signal resizeRequested(string id, int direction)
+    signal commitSize(string id, real width, real height)
     signal moveFinished()
+    signal undoRequested()
+    signal redoRequested()
+    signal escapeRequested()
     signal musicStageRequested()
     property bool moving: false
     property bool inputOverlay: false
@@ -33,9 +37,16 @@ FocusScope {
     readonly property var box: spec ? WidgetLayout.sizeOf(spec) : ({ width: 0, height: 0 })
     readonly property bool card: spec && spec.style === "card"
     readonly property bool takesInput: spec !== null
-    property bool dragging: false
-    property real dragX: 0
-    property real dragY: 0
+    readonly property alias dragging: placement.dragging
+    readonly property alias resizing: placement.resizing
+    signal commitGeometry(string id, real x, real y, real width, real height)
+    WidgetSlot {
+        id: placement
+        host: root
+        onPositionCommitted: (x, y) => { if (root.spec) root.commitPosition(root.spec.id, x, y, root.snap) }
+        onGeometryCommitted: (x, y, width, height) => { if (root.spec) root.commitGeometry(root.spec.id, x, y, width, height) }
+    }
+    onEditingChanged: if (!editing && !moving) { placement.stageCancelMove(); placement.stageCancelResize() }
 
     function widgetName(type) {
         if (type === "clock")
@@ -54,17 +65,17 @@ FocusScope {
     }
 
     visible: spec !== null
-    width: box.width
-    height: box.height + (editing && spec && spec.type !== "note" ? 24 : 0)
-    x: !spec ? 0 : dragging ? dragX : spec.x
-    y: !spec ? 0 : dragging ? dragY : editing ? Math.min(spec.y, Math.max(0, screenHeight - height)) : spec.y
+    width: resizing ? placement.previewWidth : box.width
+    height: (resizing ? placement.previewHeight : box.height) + (editing && spec && spec.type !== "note" ? 24 : 0)
+    x: !spec ? 0 : (dragging || resizing) ? placement.dragX : spec.x
+    y: !spec ? 0 : (dragging || resizing) ? placement.dragY : editing ? Math.min(spec.y, Math.max(0, screenHeight - height)) : spec.y
     z: dragging ? 10 : 0
     objectName: spec ? "desktop-widget-" + spec.id : "desktop-widget"
     activeFocusOnTab: true
     Accessible.name: spec ? widgetName(spec.type) : "Виджет"
     Accessible.description: editing ? "Стрелки двигают виджет" : ""
 
-    opacity: inputOverlay && !inputVisible ? 0.001 : 1
+    opacity: inputOverlay && !inputVisible ? 0.001 : (spec && typeof spec.opacity === "number" ? spec.opacity : 1)
     onInputVisibleChanged: maskDirty()
     onTakesInputChanged: maskDirty()
     onSpecChanged: if (spec && editing && focusId === spec.id && !activeFocus) forceActiveFocus()
@@ -78,6 +89,17 @@ FocusScope {
     Keys.onPressed: function(event) {
         if (!editing || !spec || root.Window.activeFocusItem !== root)
             return
+        if (event.key === Qt.Key_Escape) {
+            escapeRequested()
+            event.accepted = true
+            return
+        }
+        if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_Z) {
+            if (event.modifiers & Qt.ShiftModifier) redoRequested()
+            else undoRequested()
+            event.accepted = true
+            return
+        }
         const grid = WidgetLayout.gridSize()
         const fine = event.modifiers & Qt.ShiftModifier
         const step = fine ? (snap ? 1 : grid) : (snap ? grid : 1)
@@ -113,40 +135,16 @@ FocusScope {
         hoverEnabled: enabled
         preventStealing: true
         cursorShape: root.dragging ? Qt.ClosedHandCursor : Qt.OpenHandCursor
-        property real startX: 0
-        property real startY: 0
-        property real pressX: 0
-        property real pressY: 0
         onPressed: function(mouse) {
-            const scene = mapToItem(root.parent, mouse.x, mouse.y)
-            pressX = scene.x
-            pressY = scene.y
-            startX = root.x
-            startY = root.y
+            const point = mapToItem(root.parent, mouse.x, mouse.y)
             root.forceActiveFocus()
-            mouse.accepted = true
+            placement.stageBeginMove(point, mouse.modifiers)
         }
         onPositionChanged: function(mouse) {
-            if (!pressed)
-                return
-            const scene = mapToItem(root.parent, mouse.x, mouse.y)
-            const nx = startX + scene.x - pressX
-            const ny = startY + scene.y - pressY
-            if (!root.dragging && Math.abs(nx - startX) < 4 && Math.abs(ny - startY) < 4)
-                return
-            root.dragging = true
-            const maxX = Math.max(0, root.screenWidth - root.width)
-            const maxY = Math.max(0, root.screenHeight - root.height)
-            root.dragX = Math.min(maxX, Math.max(0, nx))
-            root.dragY = Math.min(maxY, Math.max(0, ny))
+            if (pressed) placement.stageUpdateMove(mapToItem(root.parent, mouse.x, mouse.y), mouse.modifiers)
         }
-        onReleased: {
-            if (root.dragging && root.spec)
-                root.commitPosition(root.spec.id, root.dragX, root.dragY, root.snap)
-            root.dragging = false
-            if (root.moving) root.moveFinished()
-        }
-        onCanceled: { root.dragging = false; if (root.moving) root.moveFinished() }
+        onReleased: function(mouse) { placement.stageEndMove(mouse.modifiers); if (root.moving) root.moveFinished() }
+        onCanceled: { placement.stageCancelMove(); if (root.moving) root.moveFinished() }
     }
 
     Item {
@@ -239,6 +237,31 @@ FocusScope {
             const delta = wheel.angleDelta.y || wheel.angleDelta.x
             if (delta) root.resizeRequested(root.spec.id, delta > 0 ? 1 : -1)
             wheel.accepted = true
+        }
+    }
+
+    MouseArea {
+        id: resizeHandle
+        objectName: "desktop-widget-resize"
+        z: 4
+        visible: root.editing && root.spec !== null
+        width: 28; height: 28
+        anchors.right: parent.right; anchors.bottom: parent.bottom
+        cursorShape: Qt.SizeFDiagCursor
+        onPressed: function(mouse) {
+            root.forceActiveFocus()
+            placement.stageBeginResize("br", mapToItem(root.parent, mouse.x, mouse.y), mouse.modifiers)
+        }
+        onPositionChanged: function(mouse) {
+            if (pressed) placement.stageUpdateResize(mapToItem(root.parent, mouse.x, mouse.y), mouse.modifiers)
+        }
+        onReleased: placement.stageEndResize()
+        onCanceled: placement.stageCancelResize()
+        onDoubleClicked: placement.stageResetScale()
+        Rectangle {
+            anchors.centerIn: parent
+            width: 14; height: 14; radius: 4
+            color: root.tokens.color.accent
         }
     }
 

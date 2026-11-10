@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "WallpaperPreview.js" as Preview
 
 QtObject {
     id: root
@@ -12,6 +13,8 @@ QtObject {
     property bool saving: false
     property string message: ""
     property var renderErrors: ({})
+    property var previewState: null
+    readonly property bool previewing: previewState !== null
     readonly property bool enabled: ready && state.enabled && Quickshell.env("NAYORI_CANVAS_DISABLED") !== "1"
 
     function validWallpaper(value) {
@@ -23,6 +26,32 @@ QtObject {
         const value = !state.shared && Object.prototype.hasOwnProperty.call(state.outputs, output)
             ? state.outputs[output] : state.wallpaper
         return { source: value.source || String(defaultSource), mode: value.mode }
+    }
+    // Only renderers use this. Palette, lockscreen and persistence read wallpaper().
+    function displayWallpaper(output) {
+        return Preview.frame(previewState, output, wallpaper(output))
+    }
+    function displayEnabled(output) {
+        return ready && (state.enabled || Preview.covers(previewState, output))
+            && Quickshell.env("NAYORI_CANVAS_DISABLED") !== "1"
+    }
+    function preview(output, source, mode, shared) {
+        if (!ready || saving || Quickshell.env("NAYORI_CANVAS_DISABLED") === "1" || !validWallpaper({source: String(source), mode: mode})
+                || (!shared && !output)) return
+        previewState = Preview.begin(String(source) || String(defaultSource), mode, shared ? [] : [output])
+    }
+    function cancelPreview() { previewState = null }
+    function setLibraryFolder(folder) {
+        if (!ready || saving || !/^file:\/\/\//.test(String(folder))) return
+        const next = JSON.parse(JSON.stringify(state))
+        next.libraryFolder = String(folder)
+        state = next
+        save()
+    }
+    function save() {
+        message = "Сохранение…"
+        saving = true
+        store.setText(JSON.stringify(state, null, 2) + "\n")
     }
     function restore(text) {
         try {
@@ -39,19 +68,27 @@ QtObject {
         }
         ready = true
     }
-    function apply(output, source, mode, shared, enabled) {
+    function apply(output, source, mode, shared, enabled, libraryFolder) {
         if (!ready || saving || !validWallpaper({ source: String(source), mode: mode })) return
         const next = JSON.parse(JSON.stringify(state))
         next.enabled = enabled
+        // Preserve the effective shared image on every currently connected output
+        // when switching to independent assignments; retain disconnected entries.
+        if (state.shared && !shared) {
+            for (const screen of Quickshell.screens)
+                next.outputs[screen.name] = Object.assign({}, state.wallpaper, next.outputs[screen.name] || {},
+                    { source: state.wallpaper.source, mode: state.wallpaper.mode })
+        }
         next.shared = shared
-        const value = { source: String(source), mode: mode }
+        const prior = shared ? state.wallpaper : state.outputs[output] || state.wallpaper
+        const value = Object.assign({}, prior, { source: String(source), mode: mode })
+        if (libraryFolder && /^file:\/\/\//.test(String(libraryFolder))) next.libraryFolder = String(libraryFolder)
         if (shared) next.wallpaper = value
         else if (output) next.outputs[output] = value
         else return
         state = next
-        message = "Сохранение…"
-        saving = true
-        store.setText(JSON.stringify(state, null, 2) + "\n")
+        cancelPreview()
+        save()
     }
     function report(output, failed) {
         const next = Object.assign({}, renderErrors)

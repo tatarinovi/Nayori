@@ -5,7 +5,23 @@
 // половины шага (12), поэтому порог совпадает с обычным округлением.
 var GRID = 24
 
-var TYPES = { clock: true, weather: true, music: true, nowplaying: true, system: true, note: true }
+// The catalog and placement code share this registry. Rendering remains in the
+// existing hosts so the wallpaper and input layers use identical components.
+var REGISTRY = [
+    { id: "clock", name: "Часы", description: "Время и дата", icon: "◷", category: "Nayori" },
+    { id: "weather", name: "Погода", description: "Текущая погода и прогноз", icon: "☀", category: "Nayori" },
+    { id: "music", name: "Музыка", description: "Управление проигрывателем", icon: "♫", category: "Nayori" },
+    { id: "nowplaying", name: "Сейчас играет", description: "Обложка и текст песни", icon: "◉", category: "Nayori" },
+    { id: "system", name: "Система", description: "Нагрузка и сеть", icon: "▥", category: "Nayori" },
+    { id: "note", name: "Заметка", description: "Текст на рабочем столе", icon: "✎", category: "Nayori" }
+]
+
+function catalog(query) {
+    var needle = typeof query === "string" ? query.trim().toLowerCase() : ""
+    return REGISTRY.filter(function(entry) {
+        return !needle || (entry.name + " " + entry.description + " " + entry.category).toLowerCase().indexOf(needle) >= 0
+    })
+}
 
 var BOX = {
     clock: { compact: [220, 100], large: [420, 154], extraLarge: [560, 200], huge: [700, 245] },
@@ -35,7 +51,7 @@ function gridSize() {
 }
 
 function isType(type) {
-    return typeof type === "string" && TYPES[type] === true
+    return REGISTRY.some(function(entry) { return entry.id === type })
 }
 
 function outputNameOk(name) {
@@ -91,7 +107,54 @@ function sizeOf(item) {
     var type = item && BOX[item.type] ? item.type : "note"
     var size = normalizeSize(type, item && item.size)
     var box = BOX[type][size]
-    return { width: box[0], height: box[1] }
+    var limits = sizeLimits(type)
+    return {
+        width: dimension(item && item.width, limits.minWidth, limits.maxWidth, box[0]),
+        height: dimension(item && item.height, limits.minHeight, limits.maxHeight, box[1])
+    }
+}
+
+function sizeLimits(type) {
+    var variants = BOX[type] || BOX.note
+    var smallest = variants.compact
+    var maxWidth = smallest[0]
+    var maxHeight = smallest[1]
+    Object.keys(variants).forEach(function(key) {
+        maxWidth = Math.max(maxWidth, variants[key][0])
+        maxHeight = Math.max(maxHeight, variants[key][1])
+    })
+    return { minWidth: smallest[0], minHeight: smallest[1], maxWidth: maxWidth * 2, maxHeight: maxHeight * 2 }
+}
+
+function dimension(value, min, max, fallback) {
+    if (typeof value !== "number" || !isFinite(value) || value <= 0) return fallback
+    return Math.round(Math.max(min, Math.min(max, value)))
+}
+
+function copyOpacity(source, target) {
+    if (typeof source.opacity === "number" && isFinite(source.opacity))
+        target.opacity = Math.max(0.1, Math.min(1, source.opacity))
+}
+
+function copyDimensions(source, target) {
+    var limits = sizeLimits(source.type)
+    if (typeof source.width === "number" && isFinite(source.width) && source.width > 0)
+        target.width = dimension(source.width, limits.minWidth, limits.maxWidth, limits.minWidth)
+    if (typeof source.height === "number" && isFinite(source.height) && source.height > 0)
+        target.height = dimension(source.height, limits.minHeight, limits.maxHeight, limits.minHeight)
+}
+
+function resize(items, id, width, height) {
+    var list = normalizeItems(items)
+    for (var i = 0; i < list.length; i++) {
+        if (list[i].id !== id) continue
+        var limits = sizeLimits(list[i].type)
+        var current = sizeOf(list[i])
+        list[i].width = dimension(width, limits.minWidth, limits.maxWidth, current.width)
+        list[i].height = dimension(height, limits.minHeight, limits.maxHeight, current.height)
+        break
+    }
+    return list
 }
 
 function normalizeMetrics(metrics) {
@@ -108,8 +171,9 @@ function changeItem(items, id, field, value) {
     for (var i = 0; i < list.length; i++) {
         var item = list[i]
         if (item.id !== id) continue
-        if (field === "size") item.size = normalizeSize(item.type, value)
+        if (field === "size") { item.size = normalizeSize(item.type, value); delete item.width; delete item.height }
         if (field === "style") item.style = value === "plain" ? "plain" : "card"
+        if (field === "opacity" && typeof value === "number" && isFinite(value)) item.opacity = Math.max(0.1, Math.min(1, value))
         if (field === "metrics" && item.type === "system") item.metrics = normalizeMetrics(value)
     }
     return list
@@ -125,6 +189,8 @@ function copyItem(item) {
         size: normalizeSize(source.type, source.size),
         style: source.style === "plain" ? "plain" : "card"
     }
+    copyDimensions(source, next)
+    copyOpacity(source, next)
     if (source.type === "system")
         next.metrics = normalizeMetrics(source.metrics)
     if (source.type === "note")
@@ -160,6 +226,8 @@ function normalizeItems(list) {
             size: normalizeSize(raw.type, raw.size),
             style: raw.style === "plain" ? "plain" : "card"
         }
+        copyDimensions(raw, item)
+        copyOpacity(raw, item)
         if (item.type === "system")
             item.metrics = normalizeMetrics(raw.metrics)
         if (item.type === "note")
@@ -227,6 +295,17 @@ function snapTo(value, grid) {
     if (!isFinite(n))
         n = 0
     return Math.round(n / g) * g
+}
+
+// Edge attraction applies after grid snapping so the far edge remains reachable.
+function snapEdges(x, y, box, screenW, screenH, threshold) {
+    var limit = threshold === undefined ? 12 : Math.max(0, Number(threshold) || 0)
+    var maxX = Math.max(0, extent(screenW) - box.width)
+    var maxY = Math.max(0, extent(screenH) - box.height)
+    return {
+        x: Math.abs(x) <= limit ? 0 : Math.abs(x - maxX) <= limit ? maxX : x,
+        y: Math.abs(y) <= limit ? 0 : Math.abs(y - maxY) <= limit ? maxY : y
+    }
 }
 
 function move(items, id, x, y, snap, grid) {
@@ -329,6 +408,14 @@ function clampMoved(items, id, screenW, screenH) {
     return next
 }
 
+// An external edit invalidates snapshots; otherwise undo could erase it.
+function incomingDisposition(incoming, pending, previous) {
+    var next = normalizeScreen(incoming)
+    if (pending && sameLayout(next, pending)) return "ack"
+    if (pending || (previous && !sameLayout(next, previous))) return "external"
+    return "unchanged"
+}
+
 function sameIds(a, b) {
     if (!a || !b || a.length !== b.length)
         return false
@@ -356,6 +443,12 @@ function sameLayout(a, b) {
         if (left.id !== right.id || left.type !== right.type || left.x !== right.x || left.y !== right.y)
             return false
         if (normalizeSize(left.type, left.size) !== normalizeSize(right.type, right.size))
+            return false
+        var leftOpacity = typeof left.opacity === "number" && isFinite(left.opacity) ? Math.max(0.1, Math.min(1, left.opacity)) : 1
+        var rightOpacity = typeof right.opacity === "number" && isFinite(right.opacity) ? Math.max(0.1, Math.min(1, right.opacity)) : 1
+        if (leftOpacity !== rightOpacity) return false
+        var leftBox = sizeOf(left), rightBox = sizeOf(right)
+        if (leftBox.width !== rightBox.width || leftBox.height !== rightBox.height)
             return false
         if ((left.style === "plain" ? "plain" : "card") !== (right.style === "plain" ? "plain" : "card"))
             return false

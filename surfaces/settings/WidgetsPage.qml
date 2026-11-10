@@ -317,9 +317,10 @@ Column {
                 continue
             if (field === "size" && items[i].type !== "clock" && !(items[i].type === "system" && value === "extraLarge") && (value === "extraLarge" || value === "huge"))
                 return
-            if (items[i][field] === value)
+            if (items[i][field] === value && !(field === "size" && (items[i].width !== undefined || items[i].height !== undefined)))
                 return
             items[i][field] = value
+            if (field === "size") { delete items[i].width; delete items[i].height }
             changed = true
             break
         }

@@ -4,7 +4,10 @@ import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
 import "../../services"
+import "../canvas"
+import "../settings"
 import "WidgetLayout.js" as WidgetLayout
+import "vendor/edit_mode.js" as EditMode
 
 // Слой виджетов одного экрана. Оболочка ставит его в Variants и задаёт screen
 // (свойство PanelWindow, коннектор Wayland).
@@ -34,10 +37,28 @@ PanelWindow {
     property string preferredTerminal: "kitty"
     property string preferredFileManager: "io.github.lgse.Strata"
     property bool editing: false
+    property var stageSession: null
     property bool visualBackdrop: false
+    property var wallpaperManager: null
+    property real editProgress: editing ? 1 : 0
+    property real drawerProgress: catalogOpen && editing ? 1 : 0
+    readonly property bool editorShowing: editing || editProgress > 0
+    // Ported from Ryoku EditModeChromeSurface: all surfaces derive the same
+    // card/drawer geometry from a single animation scalar (see NOTICE).
+    readonly property var viewport: EditMode.viewportGeometry({
+        screenWidth: screenWidth, screenHeight: screenHeight,
+        drawerWidth: Math.min(360, screenWidth * 0.32), margin: 24,
+        edgeMargin: 12, chromeThickness: 50
+    })
+    readonly property real editShift: EditMode.drawerTravel(viewport) * drawerProgress
+    readonly property var cardGeometry: EditMode.cardRect(viewport, editProgress, screenWidth, screenHeight, editShift)
+    readonly property var drawerGeometry: EditMode.drawerRect(viewport, editProgress, drawerProgress, screenWidth, screenHeight)
+    Behavior on editProgress { enabled: !root.tokens.motion.off; NumberAnimation { duration: root.tokens.motion.base; easing.type: Easing.OutCubic } }
+    Behavior on drawerProgress { enabled: !root.tokens.motion.off; NumberAnimation { duration: root.tokens.motion.base; easing.type: Easing.OutCubic } }
     readonly property alias sharedSystemReader: desktopSystemReader
     readonly property var hiddenFaces: {
         const epoch = inputEpoch
+        if (editorShowing) return order
         const ids = []
         for (let i = 0; i < widgetRepeater.count; i++) {
             const item = widgetRepeater.itemAt(i)
@@ -47,14 +68,21 @@ PanelWindow {
     }
     signal layoutEdited(var next)
     signal editingRequested(bool enabled)
+    signal wallpaperRequested()
     signal musicStageRequested()
+    signal monitorCycleRequested()
     readonly property string lyricsKey: "desktop-lyrics-" + String(root)
     function updateLyricsConsumer() { if (music) music.consumer(lyricsKey, root.visible && root.wantsNowPlaying) }
     onWantsNowPlayingChanged: updateLyricsConsumer()
     onVisibleChanged: updateLyricsConsumer()
     onMusicChanged: updateLyricsConsumer()
 
+    property var undoStack: []
+    property var redoStack: []
+    property bool catalogOpen: false
+    property int idNonce: 0
     property var pendingLayout: null
+    property var lastReceivedLayout: null
     property var order: []
     property string focusedId: ""
     property int inputEpoch: 0
@@ -124,19 +152,72 @@ PanelWindow {
         return pendingLayout ? pendingLayout.items : screenLayout.items
     }
 
+    function applyLayout(next, record) {
+        const clean = WidgetLayout.normalizeScreen(next)
+        const previous = pendingLayout || screenLayout
+        if (WidgetLayout.sameLayout(clean, previous)) return
+        if (record && editing) {
+            undoStack = EditMode.undoPush(undoStack, previous)
+            redoStack = []
+        }
+        pendingLayout = clean
+        layoutEdited(clean)
+    }
+
+    function undoEdit() {
+        if (!undoStack.length) return
+        const result = EditMode.undoPop(undoStack)
+        const previous = result.entry
+        undoStack = result.stack
+        redoStack = EditMode.undoPush(redoStack, pendingLayout || screenLayout)
+        applyLayout(previous, false)
+    }
+
+    function redoEdit() {
+        if (!redoStack.length) return
+        const result = EditMode.undoPop(redoStack)
+        const next = result.entry
+        redoStack = result.stack
+        undoStack = EditMode.undoPush(undoStack, pendingLayout || screenLayout)
+        applyLayout(next, false)
+    }
+
+    function escapeEditor() {
+        const action = EditMode.resolveEscape({
+            menuOpen: menuId !== "", desktopMenuOpen: desktopMenuOpen,
+            drawerOpen: catalogOpen,
+            selectionCount: stageSession ? stageSession.selection.length : 0
+        })
+        if (action === "closeMenu") { menuId = ""; desktopMenuOpen = false }
+        else if (action === "closeDrawer") catalogOpen = false
+        else if (action === "clearSelection") { focusedId = ""; if (stageSession) stageSession.deselect() }
+        else if (action === "exit") editingRequested(false)
+    }
+
+    function addWidget(type) {
+        if (itemsNow().length >= 16) return
+        idNonce++
+        const id = "w-" + Date.now().toString(36) + "-" + idNonce.toString(36) + "-" + Math.random().toString(36).slice(2, 10)
+        publish(WidgetLayout.add(itemsNow(), { type: type, id: id }, screenWidth, screenHeight))
+    }
+
     function publish(items) {
         const snap = (pendingLayout || screenLayout).snap === true
         const clean = WidgetLayout.normalizeScreen({ snap: snap, items: items })
-        if (WidgetLayout.sameLayout(clean, pendingLayout || screenLayout))
-            return
-        pendingLayout = clean
-        layoutEdited(clean)
+        applyLayout(clean, true)
     }
 
     function applyPosition(id, x, y, useSnap) {
         if (screenWidth <= 0 || screenHeight <= 0)
             return
-        const moved = WidgetLayout.move(itemsNow(), id, x, y, useSnap, WidgetLayout.gridSize())
+        let moved = WidgetLayout.move(itemsNow(), id, x, y, useSnap, WidgetLayout.gridSize())
+        const original = placement(id)
+        if (useSnap && original) {
+            const edge = WidgetLayout.snapEdges(x, y, WidgetLayout.sizeOf(original), screenWidth, screenHeight)
+            const gridItem = moved.find(item => item.id === id)
+            if (gridItem) moved = WidgetLayout.move(moved, id,
+                edge.x !== x ? edge.x : gridItem.x, edge.y !== y ? edge.y : gridItem.y, false)
+        }
         let placed = null
         for (let i = 0; i < moved.length; i++) {
             if (moved[i].id === id)
@@ -153,6 +234,7 @@ PanelWindow {
     function applyRemove(id) {
         if (focusedId === id)
             focusedId = ""
+        if (stageSession) stageSession.remove(id)
         publish(WidgetLayout.remove(itemsNow(), id))
     }
 
@@ -162,6 +244,16 @@ PanelWindow {
 
     function changeWidget(id, field, value) {
         publish(WidgetLayout.changeItem(itemsNow(), id, field, value))
+    }
+
+    function applyGeometry(id, x, y, width, height) {
+        const resized = WidgetLayout.resize(itemsNow(), id, width, height)
+        const moved = WidgetLayout.move(resized, id, x, y, false)
+        publish(WidgetLayout.clampMoved(moved, id, screenWidth, screenHeight))
+    }
+
+    function applySize(id, width, height) {
+        publish(WidgetLayout.resize(itemsNow(), id, width, height))
     }
 
     function resizeWidget(id, direction) {
@@ -194,7 +286,10 @@ PanelWindow {
 
     function menuAction(action) {
         if (desktopMenuOpen) {
-            if (action === "widgets") {
+            if (action === "wallpapers") {
+                desktopMenuOpen = false
+                wallpaperRequested()
+            } else if (action === "widgets") {
                 desktopMenuOpen = false
                 editingRequested(!editing)
             } else {
@@ -211,6 +306,10 @@ PanelWindow {
         if (action === "remove") { menuId = ""; applyRemove(id); return }
         if (action === "smaller" || action === "larger") resizeWidget(id, action === "larger" ? 1 : -1)
         else if (action === "style") changeWidget(id, "style", item.style === "card" ? "plain" : "card")
+        else if (action === "opacity-down" || action === "opacity-up") {
+            const opacity = typeof item.opacity === "number" ? item.opacity : 1
+            changeWidget(id, "opacity", Math.round((opacity + (action === "opacity-up" ? 0.1 : -0.1)) * 10) / 10)
+        }
         else if (action.indexOf("metric:") === 0) {
             const key = action.slice(7)
             const metrics = WidgetLayout.normalizeMetrics(item.metrics)
@@ -243,15 +342,18 @@ PanelWindow {
     }
 
     onEffectiveLayoutChanged: syncOrder()
+    onEditingChanged: {
+        if (!editing) { catalogOpen = false; undoStack = []; redoStack = [] }
+    }
     onWantsClockChanged: if (wantsClock) now = new Date()
     onLayoutChanged: {
-        if (!pendingLayout)
-            return
         const incoming = WidgetLayout.normalizeScreen(layout)
-        if (WidgetLayout.sameLayout(incoming, pendingLayout) || !WidgetLayout.sameIds(incoming.items, pendingLayout.items))
-            pendingLayout = null
+        const disposition = WidgetLayout.incomingDisposition(incoming, pendingLayout, lastReceivedLayout)
+        if (disposition === "external") { undoStack = []; redoStack = [] }
+        if (disposition !== "unchanged") pendingLayout = null
+        lastReceivedLayout = incoming
     }
-    Component.onCompleted: syncOrder()
+    Component.onCompleted: { lastReceivedLayout = WidgetLayout.normalizeScreen(layout); syncOrder() }
 
     anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
@@ -260,12 +362,48 @@ PanelWindow {
     // В покое слой не берёт клавиатуру. В правке OnDemand, иначе стрелки не доходят до виджета.
     focusable: editing || wantsNote || menuVisible
     mask: desktopMask
-    WlrLayershell.layer: WlrLayer.Bottom
+    WlrLayershell.layer: editorShowing ? WlrLayer.Overlay : WlrLayer.Bottom
     WlrLayershell.namespace: "nayori-desktop"
     WlrLayershell.keyboardFocus: editing || wantsNote || menuVisible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     objectName: "nayori-desktop"
 
-    // The desktop surface receives clicks on empty space; windows remain above it.
+    Rectangle {
+        anchors.fill: parent
+        color: root.tokens.color.background
+        opacity: root.editProgress * 0.97
+        visible: root.editorShowing
+    }
+    Item {
+        id: editorCanvas
+        width: root.screenWidth
+        height: root.screenHeight
+        x: root.cardGeometry.x
+        y: root.cardGeometry.y
+        scale: root.screenWidth > 0 ? root.cardGeometry.width / root.screenWidth : 1
+        transformOrigin: Item.TopLeft
+        Rectangle {
+            anchors.fill: parent
+            visible: root.editorShowing
+            z: -3
+            color: root.tokens.color.background
+            border.color: root.tokens.color.border
+            border.width: 1
+            radius: root.tokens.radius.medium
+        }
+        WallpaperCrossfade {
+            anchors.fill: parent
+            visible: root.editorShowing && !!root.wallpaperManager && root.visualBackdrop
+            z: -2
+            source: root.wallpaperManager ? String(root.wallpaperManager.wallpaper(root.screen ? root.screen.name : "").source) : ""
+            mode: root.wallpaperManager ? root.wallpaperManager.wallpaper(root.screen ? root.screen.name : "").mode : "fill"
+            backgroundColor: root.tokens.color.background
+            reduceMotion: root.tokens.motion.off
+            duration: root.tokens.motion.base
+            managerReady: !!root.wallpaperManager && root.wallpaperManager.ready
+            outputName: root.screen ? root.screen.name : ""
+        }
+    }
+    // The editor's preview scales only shell content; compositor windows stay put.
     Item { id: desktopBounds; anchors.fill: parent }
     Region { id: desktopMask; item: desktopBounds }
     MouseArea {
@@ -275,11 +413,16 @@ PanelWindow {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         onClicked: function(mouse) {
             if (mouse.button === Qt.RightButton) root.openDesktopMenu(mouse.x, mouse.y)
-            else { root.menuId = ""; root.desktopMenuOpen = false; root.movingId = "" }
+            else {
+                root.menuId = ""; root.desktopMenuOpen = false; root.movingId = ""
+                root.focusedId = ""
+                if (root.stageSession && root.editing) root.stageSession.deselect()
+            }
         }
     }
     Canvas {
         id: grid
+        parent: editorCanvas
         objectName: "desktop-widget-grid"
         anchors.fill: parent
         z: -1
@@ -301,6 +444,98 @@ PanelWindow {
             ctx.stroke()
         }
     }
+    // This chrome sits on the desktop input layer, leaving real Niri windows alone.
+    Rectangle {
+        id: editorBar
+        objectName: "desktop-editor-bar"
+        visible: root.editing
+        z: 120
+        x: Math.max(12, root.cardGeometry.x + (root.cardGeometry.width - width) / 2)
+        y: Math.max(12, root.cardGeometry.y - height - 12)
+        width: Math.min(root.screenWidth - 24, editorRow.implicitWidth + 24)
+        height: 50
+        radius: root.tokens.radius.medium
+        color: root.tokens.material.menu
+        border.color: root.tokens.color.border
+        Row {
+            id: editorRow
+            anchors.centerIn: parent
+            spacing: 6
+            Repeater {
+                model: [
+                    { label: "Виджеты", action: "catalog", enabled: true },
+                    { label: "Обои", action: "wallpapers", enabled: true },
+                    { label: root.screen ? root.screen.name : "Экран", action: "screen", enabled: Quickshell.screens.length > 1 },
+                    { label: root.snapOn ? "Сетка: вкл." : "Сетка: выкл.", action: "snap", enabled: true },
+                    { label: "↶", action: "undo", enabled: root.undoStack.length > 0 },
+                    { label: "↷", action: "redo", enabled: root.redoStack.length > 0 },
+                    { label: "Готово", action: "done", enabled: true }
+                ]
+                delegate: SettingsButton {
+                    required property var modelData
+                    tokens: root.tokens
+                    primary: modelData.action === "done"
+                    text: modelData.label
+                    enabled: modelData.enabled
+                    Accessible.name: modelData.action === "undo" ? "Отменить" : modelData.action === "redo" ? "Повторить" : text
+                    onClicked: {
+                        if (modelData.action === "screen") root.monitorCycleRequested()
+                        else if (modelData.action === "catalog") root.catalogOpen = !root.catalogOpen
+                        else if (modelData.action === "wallpapers") root.wallpaperRequested()
+                        else if (modelData.action === "snap") root.applyLayout({snap: !root.snapOn, items: root.itemsNow()}, true)
+                        else if (modelData.action === "undo") root.undoEdit()
+                        else if (modelData.action === "redo") root.redoEdit()
+                        else if (modelData.action === "done") root.editingRequested(false)
+                    }
+                }
+            }
+        }
+    }
+    Rectangle {
+        id: catalog
+        objectName: "desktop-widget-catalog"
+        z: 119
+        visible: root.editing && root.catalogOpen
+        x: root.drawerGeometry.x
+        y: root.drawerGeometry.y
+        width: root.drawerGeometry.width
+        height: root.drawerGeometry.height
+        clip: true
+        radius: root.tokens.radius.medium
+        color: root.tokens.material.menu
+        border.color: root.tokens.color.border
+        Flickable {
+            anchors.fill: parent
+            anchors.margins: 12
+            contentWidth: width
+            contentHeight: catalogColumn.implicitHeight
+            clip: true
+        Column {
+            id: catalogColumn
+            width: parent.width
+            spacing: 6
+            TextField {
+                id: catalogSearch
+                objectName: "desktop-catalog-search"
+                width: parent.width
+                placeholderText: "Поиск виджетов"
+            }
+            DesktopLabel { tokens: root.tokens; text: "Nayori" }
+            Repeater {
+                model: WidgetLayout.catalog(catalogSearch.text)
+                delegate: SettingsButton {
+                    required property var modelData
+                    tokens: root.tokens
+                    width: catalogColumn.width
+                    text: modelData.icon + "  " + modelData.name + " — " + modelData.description
+                    enabled: root.itemsNow().length < 16
+                    onClicked: root.addWidget(modelData.id)
+                }
+            }
+        }
+        }
+    }
+
     Apps { id: apps }
 
     SystemReader {
@@ -326,6 +561,7 @@ PanelWindow {
 
     Repeater {
         id: widgetRepeater
+        parent: editorCanvas
         model: root.order
         onCountChanged: root.bumpMask()
         delegate: DesktopWidgetFrame {
@@ -334,7 +570,7 @@ PanelWindow {
             tokens: root.tokens
             spec: root.placement(modelData)
             editing: root.editing
-            inputOverlay: root.visualBackdrop
+            inputOverlay: root.visualBackdrop && !root.editorShowing
             moving: root.movingId === modelData
             snap: root.snapOn
             screenWidth: root.screenWidth
@@ -346,16 +582,27 @@ PanelWindow {
             wallpaperClockAccent: root.wallpaperClockAccent
             systemReader: desktopSystemReader
             focusId: root.focusedId
-            z: index
+            z: index + 1
             onCommitPosition: function(id, x, y, useSnap) { root.applyPosition(id, x, y, useSnap) }
             onRemoveRequested: function(id) { root.applyRemove(id) }
             onNoteEdited: function(id, text) { root.applyNote(id, text) }
-            onMenuRequested: function(id, x, y) { root.openMenu(id, x, y) }
+            onMenuRequested: function(id, x, y) {
+                const point = editorCanvas.mapToItem(desktopBounds, x, y)
+                root.openMenu(id, point.x, point.y)
+            }
             onResizeRequested: function(id, direction) { root.resizeWidget(id, direction) }
+            onCommitSize: function(id, width, height) { root.applySize(id, width, height) }
+            onCommitGeometry: function(id, x, y, width, height) { root.applyGeometry(id, x, y, width, height) }
             onMoveFinished: root.movingId = ""
+            onUndoRequested: root.undoEdit()
+            onRedoRequested: root.redoEdit()
+            onEscapeRequested: root.escapeEditor()
             onMusicStageRequested: root.musicStageRequested()
             onMaskDirty: root.bumpMask()
-            onFocusIdChanged: root.focusedId = focusId
+            onFocusIdChanged: {
+                root.focusedId = focusId
+                if (root.stageSession && root.editing && focusId !== "") root.stageSession.select(focusId)
+            }
         }
     }
     FocusScope {
@@ -376,13 +623,16 @@ PanelWindow {
             if (root.desktopMenuOpen) return [
                 { action: "terminal", text: "Терминал" },
                 { action: "files", text: "Файлы" },
+                { action: "wallpapers", text: "Обои" },
                 { action: "widgets", text: "Виджеты" }
             ]
             const list = [
                 { action: "move", text: "Переместить" },
                 { action: "smaller", text: "Уменьшить" },
                 { action: "larger", text: "Увеличить" },
-                { action: "style", text: item && item.style === "card" ? "Убрать фон" : "Добавить фон" }
+                { action: "style", text: item && item.style === "card" ? "Убрать фон" : "Добавить фон" },
+                { action: "opacity-down", text: "Прозрачнее" },
+                { action: "opacity-up", text: "Непрозрачнее" }
             ]
             if (item && item.type === "system") {
                 list.push({ action: "metric:cpu", text: (metrics.indexOf("cpu") >= 0 ? "✓  " : "    ") + "Процессор" })

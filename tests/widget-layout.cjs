@@ -232,3 +232,80 @@ assert.strictEqual(context.sameLayout(normalized["DP-1"], context.normalizeScree
 assert.strictEqual(context.sameIds(normalized["DP-1"].items, [{ id: "a" }]), true)
 
 console.log("WIDGET_LAYOUT_PASS")
+
+// Catalog metadata and edge snapping are shared by all desktop outputs.
+assert.strictEqual(context.catalog("").length, 6)
+assert.strictEqual(context.catalog("погод")[0].id, "weather")
+assert.strictEqual(context.catalog("не существует").length, 0)
+let edge = context.snapEdges(569, 399, { width: 220, height: 200 }, 800, 600)
+assert.strictEqual(edge.x, 580)
+assert.strictEqual(edge.y, 400)
+edge = context.snapEdges(300, 100, { width: 220, height: 200 }, 800, 600)
+assert.strictEqual(edge.x, 300)
+assert.strictEqual(edge.y, 100)
+edge = context.snapEdges(5, 8, { width: 900, height: 900 }, 800, 600)
+assert.strictEqual(edge.x, 0)
+assert.strictEqual(edge.y, 0)
+
+// The editor uses Ryoku's bounded history stack, including its empty case.
+const history = {}
+vm.createContext(history)
+vm.runInContext(fs.readFileSync("surfaces/desktop/vendor/edit_mode.js", "utf8").replace(/^\.pragma.*$/m, ""), history)
+let stack = []
+for (let i = 0; i < 51; i++) stack = history.undoPush(stack, i)
+assert.strictEqual(stack.length, 50)
+assert.strictEqual(stack[0], 1)
+const popped = history.undoPop(stack)
+assert.strictEqual(popped.entry, 50)
+assert.strictEqual(popped.stack.length, 49)
+assert.strictEqual(stack.length, 50)
+assert.strictEqual(history.undoPop([]).entry, null)
+assert.strictEqual(history.resolveEscape({ menuOpen: true, drawerOpen: true }), "closeMenu")
+assert.strictEqual(history.resolveEscape({ drawerOpen: true }), "closeDrawer")
+assert.strictEqual(history.resolveEscape({}), "exit")
+
+// Free dimensions survive every layout operation, and malformed dimensions
+// cannot make widgets vanish or grow without bounds.
+const freeSize = context.resize([note], "b", 350, 205)
+assert.strictEqual(context.sizeOf(freeSize[0]).width, 350)
+assert.strictEqual(context.sizeOf(freeSize[0]).height, 205)
+assert.strictEqual(context.normalizeScreen({items: freeSize}).items[0].width, 350)
+assert.strictEqual(context.move(freeSize, "b", 50, 50, false)[0].height, 205)
+assert.strictEqual(context.sameLayout({snap:true,items:[note]}, {snap:true,items:freeSize}), false)
+const badSize = context.resize([note], "b", NaN, -1)
+assert.strictEqual(context.sizeOf(badSize[0]).width, 260)
+assert.strictEqual(context.sizeOf(badSize[0]).height, 168)
+const hugeSize = context.resize([note], "b", 99999, 99999)
+assert.strictEqual(hugeSize[0].width, context.sizeLimits("note").maxWidth)
+assert.strictEqual(hugeSize[0].height, context.sizeLimits("note").maxHeight)
+const presetSize = context.changeItem(freeSize, "b", "size", "large")
+assert.strictEqual(context.sizeOf(presetSize[0]).width, 340)
+assert.strictEqual(presetSize[0].width, undefined)
+
+const translucent = context.changeItem([note], "b", "opacity", 0.5)
+assert.strictEqual(context.normalizeScreen({items: translucent}).items[0].opacity, 0.5)
+assert.strictEqual(context.move(translucent, "b", 50, 50, false)[0].opacity, 0.5)
+assert.strictEqual(context.sameLayout({snap:true,items:[note]}, {snap:true,items:translucent}), false)
+assert.strictEqual(context.normalizeItems([{...note, opacity: NaN}])[0].opacity, undefined)
+assert.strictEqual(context.changeItem([note], "b", "opacity", -10)[0].opacity, 0.1)
+
+const incomingBase = {snap:true, items:[note]}
+const incomingEdited = {snap:true, items:context.move([note], "b", 48, 48, false)}
+const incomingExternal = {snap:true, items:context.editText([note], "b", "external")}
+assert.strictEqual(context.incomingDisposition(incomingEdited, incomingEdited, incomingBase), "ack")
+assert.strictEqual(context.incomingDisposition(incomingExternal, incomingEdited, incomingBase), "external")
+assert.strictEqual(context.incomingDisposition(incomingExternal, null, incomingBase), "external")
+assert.strictEqual(context.incomingDisposition(incomingBase, null, incomingBase), "unchanged")
+
+// Ryoku's viewport and inverse pointer mapping must agree at every animation
+// position; moving a widget on the preview must preserve logical coordinates.
+for (const [screenWidth, screenHeight] of [[1280,720],[1920,1080],[3840,2160]]) {
+    const geometry = history.viewportGeometry({screenWidth, screenHeight, drawerWidth:360, margin:24, edgeMargin:12, chromeThickness:50})
+    for (const progress of [0, 0.5, 1]) {
+        const shift = history.drawerTravel(geometry) * 0.7
+        const frame = history.atProgress(geometry, progress, shift)
+        const point = history.canvasPointFromScreen(geometry, progress, shift, frame.x + 100 * frame.scale, frame.y + 200 * frame.scale)
+        assert.ok(Math.abs(point.x - 100) < 0.0001)
+        assert.ok(Math.abs(point.y - 200) < 0.0001)
+    }
+}

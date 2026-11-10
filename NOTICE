@@ -1,0 +1,60 @@
+Nayori — notices for third-party material
+
+Nayori source code is distributed under GPL-3.0-only; see LICENSE. Third-party
+material retains the notices and license terms identified below. Copyright
+remains with the respective authors. The repository is the source form; when
+distributing a modified build, provide the corresponding source as required by
+the GPL, retain these notices, and identify your changes.
+
+Desktop editor logic
+  File: surfaces/desktop/vendor/edit_mode.js
+  Source: Ryoku, ryoku/shell/quickshell/stage/modules/common/functions/edit_mode.js
+  Project: https://github.com/Ryoku-dev/ryoku
+  Snapshot: f7197d72de8a21e44b0bea922bdd915f28f6b327
+  Last change to this file at that snapshot: 86e7ee73d05b56518d4a86e7867ba9832e4dde50
+  Source: https://github.com/Ryoku-dev/ryoku/blob/f7197d72de8a21e44b0bea922bdd915f28f6b327/ryoku/shell/quickshell/stage/modules/common/functions/edit_mode.js
+  SHA-256 of the copied file: 95dc5204e3729fadaf7266faee3d946afaa75e3a842b53ac6d035d0def3e5332
+  License: GPL-3.0 (see LICENSE).
+  The source file identifies its earlier origin as XephyLon/immaterial-impulse,
+  v0.32.0, dots/.config/quickshell/imi/modules/common/functions/edit_mode.js,
+  original author XephyLon. Its upstream attribution is preserved in the file.
+  Ryoku's NOTICE describes Stage Editor as based on Edit Mode of ii-p3drovfx
+  by P3DROVFX and contributors (https://github.com/P3DROVFX/ii-p3drovfx),
+  itself built on ii-vynx by vaguesyntax (https://github.com/vaguesyntax/ii-vynx)
+  and illogical-impulse by end-4 (https://github.com/end-4/dots-hyprland).
+  Ryoku modified the editor to use its desktop services and appearance.
+  Nayori imports this file unchanged and adapts its history API in
+  surfaces/desktop/DesktopWidgets.qml. The viewport, card and drawer geometry
+  from that module also drives Nayori's editor preview. The host adapts the
+  bindings of Ryoku EditModeChromeSurface.qml to Nayori tokens and services.
+  services/desktop/StageSession.qml is adapted from Ryoku at the same snapshot:
+  ryoku/shell/quickshell/shell/modules/stage/Singletons/StageSession.qml.
+  Nayori instantiates it instead of using a singleton and connects it to the
+  existing settings controller and monitor list.
+
+Nayori Zen Clock font
+  Copyright 2021 The Zen Old Mincho Project Authors. A renamed, modified subset
+  of Zen Old Mincho Regular. Licensed separately under SIL Open Font License 1.1;
+  see LICENSES/OFL-1.1.txt and assets/fonts/nayori-clock/README.md.
+
+Widget placement gestures
+  surfaces/desktop/WidgetSlot.qml adapts the gesture methods of
+  ryoku/shell/quickshell/shell/modules/desktop/WidgetSlot.qml from Ryoku
+  at f7197d72de8a21e44b0bea922bdd915f28f6b327 (GPLv3).
+  Changes: storage writes become signals consumed by Nayori, scale limits
+  follow Nayori widget metadata, and rendering stays in Nayori components.
+  Theme, wallpaper analysis and spatial effects are outside this controller.
+
+Wallpaper preview transaction
+  services/canvas/WallpaperPreview.js and WallpaperManager's temporary paint
+  lifecycle adapt ryoku/shell/ryogami/daemon/preview.go from Ryoku at
+  f7197d72de8a21e44b0bea922bdd915f28f6b327.
+  Source: https://github.com/Ryoku-dev/ryoku/blob/f7197d72de8a21e44b0bea922bdd915f28f6b327/ryoku/shell/ryogami/daemon/preview.go
+  Copyright remains with Ryoku's authors and contributors. License: GPLv3;
+  see LICENSE and Ryoku's root NOTICE. Modified for Nayori on 2026-11-11:
+  Go daemon frame snapshots and output accumulation become a QML session-only
+  overlay; replacing targets restores uncovered outputs through bindings.
+  Commit supersedes preview; cancellation reads authoritative Canvas state.
+  No Ryogami picker fonts, shaders, assets or C++ module are incorporated.
+  Distributions must retain attribution, license and modification notices
+  and provide corresponding source under GPLv3.

@@ -593,7 +593,7 @@ class Engine:
             ]
             include += [
                 name
-                for name in ("configs", "sddm", "install.sh")
+                for name in ("configs", "sddm", "install.sh", "LICENSE", "NOTICE", "LICENSES")
                 if exists(self.source / name)
             ]
             for name in include:
