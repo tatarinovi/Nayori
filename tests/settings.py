@@ -45,6 +45,7 @@ with tempfile.TemporaryDirectory(prefix="ns-") as directory:
     assert saved["colorScheme"] == "light"
     assert saved["surfaceStyle"] == "frosted"
     assert saved["startIconStyle"] == "fox"
+    assert saved["workspaceIndicatorStyle"] == "kanji"
     before = path.read_bytes()
     run("restore", storage)
     assert path.read_bytes() == before

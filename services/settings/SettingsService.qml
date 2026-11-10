@@ -4,6 +4,7 @@ import Quickshell.Io
 import "../status/MixerSources.js" as MixerSources
 import "../island/NotificationPolicy.js" as NotificationPolicy
 import "../ui/PanelModes.js" as PanelModes
+import "../../islands/workspaces/WorkspaceStyles.js" as WorkspaceStyles
 import "../../surfaces/desktop/WidgetLayout.js" as WidgetLayout
 
 // Owned by ShellRoot, never by a settings page or window.
@@ -17,6 +18,7 @@ QtObject {
     property var values: defaults()
     readonly property var desktopWidgets: values.desktopWidgets
     readonly property var panelReservations: values.panelReservations
+    readonly property string workspaceIndicatorStyle: values.workspaceIndicatorStyle
     readonly property var panelModes: values.panelModes
     readonly property bool autoHideTop: values.autoHideTop
     readonly property bool autoHideApps: values.autoHideApps
@@ -156,6 +158,7 @@ QtObject {
     function defaults() {
         return {
             "desktopWidgets": {},
+            "workspaceIndicatorStyle": "dots",
             "panelModes": {},
             "panelReservations": {},
             "autoHideTop": false,
@@ -233,6 +236,7 @@ QtObject {
             return typeof value === "string" && value.length < 4096 && !/[\x00-\x1f\\]/.test(value)
                 && value.split("/").every(part => part !== "" && part !== "." && part !== "..") ? value : fallback;
         if (key === "desktopWidgets") return WidgetLayout.normalize(value);
+        if (key === "workspaceIndicatorStyle") return WorkspaceStyles.normalize(value);
         if (key === "panelModes") return PanelModes.normalize(value);
         if (key === "panelReservations") return PanelModes.normalizeReservations(value);
         if (key === "mixerSources")

@@ -528,6 +528,7 @@ ShellRoot {
     readonly property bool hideSecondaryIsland: settingsStore.hideSecondaryIsland
     readonly property string fullscreenIslandOutput: settingsStore.fullscreenIslandOutput
     readonly property var panelReservations: settingsStore.panelReservations
+    readonly property string workspaceIndicatorStyle: settingsStore.workspaceIndicatorStyle
     readonly property var panelModes: settingsStore.panelModes
     readonly property bool autoHideTop: settingsStore.autoHideTop
     readonly property bool autoHideApps: settingsStore.autoHideApps

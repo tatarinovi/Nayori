@@ -632,6 +632,7 @@ Scope {
 
                 WorkspacesIsland {
                     id: workspaces
+                    indicatorStyle: root.shellState.workspaceIndicatorStyle || "dots"
                     outputName: root.panelScreen ? root.panelScreen.name : ""
                     opacity: workspacesWindow.contentOpacity
                     tokens: root.tokenSet

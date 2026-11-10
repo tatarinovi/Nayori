@@ -29,3 +29,11 @@ qs -p tests/smoke/NaomiPixelSmoke.qml
 `dbus-run-session -- python3 tests/bluetooth.py` проверяет `BluetoothSmoke.qml` с настоящими Quickshell Bluetooth-моделями и изолированным тестовым BlueZ; нужен PyGObject/Gio. Реальный адаптер не используется. См. [Bluetooth](../../docs/BLUETOOTH.md).
 
 `qs -p tests/smoke/PolkitDialogSmoke.qml` проверяет карточку диалога на искусственном запросе и импортирует модуль Polkit. Объект `PolkitAgent` стенд не создаёт, поэтому агент сеанса не регистрируется. См. [POLKIT.md](../../docs/POLKIT.md).
+
+`WorkspaceMotionSmoke.qml` проверяет промежуточный кадр перехода и отключение
+анимаций, шесть карточек стиля с клавиатуры, повторный выбор карточки, восемь
+столов на одном выходе и независимый второй выход, постоянную ширину дорожки,
+клик, шаги вперёд/назад, пустой список и недоступный сервис Niri.
+`tests/settings.py` проверяет применение, нормализацию и сохранение
+`workspaceIndicatorStyle` после перезапуска. Оба стенда входят в smoke-набор CI;
+`tests/workspace-styles.cjs` входит в unit-набор.

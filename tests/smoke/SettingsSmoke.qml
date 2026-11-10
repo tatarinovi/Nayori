@@ -635,6 +635,13 @@ ShellRoot {
                     settings.update({companionEnabled: "yes"});
                     test.check(!settings.companionEnabled, "invalid companion value defaults off");
                     settings.update({companionEnabled: true});
+                    test.check(settings.workspaceIndicatorStyle === "dots", "missing workspace style defaults to dots");
+                    for (const style of ["dots", "numbers", "kanji", "greek", "dashes", "icons"]) {
+                        settings.update({workspaceIndicatorStyle: style});
+                        test.check(settings.workspaceIndicatorStyle === style, "workspace style applies immediately");
+                    }
+                    settings.update({workspaceIndicatorStyle: "unsupported"});
+                    test.check(settings.workspaceIndicatorStyle === "dots", "invalid workspace style defaults to dots");
                     test.check(settings.startIconStyle === "current", "missing icon defaults to current");
                     settings.update({startIconStyle: "fox"});
                     test.check(settings.startIconStyle === "fox", "fox enum accepted");
@@ -750,6 +757,7 @@ ShellRoot {
                     settings.flush(true);
                     test.finish();
                 } else if (test.scenario === "restore") {
+                    test.check(settings.workspaceIndicatorStyle === "kanji", "workspace style survives restart");
                     test.check(settings.weatherCity === "Москва" && settings.topReserved === 200 && !settings.animationsEnabled && settings.weatherRefreshMinutes === 30 && settings.surfaceStyle === "frosted" && settings.startIconStyle === "fox", "restored values");
                     test.check(settings.colorScheme === "light", "restored light scheme");
                     test.check(settings.panelModes["DP-1"].top === "hidden" && settings.panelModes["DP-2"].top === "auto", "per-output modes survive restart");
@@ -875,6 +883,7 @@ ShellRoot {
                         "weatherRefreshMinutes": 30,
                         "colorScheme": "light",
                         "surfaceStyle": "frosted",
+                        "workspaceIndicatorStyle": "kanji",
                         "startIconStyle": "fox",
                         "companionEnabled": true,
                         "companionStyle": "layered",

@@ -9,6 +9,8 @@ Rectangle {
 
     required property var tokens
     property string outputName: ""
+    property string indicatorStyle: "dots"
+    readonly property bool geometric: indicatorStyle === "dots" || indicatorStyle === "dashes"
     property var workspaceService: Niri
 
     readonly property string chosenOutput: outputName ? outputName : workspaceService.focusedOutput
@@ -61,14 +63,14 @@ Rectangle {
     Rectangle {
         id: activeMarker
         objectName: "workspace-active-marker"
-        x: cluster.x + root.activeIndex * 30 + 2
-        y: cluster.y + 12
-        width: 24
-        height: 8
-        radius: 4
-        z: 1
+        x: cluster.x + root.activeIndex * 30 + (root.geometric ? 2 : 1)
+        y: cluster.y + (root.geometric ? 12 : 3)
+        width: root.geometric ? 24 : 26
+        height: root.geometric ? 8 : 26
+        radius: root.geometric ? 4 : 8
+        z: 0
         visible: root.activeIndex >= 0
-        color: root.tokens.color.accent
+        color: root.geometric ? root.tokens.color.accent : root.tokens.color.accentSoft
         Behavior on x {
             enabled: !root.tokens.motion.off && activeMarker.visible
             NumberAnimation {
@@ -127,35 +129,22 @@ Rectangle {
                 Rectangle {
                     anchors.fill: parent
                     radius: 16
-                    color: desk.highlighted ? root.tokens.color.surface : "transparent"
+                    color: desk.highlighted && !desk.current ? root.tokens.color.surface : "transparent"
                     border.width: desk.activeFocus ? 1 : 0
                     border.color: root.tokens.color.text
                     scale: pointer.pressed && !root.tokens.motion.off ? 0.96 : 1
                     Behavior on scale { NumberAnimation { duration: root.tokens.motion.off ? 0 : 100; easing.type: Easing.OutCubic } }
                 }
 
-                Rectangle {
-                    anchors.centerIn: parent
-                    visible: !desk.current
-                    width: desk.windows > 0 || desk.urgent ? 7 : 5
-                    height: width
-                    radius: width / 2
-                    color: desk.urgent ? root.tokens.color.secondary
-                        : desk.windows > 0 ? root.tokens.color.accent : "transparent"
-                    border.width: desk.windows === 0 && !desk.urgent ? 1 : 0
-                    border.color: root.tokens.color.textMuted
-                    antialiasing: true
-                }
-
-                Rectangle {
-                    visible: desk.urgent && (desk.current || desk.highlighted)
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.bottom: parent.bottom
-                    anchors.bottomMargin: 3
-                    width: 4
-                    height: 4
-                    radius: 2
-                    color: root.tokens.color.secondary
+                WorkspaceIndicator {
+                    anchors.fill: parent
+                    tokens: root.tokens
+                    style: root.indicatorStyle
+                    number: desk.modelData.idx
+                    current: desk.current
+                    occupied: desk.windows > 0
+                    urgent: desk.urgent
+                    externalMarker: true
                 }
 
                 MouseArea {

@@ -98,6 +98,20 @@ FocusScope {
 
             SettingsCard {
                 tokens: root.tokens
+                title: "Индикаторы рабочих столов"
+                subtitle: "Один стиль для всех мониторов."
+                WorkspaceStylePicker {
+                    width: parent.width
+                    tokens: root.tokens
+                    selectedStyle: root.settingsService ? root.settingsService.workspaceIndicatorStyle : "dots"
+                    enabled: !!root.settingsService && root.settingsService.ready
+                    onStyleSelected: style => root.settingsService.update({workspaceIndicatorStyle: style})
+                    onRevealRequested: item => root.reveal(item)
+                }
+            }
+
+            SettingsCard {
+                tokens: root.tokens
                 title: "Виджеты"
                 SettingsToggle {
                     objectName: "codex-widget-toggle"
