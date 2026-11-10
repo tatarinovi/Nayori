@@ -13,6 +13,7 @@ import "services/settings"
 import "services/system"
 import "services/weather"
 import "services/status"
+import "services/calendar"
 import "surfaces/settings"
 import "surfaces/panel"
 import "services/canvas"
@@ -228,6 +229,8 @@ ShellRoot {
             service: captureStore
         }
     }
+    CalendarService { id: calendarStore; settings: settingsStore }
+    readonly property var calendarService: calendarStore
     WeatherService {
         id: weatherStore
         enabled: settingsStore.ready
@@ -663,6 +666,7 @@ ShellRoot {
     }
 
     SettingsController {
+        calendarService: calendarStore
         id: settingsController
         bluetoothService: bluetoothStore
         updateService: nayoriUpdate

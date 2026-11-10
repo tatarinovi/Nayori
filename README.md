@@ -133,6 +133,7 @@ NAYORI_NOTIFICATIONS=1 qs -p /absolute/path/to/nayori
 
 Дополнительно:
 
+- CalDAV в острове: `python-icalendar`, `python-recurring-ical-events`, `secret-tool` и Secret Service. [Подключение](docs/CALENDAR.md).
 - `cava`, `parec` (утилиты PulseAudio) и PulseAudio-совместимый сервер PipeWire — музыкальная реакция лисы. Анализируется монитор системного выхода, поэтому в сигнал могут попадать звуки других приложений. MPRIS определяет, воспроизводится ли музыка; без анализатора сохраняется реакция на CPU.
 - Шрифты **Inter** и **Literata** — предусмотренная типографика; без них Qt подбирает замену.
 - `wl-clipboard` — сбор истории и копирование из журнала буфера; `ffprobe` и `ffmpeg` — размеры медиафайлов и кадры видео.

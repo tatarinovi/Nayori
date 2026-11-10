@@ -190,6 +190,8 @@ QtObject {
             "windowBorderSecond": "#CAA7AA",
             "windowBorderWidth": 3,
             "startIconStyle": "current",
+            "calendarUrl": "",
+            "calendarUser": "",
             "weatherCity": "",
             "weatherRefreshMinutes": 15,
             "quickCaptureEnabled": false,
@@ -284,7 +286,7 @@ QtObject {
         if (key === "surfaceStyle")
             return value === "solid" || value === "frosted" ? value : fallback;
 
-        if (key === "weatherCity")
+        if (key === "weatherCity" || key === "calendarUrl" || key === "calendarUser")
             return typeof value === "string" ? value.trim() : fallback;
 
         if (key === "preferredTerminal" || key === "preferredFileManager") {

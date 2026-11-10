@@ -70,6 +70,7 @@ Rectangle {
     property real originW: closedWidth
     property real originH: closedHeight
     property string weatherCity: ""
+    property var calendarService: null
     property var weatherService: null
     property bool islandRotationEnabled: true
     property int islandRotationSeconds: 15
@@ -249,6 +250,7 @@ Rectangle {
                 if (root.quickCaptureOpen) item.focusCapture(); else item.forceActiveFocus(Qt.TabFocusReason)
         })
         sourceComponent: IslandDashboard {
+            calendarService: root.calendarService
             musicService: root.musicService
             systemUpdateService: root.systemUpdateService
             testMode: root.testMode

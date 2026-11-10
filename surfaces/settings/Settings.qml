@@ -11,6 +11,7 @@ FocusScope {
     id: root
     property var wallpaperManager: null
     property var companionTokens: tokens
+    property var calendarService: null
     property var bluetoothService: null
     property var settingsService: null
     property var polkitService: null
@@ -219,6 +220,7 @@ FocusScope {
         {key: "start", page: 14, title: "Пуск", group: "Персонализация", description: "Значок и приложения кнопки «Пуск»"},
         {key: "island", page: 15, title: "Dynamic Island", group: "Персонализация", description: "Чередование часов и погоды, город и интервал"},
         {key: "lockscreen", page: 16, title: "Экран блокировки", group: "Персонализация", description: "Предпросмотр экрана блокировки с\u00A0обоями и цветами Nayori"},
+        {key: "cursor", page: 35, title: "Курсор", group: "Персонализация", description: "Единая тема и размер указателя для системы и приложений"},
         {key: "weather", page: 3, title: "Погода", group: "Персонализация", description: "Город для прогноза в Dynamic Island", sidebar: false},
         {key: "windows", page: 17, title: "Окна", group: "Окна и столы", description: "Фокус окон и ограничения конфигурации niri"},
         {key: "alttab", page: 18, title: "Alt+Tab", group: "Окна и столы", description: "Переключение окон в этой сессии niri"},
@@ -232,6 +234,7 @@ FocusScope {
         {key: "naomi-place", page: 27, title: "Отображение", group: "Naomi", description: "Монитор, угол и слой"},
         {key: "naomi-remind", page: 29, title: "Напоминания", group: "Naomi", description: "Вода, глаза и разминка без ожидания"},
         {key: "integrations", page: 24, title: "Интеграции", group: "Приложения", description: "Цвета Nayori в\u00A0niri и тема Strata"},
+        {key: "calendar", page: 34, title: "Календарь", group: "Приложения", description: "Подключение CalDAV, учётная запись и события в острове"},
         {key: "updates", page: 22, title: "Обновления", group: "NayoriOS", description: "Обновление системы и приложений"},
         {key: "about", page: 23, title: "О системе", group: "NayoriOS", description: "Версии Nayori, niri, Quickshell и системы"}
     ]
@@ -240,7 +243,7 @@ FocusScope {
     readonly property bool persistsSettings: {
         const key = section.key
         const naomiSettings = key === "naomi" || key === "naomi-look" || key === "naomi-place"
-        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key === "capture" || key === "notifications" || key === "widgets" || key === "obsidian-inbox" || naomiSettings
+        return key === "home" || key === "panels" || key === "appearance" || key === "weather" || key === "start" || key === "island" || key === "integrations" || key === "capture" || key === "notifications" || key === "widgets" || key === "obsidian-inbox" || key === "calendar" || naomiSettings
     }
     readonly property var categories: [
         {name: "Обзор", caption: "Обзор", glyph: "home"},
@@ -883,6 +886,21 @@ FocusScope {
                     tokens: root.tokens
                     values: root.quickCaptureValues
                     onChanged: patch => root.quickCaptureChangedRequested(patch)
+                }
+            }
+            SettingsScroll {
+                CalendarControls {
+                    width: parent.width
+                    tokens: root.tokens
+                    service: root.calendarService
+                }
+            }
+            SettingsScroll {
+                id: cursorScroll
+                CursorControls {
+                    width: parent.width
+                    tokens: root.tokens
+                    onRevealRequested: item => cursorScroll.reveal(item)
                 }
             }
         }

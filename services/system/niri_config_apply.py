@@ -1432,6 +1432,33 @@ def transform_keyboard(files, fields):
     return {entry["path"]: text}
 
 
+def transform_cursor(files, fields):
+    if not isinstance(fields, dict) or set(fields) != {"theme", "size"}:
+        raise ApplyError("Нужны тема и размер курсора")
+    if any(entry["nodes"] is None for entry in files):
+        raise ApplyError("Не удалось разобрать один из include. Курсор не изменён")
+    theme = fields["theme"]
+    if not isinstance(theme, str) or not theme or len(theme) > 128 or any(
+        char not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for char in theme
+    ):
+        raise ApplyError("Некорректное имя темы курсора")
+    size = _check_int_range(fields["size"], "Размер курсора", 128)
+    if isinstance(fields["size"], bool) or size is None or size < 16:
+        raise ApplyError("Размер курсора должен быть от 16 до 128")
+    found = [(entry, node) for entry in files for node in entry["nodes"] or []
+             if not node["commented"] and node["name"] == "cursor"]
+    if len(found) > 1:
+        raise ApplyError("Найдено несколько блоков cursor. Файлы не изменены")
+    entry = found[0][0] if found else files[0]
+    if entry["protected"]:
+        raise ApplyError("Блок cursor находится в защищённом файле")
+    text = entry["text"]
+    for key, value in (("xcursor-theme", quote_string(theme)), ("xcursor-size", str(size))):
+        text, parent = ensure_path(text, ["cursor"])
+        text = set_child(text, parent, key, key + " " + value)
+    return {entry["path"]: text} if text != entry["text"] else {}
+
+
 def plan_changes(path, changes):
     path = Path(path)
     if not isinstance(changes, dict) or not changes:
@@ -1454,6 +1481,9 @@ def plan_changes(path, changes):
             files = _reload_planned(files, updated)
     if "keyboard" in changes:
         updated.update(transform_keyboard(files, (changes["keyboard"] or {}).get("set") or {}))
+        files = _reload_planned(files, updated)
+    if "cursor" in changes:
+        updated.update(transform_cursor(files, changes["cursor"]))
     return files, updated, warnings
 
 

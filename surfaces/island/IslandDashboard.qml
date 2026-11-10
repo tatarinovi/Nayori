@@ -55,7 +55,7 @@ FocusScope {
     implicitWidth: 680
     implicitHeight: 450
     property date now: new Date()
-    property date calendarMonth: new Date(now.getFullYear(), now.getMonth(), 1)
+    property var calendarService: null
     readonly property var players: musicService ? musicService.players : testMode ? testPlayers : Mpris.players.values
     readonly property var player: {
         if (musicService) return musicService.player
@@ -69,7 +69,6 @@ FocusScope {
     property bool weatherLoading: false
     signal weatherRefreshRequested()
     readonly property var ru: Qt.locale("ru_RU")
-    function changeMonth(delta) { calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + delta, 1) }
     readonly property string weatherScene: {
         if (!weather) return "cloudy"
         const code = Number(weather.weatherCode)
@@ -84,7 +83,7 @@ FocusScope {
         if (!weather) return ""
         return ({clear: "Ясно", cloudy: "Облачно", rain: "Дождь", snow: "Снег", storm: "Гроза", fog: "Туман"})[weatherScene]
     }
-    Keys.onEscapePressed: function(event) { event.accepted = true; root.closeRequested() }
+    Keys.onEscapePressed: function(event) { event.accepted = true; if (root.currentPage !== 0 || !calendarPane.back()) root.closeRequested() }
     Timer { interval: 30000; running: true; repeat: true; onTriggered: root.now = new Date() }
     component Label: IslandLabel { tokens: root.tokens }
     component Caption: Label {
@@ -331,57 +330,13 @@ FocusScope {
                 }
             }
             Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Qt.alpha(root.tokens.color.border, 0.4) }
-            Item {
+            CalendarPane {
+                id: calendarPane
                 Layout.preferredWidth: 278
                 Layout.fillHeight: true
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 10
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Caption { text: "Календарь"; Layout.fillWidth: true }
-                        Caption { text: root.ru.toString(root.calendarMonth, "yyyy") }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-                        Heading { Layout.fillWidth: true; text: root.ru.toString(root.calendarMonth, "MMMM"); font.pixelSize: 26 }
-                        Action { text: "‹"; Accessible.name: "Предыдущий месяц"; onClicked: root.changeMonth(-1) }
-                        Action { text: "›"; Accessible.name: "Следующий месяц"; onClicked: root.changeMonth(1) }
-                    }
-                    Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Qt.alpha(root.tokens.color.border, 0.4) }
-                    GridLayout {
-                        Layout.fillWidth: true
-                        columns: 7
-                        rowSpacing: 3
-                        columnSpacing: 2
-                        Repeater {
-                            model: ["пн", "вт", "ср", "чт", "пт", "сб", "вс"]
-                            Caption { required property string modelData; text: modelData; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 12; Layout.bottomMargin: 5 }
-                        }
-                        Repeater {
-                            model: 42
-                            Rectangle {
-                                id: day
-                                required property int index
-                                readonly property int dayNumber: index - ((root.calendarMonth.getDay() + 6) % 7) + 1
-                                readonly property bool inMonth: dayNumber > 0 && dayNumber <= new Date(root.calendarMonth.getFullYear(), root.calendarMonth.getMonth() + 1, 0).getDate()
-                                readonly property bool today: inMonth && dayNumber === root.now.getDate() && root.calendarMonth.getMonth() === root.now.getMonth() && root.calendarMonth.getFullYear() === root.now.getFullYear()
-                                Layout.fillWidth: true
-                                implicitHeight: 26
-                                radius: 6
-                                color: today ? root.tokens.color.accent : "transparent"
-                                Label { anchors.centerIn: parent; text: day.inMonth ? day.dayNumber : ""; color: day.today ? root.tokens.color.accentText : root.tokens.color.text; font.pixelSize: 13; font.underline: day.today; font.weight: day.today ? Font.Bold : Font.Medium }
-                            }
-                        }
-                    }
-                    Item { Layout.fillHeight: true }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Caption { Layout.fillWidth: true; text: root.ru.toString(root.now, "d MMMM, dddd"); font.pixelSize: 12 }
-                        Action { text: "Сегодня"; onClicked: root.calendarMonth = new Date(root.now.getFullYear(), root.now.getMonth(), 1) }
-                    }
-                }
+                tokens: root.tokens
+                service: root.calendarService
+                now: root.now
             }
                 }
             }

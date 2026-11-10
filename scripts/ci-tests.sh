@@ -4,6 +4,8 @@ cd "$(dirname "$0")/.."
 
 case "${1:-}" in
     unit)
+        python3 tests/cursor-theme.py
+        python3 tests/calendar.py
         python3 tests/installer.py
         python3 tests/nayori-update.py
         python3 tests/niri-primary.py
@@ -36,15 +38,16 @@ case "${1:-}" in
             printf '\n>>> %s\n' "$suite"
             bash "scripts/check-$suite.sh"
         done
-        for test in bluetooth color-scheme settings panel-modes weather-service settings-window settings-usage desktop-widgets naomi-sprite wallpaper-library lockscreen wireguard launcher-search launcher-usage launcher-interaction; do
+        for test in cursor-preview bluetooth color-scheme settings panel-modes weather-service settings-window settings-usage desktop-widgets naomi-sprite wallpaper-library lockscreen wireguard launcher-search launcher-usage launcher-interaction; do
             printf '\n>>> %s\n' "$test"
             python3 "tests/$test.py"
         done
-        for fixture in AppsScope Battery Clipboard NaomiPixel NayoriUpdate PolkitDialog DesktopWidgetContent StatusPopup WorkspaceMotion; do
+        for fixture in CalendarPane AppsScope Battery Clipboard NaomiPixel NayoriUpdate PolkitDialog DesktopWidgetContent StatusPopup WorkspaceMotion; do
             log="$runtime/$fixture.log"
             timeout 20s qs -p "tests/smoke/${fixture}Smoke.qml" --no-color > "$log" 2>&1 || { cat "$log"; exit 1; }
             cat "$log"
             case "$fixture" in
+                CalendarPane) marker=CALENDAR_PANE_PASS ;;
                 AppsScope) marker=APPS_SCOPE_PASS ;;
                 Battery) marker=BATTERY_SMOKE_PASS ;;
                 Clipboard) marker=CLIPBOARD_SMOKE_PASS ;;
