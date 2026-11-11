@@ -7,6 +7,7 @@ case "${1:-}" in
         python3 tests/keybinds.py
         python3 tests/cursor-theme.py
         python3 tests/calendar.py
+        python3 tests/system-monitor.py
         python3 tests/installer.py
         python3 tests/nayori-update.py
         python3 tests/niri-primary.py
@@ -44,12 +45,14 @@ case "${1:-}" in
             printf '\n>>> %s\n' "$test"
             python3 "tests/$test.py"
         done
-        for fixture in DesktopBlur CalendarPane AppsScope Battery Clipboard NaomiPixel NayoriUpdate PolkitDialog DesktopWidgetContent StatusPopup WorkspaceMotion; do
+        for fixture in DesktopBlur SystemMonitor SystemPageLoad CalendarPane AppsScope Battery Clipboard NaomiPixel NayoriUpdate PolkitDialog DesktopWidgetContent StatusPopup WorkspaceMotion; do
             log="$runtime/$fixture.log"
             timeout 20s qs -p "tests/smoke/${fixture}Smoke.qml" --no-color > "$log" 2>&1 || { cat "$log"; exit 1; }
             cat "$log"
             case "$fixture" in
                 DesktopBlur) marker=DESKTOP_BLUR_SMOKE_PASS ;;
+                SystemPageLoad) marker=SYSTEM_PAGE_LOAD_PASS ;;
+                SystemMonitor) marker=SYSTEM_MONITOR_PASS ;;
                 CalendarPane) marker=CALENDAR_PANE_PASS ;;
                 AppsScope) marker=APPS_SCOPE_PASS ;;
                 Battery) marker=BATTERY_SMOKE_PASS ;;

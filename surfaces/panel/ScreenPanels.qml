@@ -407,8 +407,8 @@ Scope {
         anchors.right: false
         margins.top: root.tokens.spacing.small
         implicitWidth: Math.min(root.panelScreen ? root.panelScreen.width : 1200,
-            Math.max(712, capsule.closedWidth + 2 * (Math.max((lyricClock.visible ? lyricClock.width + root.tokens.spacing.small : 0) + (captureControls.visible ? captureControls.width + root.tokens.spacing.small : 0), mediaControls.width) + root.tokens.spacing.small)))
-        implicitHeight: 522
+            Math.max(792, capsule.closedWidth + 2 * (Math.max((lyricClock.visible ? lyricClock.width + root.tokens.spacing.small : 0) + (captureControls.visible ? captureControls.width + root.tokens.spacing.small : 0), mediaControls.width) + root.tokens.spacing.small)))
+        implicitHeight: Math.min(662, root.panelScreen ? root.panelScreen.height - 16 : 662)
         onVisibleChanged: {
             if (visible && root.launcherHere)
                 Qt.callLater(islandWindow.focusLauncherField)
@@ -487,6 +487,9 @@ Scope {
         }
 
         MorphingIsland {
+            systemMonitorService: root.shellState.systemMonitorService || null
+            availableWidth: Math.max(1, islandWindow.width - 16)
+            availableHeight: Math.max(1, islandWindow.height - 16)
             systemUpdateService: root.shellState.systemUpdateService || null
             quickCaptureService: root.shellState.quickCaptureService || null
             quickCaptureOpen: root.quickCaptureHere

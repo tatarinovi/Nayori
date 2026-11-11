@@ -11,6 +11,10 @@ QtObject {
     readonly property bool managerPresent: QsNet.Networking.backend === QsNet.NetworkBackendType.NetworkManager
     readonly property int connectivity: QsNet.Networking.connectivity
 
+    property bool wifiConnected: false
+    property bool ethernetConnected: false
+    property string wifiLabel: "—"
+    property string ethernetLabel: "—"
     property bool available: false
     property bool linked: false
     property bool degraded: false
@@ -29,6 +33,10 @@ QtObject {
         if (!watching)
             return
 
+        wifiConnected = false
+        ethernetConnected = false
+        wifiLabel = "—"
+        ethernetLabel = "—"
         if (!managerPresent) {
             publish("", false, false, false)
             return
@@ -44,6 +52,14 @@ QtObject {
             if (entry === null)
                 continue
             saw = true
+            if (entry.kind === QsNet.DeviceType.Wifi) {
+                if (entry.up) { wifiConnected = true; wifiLabel = entry.connectionName || "Подключено" }
+                else if (!wifiConnected) wifiLabel = "Отключено"
+            }
+            if (entry.kind === QsNet.DeviceType.Wired) {
+                if (entry.up) { ethernetConnected = true; ethernetLabel = entry.connectionName || "Подключено" }
+                else if (!ethernetConnected) ethernetLabel = "Отключено"
+            }
             if (!entry.up)
                 continue
             if (entry.kind === QsNet.DeviceType.Wired)
@@ -106,6 +122,12 @@ QtObject {
                 return false
             }
 
+            readonly property string connectionName: {
+                const list = modelData.networks.values
+                for (const net of list) if (net.connected) return net.name
+                return ""
+            }
+            onConnectionNameChanged: root.recompute()
             onKindChanged: root.recompute()
             onUpChanged: root.recompute()
             Component.onCompleted: root.recompute()

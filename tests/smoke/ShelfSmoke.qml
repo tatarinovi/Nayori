@@ -48,7 +48,7 @@ ShellRoot {
                 tryCompare(store, "ready", true)
                 const dashboard = findChild(island, "islandDashboardLoader").item
                 verify(dashboard)
-                compare(dashboard.pageCount, 3)
+                compare(dashboard.pageCount, 4)
                 dashboard.currentPage = 2
                 compare(island.currentPage, 2)
                 verify(!island.notificationPage)
@@ -114,11 +114,15 @@ ShellRoot {
                 compare(island.currentPage, 2)
                 verify(!island.notificationPage)
                 dashboard.navigateWheel(-120, Date.now())
-                compare(dashboard.currentPage, 2, "right boundary")
-                dashboard.navigateWheel(120, Date.now() + 1000)
+                compare(dashboard.currentPage, 3, "System follows Shelf")
+                dashboard.navigateWheel(-120, Date.now() + 1000)
+                compare(dashboard.currentPage, 3, "right boundary")
+                dashboard.navigateWheel(120, Date.now() + 2000)
+                compare(dashboard.currentPage, 2)
+                dashboard.navigateWheel(120, Date.now() + 3000)
                 compare(dashboard.currentPage, 1)
                 verify(island.notificationPage)
-                dashboard.navigateWheel(120, Date.now() + 2000)
+                dashboard.navigateWheel(120, Date.now() + 4000)
                 compare(dashboard.currentPage, 0)
                 verify(!island.notificationPage)
                 island.currentPage = 2

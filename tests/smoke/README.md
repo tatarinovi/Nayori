@@ -50,10 +50,26 @@ rapid retargeting, disconnect/reconnect, settings and disabled motion. It also
 checks source-matched current/previous blur frames, a failed cache, and Center/Fit
 geometry. Run it only with disposable XDG directories, offscreen Qt and no
 `NIRI_SOCKET`. A second invocation with `NAYORI_BLUR_RESTORE=1` and the same
-config directory checks persistence.
+config directory checks persistence. `SystemPageLoadSmoke.qml` instantiates the
+system page and island to catch read-only property conflicts during loading.
 These checks do not measure GPU frame time or physical layer-shell stacking.
 
 `python3 tests/widget-dim.py` checks the focused NowPlaying input copy, the dim
 layer toggle, and avoiding a second dim on the background copy. CI uses the
 software backend. For pixel checks, explicitly set `QT_QUICK_BACKEND=rhi` with
 an available graphics backend; offscreen software Qt cannot render MultiEffect.
+
+### System monitor
+
+`SystemMonitorSmoke.qml` uses a disposable Python worker and fixture metrics. It
+checks four-tab navigation, three rows without scrolling at 760 and 360 px,
+unknown values, the desktop widget adapter, bounded histories and hot removal,
+multiple subscribers, repeated open/close and recovery after worker exit. Power
+profile clicks target a mock service and never change the host profile. It saves
+`/tmp/nayori-system-wide.png` and `/tmp/nayori-system-narrow.png`. Run with the
+same disposable XDG/offscreen/D-Bus isolation as the CI smoke suite, or run
+`bash scripts/check-system-monitor.sh`. Missing sensors and whole unavailable
+cards must hide, and the remaining cards must expand. The lower row has state on the left and power on
+the right; the separate temperatures card is absent. Power buttons have equal
+geometry and centered icons, rendered by the shared SystemIcon SVG component.
+The uptime belongs to the system-state card; there is no inner page heading.

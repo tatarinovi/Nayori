@@ -7,6 +7,50 @@ import "WidgetLayout.js" as WidgetLayout
 // Один таймер на слой. Виджеты системы читают эти поля и не открывают /proc сами.
 QtObject {
     id: root
+    property var monitorService: null
+    readonly property string consumerKey: "desktop-system-" + String(root)
+    readonly property bool localActive: active && !monitorService
+    function subscribe() {
+        if (monitorService) monitorService.consumer(consumerKey, active, showDetails)
+        applyShared()
+    }
+    function applyShared() {
+        if (!monitorService || !active) return
+        const data = monitorService.data
+        const cpuData = data.cpu || ({})
+        const mem = data.memory || ({})
+        const gpuData = (data.gpus || [])[0] || ({})
+        const valid = v => typeof v === "number" && isFinite(v)
+        cpu = valid(cpuData.load) ? cpuData.load / 100 : null
+        cpuFailed = cpu === null
+        cpuInfo = valid(cpuData.ghz) ? {mhz: cpuData.ghz * 1000} : null
+        memoryTotalKb = valid(mem.total) ? mem.total / 1024 : null
+        memoryUsedKb = valid(mem.used) ? mem.used / 1024 : null
+        memory = memoryTotalKb > 0 && memoryUsedKb !== null ? memoryUsedKb / memoryTotalKb : null
+        memoryFailed = memory === null
+        gpu = valid(gpuData.load) ? gpuData.load / 100 : null
+        gpuFailed = gpu === null
+        gpuTemp = valid(gpuData.temperature) ? gpuData.temperature : null
+        gpuMemoryUsedKb = valid(gpuData.used) ? gpuData.used / 1024 : null
+        gpuMemoryTotalKb = valid(gpuData.total) ? gpuData.total / 1024 : null
+        const temperatures = (data.temperatures || []).filter(t => t.kind === "cpu")
+        cpuTemp = temperatures.length ? Math.max(...temperatures.map(t => t.value)) : null
+        const interfaces = (data.network || []).filter(n => !n.id.startsWith("veth") && !n.id.startsWith("docker"))
+        networkRx = interfaces.length && interfaces.every(n => valid(n.down)) ? interfaces.reduce((sum, n) => sum + n.down, 0) : null
+        networkTx = interfaces.length && interfaces.every(n => valid(n.up)) ? interfaces.reduce((sum, n) => sum + n.up, 0) : null
+        recordNetwork()
+        cpuHistory = cpuHistory.concat([cpu === null ? -1 : cpu]).slice(-30)
+        gpuHistory = gpuHistory.concat([gpu === null ? -1 : gpu]).slice(-30)
+        topProcesses = showDetails ? data.processes || [] : []
+    }
+    onMonitorServiceChanged: subscribe()
+    onShowDetailsChanged: subscribe()
+    Component.onCompleted: subscribe()
+    Component.onDestruction: if (monitorService) monitorService.consumer(consumerKey, false)
+    property Connections monitorConnection: Connections {
+        target: root.monitorService
+        function onDataChanged() { root.applyShared() }
+    }
     property bool active: false
     property bool showDetails: false
     property var cpuTemp: null
@@ -115,12 +159,12 @@ QtObject {
     }
 
     function reloadGpu() {
-        if (active && !gpuProcess.running)
+        if (localActive && !gpuProcess.running)
             gpuProcess.running = true
     }
 
     function reload() {
-        if (!active)
+        if (!localActive)
             return
         stat.reload()
         mem.reload()
@@ -140,7 +184,8 @@ QtObject {
         gpuTemp = null; cpuTemp = null; networkPrevious = null
         networkRx = null; networkTx = null; networkRxHistory = []; networkTxHistory = []; topProcesses = []; cpuHistory = []; gpuHistory = []
         gpuFailed = false
-        if (active) {
+        subscribe()
+        if (localActive) {
             reload()
             reloadGpu()
             reloadExtra()
@@ -149,27 +194,29 @@ QtObject {
 
     property FileView stat: FileView {
         path: "/proc/stat"
-        preload: root.active
+        preload: root.localActive
         printErrors: false
-        onLoaded: root.consumeCpu(text())
+        onLoaded: if (root.localActive) root.consumeCpu(text())
         onLoadFailed: {
+            if (!root.localActive) return
             root.cpuFailed = true
             root.resetCpu()
         }
     }
     property FileView cpuInfoFile: FileView {
         path: "/proc/cpuinfo"
-        preload: root.active
+        preload: root.localActive
         printErrors: false
-        onLoaded: root.cpuInfo = WidgetLayout.readCpuInfo(text())
-        onLoadFailed: root.cpuInfo = null
+        onLoaded: if (root.localActive) root.cpuInfo = WidgetLayout.readCpuInfo(text())
+        onLoadFailed: if (root.localActive) root.cpuInfo = null
     }
     property FileView mem: FileView {
         path: "/proc/meminfo"
-        preload: root.active
+        preload: root.localActive
         printErrors: false
-        onLoaded: root.consumeMemory(text())
+        onLoaded: if (root.localActive) root.consumeMemory(text())
         onLoadFailed: {
+            if (!root.localActive) return
             root.memoryFailed = true
             root.memory = null
             root.memoryTotalKb = null
@@ -178,19 +225,19 @@ QtObject {
     }
     property Process gpuProcess: Process {
         command: ["sh", "-c", "for f in /sys/class/drm/card[0-9]*/device/gpu_busy_percent; do if [ -r \"$f\" ]; then d=${f%/*}; printf \"AMD\\n\"; cat \"$f\"; cat \"$d/mem_info_vram_used\" 2>/dev/null || printf \"\\n\"; cat \"$d/mem_info_vram_total\" 2>/dev/null || printf \"\\n\"; for t in \"$d\"/hwmon/hwmon*/temp1_input; do if [ -r \"$t\" ]; then cat \"$t\"; break; fi; done; exit 0; fi; done; if command -v nvidia-smi >/dev/null 2>&1; then printf \"NVIDIA\\n\"; nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -n 1; fi"]
-        stdout: StdioCollector { onStreamFinished: if (root.active) root.consumeGpu(text) }
+        stdout: StdioCollector { onStreamFinished: if (root.localActive) root.consumeGpu(text) }
     }
     function reloadExtra() {
-        if (active && !extraProcess.running) {
+        if (localActive && !extraProcess.running) {
             extraProcess.command = ["python3", Quickshell.shellPath("scripts/desktop-system-extra.py"), showDetails ? "details" : "compact"]
             extraProcess.running = true
         }
     }
     property Process extraProcess: Process {
-        stdout: StdioCollector { onStreamFinished: if (root.active) root.consumeExtra(text) }
+        stdout: StdioCollector { onStreamFinished: if (root.localActive) root.consumeExtra(text) }
     }
     property Timer detailsPoll: Timer {
-        interval: 2000; repeat: true; running: root.active
+        interval: 2000; repeat: true; running: root.localActive
         onTriggered: {
             root.reloadExtra()
             if (root.showDetails) {
@@ -202,13 +249,13 @@ QtObject {
     property Timer gpuPoll: Timer {
         interval: 3000
         repeat: true
-        running: root.active
+        running: root.localActive
         onTriggered: { root.reloadGpu(); root.cpuInfoFile.reload() }
     }
     property Timer poll: Timer {
         interval: 1000
         repeat: true
-        running: root.active
+        running: root.localActive
         onTriggered: root.reload()
     }
 }

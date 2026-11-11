@@ -11,6 +11,7 @@ Rectangle {
     required property var tokens
     property var musicService: null
     property var systemUpdateService: null
+    property var systemMonitorService: null
     readonly property bool showingUpdate: !!systemUpdateService && systemUpdateService.busy && expansionProgress < 0.01
     readonly property var player: {
         if (root.musicService) return root.musicService.player && root.musicService.player.isPlaying ? root.musicService.player : null
@@ -271,6 +272,7 @@ Rectangle {
             opacity: 0.6
         }
         Fox {
+            systemMonitorService: root.systemMonitorService
             id: fox
             testMode: root.testMode
             hovered: hover.containsMouse && hover.mouseX >= fox.x && hover.mouseX <= fox.x + fox.width

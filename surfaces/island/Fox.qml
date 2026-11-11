@@ -10,7 +10,8 @@ Item {
     required property var tokens
     property bool reducedMotion: false
     property bool active: true
-    property real cpuInput: cpu.load
+    property var systemMonitorService: null
+    property real cpuInput: systemMonitorService ? systemMonitorService.cpu.load : cpu.load
     property var audioReaction: null
     property bool unread: false
     property bool hovered: pointer.hovered
@@ -22,6 +23,7 @@ Item {
     property alias controller: behavior
     readonly property string consumerKey: "fox-" + String(root)
     function updateConsumer() {
+        if (systemMonitorService) systemMonitorService.cpuConsumer(consumerKey, active && visible && !testMode)
         if (audioReaction) audioReaction.consumer(consumerKey, active && visible && !reducedMotion && !testMode)
     }
     onTestModeChanged: updateConsumer()
@@ -29,8 +31,10 @@ Item {
     onVisibleChanged: updateConsumer()
     onReducedMotionChanged: updateConsumer()
     onAudioReactionChanged: updateConsumer()
+    onSystemMonitorServiceChanged: updateConsumer()
     Component.onCompleted: updateConsumer()
-    Component.onDestruction: { if (audioReaction) audioReaction.consumer(consumerKey, false) }
+    Component.onDestruction: { if (systemMonitorService) systemMonitorService.cpuConsumer(consumerKey, active && visible && !testMode)
+        if (audioReaction) audioReaction.consumer(consumerKey, false) }
     // Silver fur stays fixed across themes; the tail tip follows the resolved accent.
     readonly property color bodyInk: tokens.fox.body
     readonly property color lightInk: tokens.fox.light
@@ -49,7 +53,7 @@ Item {
     }
     implicitWidth: 52
     implicitHeight: 30
-    Cpu { id: cpu; active: root.active && root.visible && !root.testMode }
+    Cpu { id: cpu; active: !root.systemMonitorService && root.active && root.visible && !root.testMode }
     FoxController {
         id: behavior
         cpu: root.cpuInput

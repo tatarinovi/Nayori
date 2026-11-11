@@ -24,6 +24,7 @@ PanelWindow {
     property var weatherService: null
     property var music: null
     property var audioReaction: null
+    property var systemMonitorService: null
     property var wallpaperClockAccent: null
     readonly property string audioKey: "desktop-music-" + String(root)
     readonly property bool wantsAudio: root.visible && wantsMusic && !!music && !!music.player
@@ -561,6 +562,7 @@ PanelWindow {
 
     SystemReader {
         id: desktopSystemReader
+        monitorService: root.systemMonitorService
         active: root.wantsSystem && root.visible
         showDetails: root.viewItems.some(item => item.type === "system" && item.size !== "compact")
     }

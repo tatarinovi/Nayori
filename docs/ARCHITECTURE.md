@@ -149,7 +149,7 @@ surfaces/clipboard/
 |---|---|
 | `nayori-workspaces`, `nayori-apps`, `nayori-status` | три нижних острова, слой Overlay |
 | `nayori-edge-top`, `nayori-edge-workspaces`, `nayori-edge-apps`, `nayori-edge-status` | узкие полосы автоскрытия |
-| `nayori-island` | Dynamic Island, 712×522, верхний край |
+| `nayori-island` | Dynamic Island, до 792×662 с ограничением по экрану, верхний край |
 | `nayori-launcher-list` | карточка результатов под островом |
 | `nayori-launcher-dismiss` | щелчок мимо поиска |
 | `nayori-start` | меню Пуск |
@@ -211,3 +211,7 @@ surfaces/clipboard/
 пользовательских биндов находятся рядом с узлом KDL, а не во втором хранилище.
 IPC `apps` запускает пять ролей приложений через общий SettingsService и Apps.
 Контракт и ограничения: [KEYBINDS.md](KEYBINDS.md).
+
+## Мониторинг системы
+
+Общий `services/system/SystemMonitor.qml` принадлежит `ShellRoot`. Dynamic Island передаёт его четвёртой вкладке «Система», а `SystemReader` виджетов рабочего стола использует адаптер того же снимка. Одна подписка любого экрана включает worker; последняя отписка останавливает его. Лиса использует общий `CpuSampler` без запуска полного worker. Источники, профили питания и ограничения описаны в [SYSTEM_MONITOR.md](SYSTEM_MONITOR.md).

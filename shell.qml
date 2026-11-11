@@ -49,6 +49,8 @@ ShellRoot {
     AudioReaction { id: audioReaction }
     NayoriUpdate { id: nayoriUpdate }
     SystemUpdate { id: systemUpdate }
+    SystemMonitor { id: systemMonitor }
+    readonly property var systemMonitorService: systemMonitor
     readonly property var systemUpdateService: systemUpdate
     SettingsService { id: settingsStore }
     StageSession { id: desktopStage }
@@ -408,6 +410,7 @@ ShellRoot {
             }
             DesktopWidgets {
                 desktopDimOpacity: desktopWallpaper.desktopDimOpacity
+                systemMonitorService: systemMonitor
                 id: desktopInput
                 visible: settingsStore.ready && !Niri.overviewOpen
                 screen: desktopOutput.modelData

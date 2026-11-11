@@ -13,8 +13,10 @@ FocusScope {
     property var testPlayers: []
     property var musicService: null
     property var systemUpdateService: null
-    readonly property bool popupOpen: musicCard.popupOpen
-    function closePopups() { musicCard.closePopups() }
+    property var systemMonitorService: null
+    property bool monitoring: false
+    readonly property bool popupOpen: musicCard.popupOpen || systemView.popupOpen
+    function closePopups() { musicCard.closePopups(); systemView.closePopups() }
     property var selectedPlayer: null
     property var notifications: null
     property var quickCaptureService: null
@@ -24,7 +26,7 @@ FocusScope {
     readonly property bool shelfInteracting: shelfView.interacting
     function focusCapture() { currentPage = 2; shelfView.focusCapture() }
     property int currentPage: 0
-    readonly property int pageCount: 3
+    readonly property int pageCount: 4
     property real pagePosition: currentPage
     property real wheelDelta: 0
     property double lastPageWheel: 0
@@ -83,7 +85,7 @@ FocusScope {
         if (!weather) return ""
         return ({clear: "Ясно", cloudy: "Облачно", rain: "Дождь", snow: "Снег", storm: "Гроза", fog: "Туман"})[weatherScene]
     }
-    Keys.onEscapePressed: function(event) { event.accepted = true; if (root.currentPage !== 0 || !calendarPane.back()) root.closeRequested() }
+    Keys.onEscapePressed: function(event) { event.accepted = true; if (root.popupOpen) root.closePopups(); else if (root.currentPage !== 0 || !calendarPane.back()) root.closeRequested() }
     Timer { interval: 30000; running: true; repeat: true; onTriggered: root.now = new Date() }
     component Label: IslandLabel { tokens: root.tokens }
     component Caption: Label {
@@ -131,12 +133,12 @@ FocusScope {
                 }
             }
             Layout.fillWidth: true
-            spacing: 16
+            spacing: width < 560 ? 10 : 16
             Repeater {
                 id: pageTabs
                 property int layoutRevision: 0
                 onItemAdded: layoutRevision++
-                model: ["Главная", "Уведомления", "Полка"]
+                model: ["Главная", "Уведомления", "Полка", "Система"]
                 delegate: AbstractButton {
                     id: pageTab
                     objectName: "islandPageTab" + index
@@ -160,7 +162,7 @@ FocusScope {
                     }
                     contentItem: Heading {
                         text: pageTab.text
-                        font.pixelSize: 20
+                        font.pixelSize: root.width < 560 ? 14 : 20
                         color: root.tokens.color.text
                         opacity: root.currentPage === pageTab.index ? 1 : 0.5
                         Behavior on opacity {
@@ -355,13 +357,23 @@ FocusScope {
                 objectName: "shelfPage"
                 x: (2 - root.pagePosition) * pageViewport.width
                 width: pageViewport.width; height: pageViewport.height
-                visible: root.pagePosition > 1
+                visible: root.pagePosition > 1 && root.pagePosition < 3
                 enabled: root.currentPage === 2
                 tokens: root.tokens
                 store: root.shelfService
                 quickCaptureService: root.quickCaptureService
                 quickCaptureOpen: root.quickCaptureOpen
                 onQuickCaptureSettingsRequested: root.quickCaptureSettingsRequested()
+            }
+            SystemPage {
+                id: systemView
+                x: (3 - root.pagePosition) * pageViewport.width
+                width: pageViewport.width; height: pageViewport.height
+                visible: root.pagePosition > 2
+                enabled: root.currentPage === 3
+                tokens: root.tokens
+                service: root.systemMonitorService
+                monitoring: root.monitoring && root.currentPage === 3
             }
         }
     }

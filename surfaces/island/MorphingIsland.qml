@@ -12,6 +12,7 @@ Rectangle {
     property var audioReaction: null
     property var musicService: null
     property var systemUpdateService: null
+    property var systemMonitorService: null
     property var notifications: null
     property var quickCaptureService: null
     property bool quickCaptureOpen: false
@@ -76,8 +77,12 @@ Rectangle {
     property int islandRotationSeconds: 15
     property real closedWidth: compact.compactWidth
     readonly property real closedHeight: tokens.panel.height
-    readonly property real expandedWidth: 680
-    readonly property real expandedHeight: 490
+    property real availableWidth: 760
+    property real availableHeight: 630
+    property real expandedWidth: Math.min(currentPage === 3 ? 760 : 680, availableWidth)
+    property real expandedHeight: Math.min(currentPage === 3 ? 630 : 490, availableHeight)
+    Behavior on expandedWidth { NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.base; easing.type: Easing.OutCubic } }
+    Behavior on expandedHeight { NumberAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.base; easing.type: Easing.OutCubic } }
     property bool ready: false
     property real progress: expanded ? 1 : 0
     signal dashboardRequested()
@@ -197,6 +202,7 @@ Rectangle {
         audioReaction: root.audioReaction
         musicService: root.musicService
         systemUpdateService: root.systemUpdateService
+        systemMonitorService: root.systemMonitorService
         notifications: root.notifications
         expanded: root.expanded
         drawChrome: false
@@ -250,9 +256,11 @@ Rectangle {
                 if (root.quickCaptureOpen) item.focusCapture(); else item.forceActiveFocus(Qt.TabFocusReason)
         })
         sourceComponent: IslandDashboard {
+            monitoring: root.active && root.visible && root.expanded && !root.launcherOpen && !root.testMode
             calendarService: root.calendarService
             musicService: root.musicService
             systemUpdateService: root.systemUpdateService
+            systemMonitorService: root.systemMonitorService
             testMode: root.testMode
             tokens: root.tokens
             weatherCity: root.weatherCity
