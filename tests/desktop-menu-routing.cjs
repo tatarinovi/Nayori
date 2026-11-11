@@ -3,7 +3,7 @@
 const assert = require("node:assert/strict")
 const fs = require("node:fs")
 const vm = require("node:vm")
-const shell = fs.readFileSync("ShellSession.qml", "utf8")
+const shell = fs.readFileSync("surfaces/ShellSession.qml", "utf8")
 const handler = shell.match(/onWallpaperRequested:\s*\{([^}]+)\}/)
 assert.ok(handler, "wallpaper menu handoff exists")
 for (const alreadyEditing of [false, true]) {

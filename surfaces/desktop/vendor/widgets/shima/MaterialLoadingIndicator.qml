@@ -1,0 +1,103 @@
+import "."
+import "../BridgeContext.js" as BridgeContext
+// Modified for Nayori, 2026-11-12: imports, instance data and motion adapters.
+
+import QtQuick
+import QtQuick.Window
+
+
+
+
+Rectangle {
+    readonly property var nayoriMaterialLoadingIndicator: BridgeContext.find(typeof parent !== "undefined" ? parent : null)
+
+    id: root
+
+    property bool loading: true
+    readonly property bool animating: loading && visible && (Window.window?.visible ?? true)
+        && nayoriMaterialLoadingIndicator.appearance.animationsEnabled
+    onAnimatingChanged: {
+        if (!animating) {
+            leapAnimation.stop()
+            leapZoomProgress = 0
+        }
+    }
+    property double pullProgress: 0
+
+    // Size, color
+    property double implicitSize: 48
+    implicitWidth: implicitSize
+    implicitHeight: implicitSize
+    radius: Math.min(width, height) / 2
+    color: nayoriMaterialLoadingIndicator.appearance.colors.colPrimaryContainer
+    property double baseShapeSize: root.implicitSize * 0.7
+    property double leapZoomSize: root.baseShapeSize * 1.2
+    property double leapZoomProgress: 0
+
+    // Shape
+    property list<var> shapes: [
+        MaterialShape.Shape.SoftBurst,
+        MaterialShape.Shape.Cookie9Sided,
+        MaterialShape.Shape.Pentagon,
+        MaterialShape.Shape.Pill,
+        MaterialShape.Shape.Sunny,
+        MaterialShape.Shape.Cookie4Sided,
+        MaterialShape.Shape.Oval,
+    ]
+    property int shapeIndex: 0
+    property double pullRotation: root.loading ? 0 : -(root.pullProgress * 360)
+    property double continuousRotation: 0
+    property double leapRotation: 0
+    rotation: pullRotation + continuousRotation + leapRotation
+
+    RotationAnimation on continuousRotation {
+        running: root.animating
+        duration: (nayoriMaterialLoadingIndicator.reducedMotion ? 0 : 12000)
+        easing.type: Easing.Linear
+        loops: Animation.Infinite
+        from: 0
+        to: 360
+    }
+    Timer {
+        interval: 800
+        running: root.animating
+        repeat: true
+        onTriggered: leapAnimation.start()
+    }
+    ParallelAnimation {
+        id: leapAnimation
+        PropertyAction { target: root; property: "shapeIndex"; value: (root.shapeIndex + 1) % root.shapes.length }
+        RotationAnimation {
+            target: root
+            direction: RotationAnimation.Shortest
+            property: "leapRotation"
+            to: (root.leapRotation + 90) % 360
+            duration: (nayoriMaterialLoadingIndicator.reducedMotion ? 0 : 350)
+            easing.type: Easing.InOutQuad
+        }
+        NumberAnimation {
+            target: root
+            property: "leapZoomProgress"
+            from: 0
+            to: 1
+            duration: (nayoriMaterialLoadingIndicator.reducedMotion ? 0 : 750)
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: nayoriMaterialLoadingIndicator.appearance.animationCurves.standard
+        }
+    }
+
+    MaterialShape {
+        id: shape
+        anchors.centerIn: parent
+        shape: root.shapes[root.shapeIndex]
+        implicitSize: {
+            const leapZoomDiff = root.leapZoomSize - root.baseShapeSize
+            const progressFirstHalf = Math.min(root.leapZoomProgress, 0.5) * 2;
+            const progressSecondHalf = Math.max(root.leapZoomProgress - 0.5, 0) * 2;
+            return root.baseShapeSize + leapZoomDiff * progressFirstHalf - leapZoomDiff * progressSecondHalf;
+        }
+        color: nayoriMaterialLoadingIndicator.appearance.colors.colOnPrimaryContainer
+
+        animation: NumberAnimation { duration: nayoriMaterialLoadingIndicator.appearance.animation.elementMoveFast.duration; easing.type: nayoriMaterialLoadingIndicator.appearance.animation.elementMoveFast.type; easing.bezierCurve: nayoriMaterialLoadingIndicator.appearance.animation.elementMoveFast.bezierCurve }
+    }
+}

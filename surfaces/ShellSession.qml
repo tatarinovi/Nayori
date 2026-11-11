@@ -91,6 +91,15 @@ Scope {
     readonly property var systemUpdateService: systemUpdate
     SettingsService { id: settingsStore }
     StageSession { id: desktopStage }
+    ImportedWidgetRuntime {
+        id: importedWidgetRuntime
+        settings: settingsStore
+        bluetooth: bluetoothStore
+        notifications: notificationDnd
+        notificationModel: root.islandNotifications
+        onSettingsRequested: settingsController.openPage("home")
+        onSessionRequested: settingsController.openPage("power")
+    }
     Connections {
         target: settingsController
         function onWidgetsEditingChanged() {
@@ -447,6 +456,8 @@ Scope {
                 widgetHost: desktopInput
                 widgetsReady: settingsStore.ready
                 weatherService: weatherStore
+                calendarStore: root.calendarService
+                widgetRuntime: importedWidgetRuntime
                 music: musicStore
             }
             DesktopWidgets {
@@ -490,6 +501,8 @@ Scope {
                 editing: settingsController.widgetsEditing && desktopStage.onMonitor(desktopOutput.modelData.name)
                 stageSession: desktopStage
                 weatherService: weatherStore
+                calendarStore: root.calendarService
+                widgetRuntime: importedWidgetRuntime
                 music: musicStore
                 audioReaction: root.islandAudio
                 wallpaperClockAccent: accentExtractor.lightestAccent
@@ -507,6 +520,8 @@ Scope {
                 widgetHost: desktopInput
                 widgetsReady: settingsStore.ready
                 weatherService: weatherStore
+                calendarStore: root.calendarService
+                widgetRuntime: importedWidgetRuntime
                 music: musicStore
                 onImageFailed: function(path) { overviewBlur.revert(desktopOutput.modelData.name, path) }
             }

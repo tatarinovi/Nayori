@@ -56,7 +56,7 @@ QtObject {
     }
     function _setFree(x, y) { positionCommitted(x, y); gestureBefore = null }
     function _quantiseScale(value, modifiers) {
-        const limits = WidgetLayout.sizeLimits(host.spec.type)
+        const limits = WidgetLayout.sizeLimits(host.spec.type, host.spec.options)
         const low = Math.max(limits.minWidth / width, limits.minHeight / height)
         const high = Math.min(limits.maxWidth / width, limits.maxHeight / height)
         const bounded = Math.max(low, Math.min(high, value))
@@ -80,7 +80,6 @@ QtObject {
     function clampY(value) {
         return host.screenHeight > 0 ? Math.max(0, Math.min(value, host.screenHeight - (resizing ? previewHeight : host.height))) : value
     }
-    function snap(value) { return host.snap ? Math.round(value / WidgetLayout.gridSize()) * WidgetLayout.gridSize() : value }
     function stageBeginMove(point, modifiers) {
         if (slot.locked || slot.stageInputBlocked)
             return false;
@@ -123,6 +122,11 @@ QtObject {
                 slot.widget, slot.dragX, slot.dragY, modifiers);
             slot.dragX = bounded.x;
             slot.dragY = bounded.y;
+        } else {
+            const placed = WidgetLayout.placementPosition(nx, ny, host.box,
+                host.screenWidth, host.screenHeight, host.snap);
+            slot.dragX = placed.x;
+            slot.dragY = placed.y;
         }
     }
     function stageEndMove(modifiers) {
@@ -130,11 +134,9 @@ QtObject {
             return;
         if (slot.dragging) {
             const fx = Math.round(Math.max(slot.groupDragMinX,
-                Math.min(slot.groupDragMaxX, slot.composing
-                    ? slot.dragX : slot.snap(slot.dragX))));
+                Math.min(slot.groupDragMaxX, slot.dragX)));
             const fy = Math.round(Math.max(slot.groupDragMinY,
-                Math.min(slot.groupDragMaxY, slot.composing
-                    ? slot.dragY : slot.snap(slot.dragY))));
+                Math.min(slot.groupDragMaxY, slot.dragY)));
             const handled = slot.composing && slot.stageController
                 && slot.stageController.widgetDragEnded(
                     slot.widget, fx, fy, modifiers);

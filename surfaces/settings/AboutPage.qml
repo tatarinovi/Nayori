@@ -37,7 +37,11 @@ Column {
     }
     Label {
         width: parent.width
-        text: "Desktop Visualizer: Ryoku. Based on iNiR by snowarch (https://github.com/snowarch/inir)"
+        text: "Desktop Visualizer и виджеты ii / Shima: модифицированный перенос из Ryoku. Based on iNiR by snowarch (https://github.com/snowarch/inir)"
+    }
+    Label {
+        width: parent.width
+        text: "Виджеты Python: Ryoku / Serpantinum, ilyamiro и участники проекта. AGPL-3.0-or-later. Сведения об источниках и изменениях — в NOTICE."
     }
     Label { text: "Окружение"; font.family: root.tokens.type.display.family; font.pixelSize: 18 }
     Label {

@@ -4,8 +4,8 @@ import Quickshell
 import "tokens"
 import "services/settings"
 import "services/desktop"
-import "surfaces/settings"
 import "surfaces/desktop"
+import "surfaces/desktop/WidgetLayout.js" as WidgetLayout
 
 ShellRoot {
     id: test
@@ -38,20 +38,18 @@ ShellRoot {
         if (!ok) { console.error("DESKTOP_WIDGET_FAIL " + message); Qt.exit(1) }
     }
     Tokens { id: theme }
-    StageSession { id: stage }
-    SettingsService { id: store; storageDirectory: Quickshell.env("NAYORI_WIDGETS_TEST_DIR") }
-    FloatingWindow {
-        visible: true; implicitWidth: 720; implicitHeight: 720
-        WidgetsPage {
-            id: page
-            width: 680; tokens: theme
-            screens: ["DP-1", "HDMI-1"]
-            desktopWidgets: store.desktopWidgets
-            editing: test.editing
-            onEditModeChanged: on => test.editing = on
-            onLayoutEdited: layout => store.update({desktopWidgets: layout})
+    // Instantiate the editor pane so invalid QML properties fail this CI smoke test.
+    Item {
+        visible: false
+        WidgetSettingsPane {
+            id: selectedSettings
+            width: 320
+            tokens: theme
+            spec: ({id:"settings-note", type:"note", size:"compact", style:"card", x:24, y:24, text:"Заметка"})
         }
     }
+    StageSession { id: stage }
+    SettingsService { id: store; storageDirectory: Quickshell.env("NAYORI_WIDGETS_TEST_DIR") }
     Timer {
         interval: 200; running: true; repeat: true
         onTriggered: {
@@ -65,6 +63,25 @@ ShellRoot {
                 console.log("DESKTOP_WIDGET_RESTORE_PASS")
                 Qt.quit()
             } else if (test.phase === 0) {
+                test.check(selectedSettings.entry && selectedSettings.entry.id === "note", "selected widget settings load")
+                slot.stageBeginMove(Qt.point(30,30), Qt.NoModifier)
+                slot.stageUpdateMove(Qt.point(89,107), Qt.NoModifier)
+                test.check(slot.dragX === 84 && slot.dragY === 96 && test.gestureCommits === 0, "live snapping before release")
+                slot.stageCancelMove()
+                gestureHost.snap = false
+                slot.stageBeginMove(Qt.point(30,30), Qt.NoModifier)
+                slot.stageUpdateMove(Qt.point(89,107), Qt.NoModifier)
+                test.check(slot.dragX === 83 && slot.dragY === 101, "grid disabled means free live movement")
+                slot.stageCancelMove()
+                gestureHost.snap = true
+                gestureHost.screenWidth = 801; gestureHost.screenHeight = 601
+                slot.stageBeginMove(Qt.point(30,30), Qt.NoModifier)
+                slot.stageUpdateMove(Qt.point(545,437), Qt.NoModifier)
+                test.check(slot.dragX === 541 && slot.dragY === 433, "live attraction reaches non-grid screen edge")
+                slot.stageEndMove(Qt.NoModifier)
+                test.check(test.gestureCommits === 1 && test.lastGeometry.x === 541 && test.lastGeometry.y === 433, "release preserves edge with one commit")
+                test.gestureCommits = 0
+                gestureHost.screenWidth = 1920; gestureHost.screenHeight = 1080
                 slot.stageBeginMove(Qt.point(30,30), Qt.NoModifier)
                 slot.stageUpdateMove(Qt.point(78,78), Qt.NoModifier)
                 slot.stageEndMove(Qt.NoModifier)
@@ -94,31 +111,26 @@ ShellRoot {
                 stage.enterWidgets("HDMI-1", "widgets")
                 test.check(stage.onMonitor("HDMI-1") && stage.selection.length === 0, "switch monitor clears selection")
                 test.check(stage.escapeStep() === "leave" && !stage.active, "escape ends session")
-                test.check(page.activeScreen === "DP-1", "screen selected")
-                test.check(page.currentItems.length === 0, "initial empty")
-                page.addWidget("clock", "large", "plain")
-                page.addWidget("note", "compact", "card")
+                let items = WidgetLayout.add([], {id:"clock", type:"clock", size:"large", style:"plain"}, 1920, 1080)
+                items = WidgetLayout.add(items, {id:"note", type:"note", size:"compact", style:"card"}, 1920, 1080)
+                store.update({desktopWidgets: {"DP-1": {snap:true, items:items}}})
                 test.check(store.desktopWidgets["DP-1"].items.length === 2, "add persists")
-                const first = store.desktopWidgets["DP-1"].items[0].id
-                page.updateItem(first, 0, "size", "compact")
+                items = WidgetLayout.changeItem(items, "clock", "size", "compact")
+                store.update({desktopWidgets: {"DP-1": {snap:true, items:items}}})
                 test.check(store.desktopWidgets["DP-1"].items[0].size === "compact", "size persists")
-                page.updateItem(first, 0, "size", "huge")
+                items = WidgetLayout.changeItem(items, "clock", "size", "huge")
+                store.update({desktopWidgets: {"DP-1": {snap:true, items:items}}})
                 test.check(store.desktopWidgets["DP-1"].items[0].size === "huge", "large clock size persists")
-                page.toggleEditing()
-                test.check(test.editing, "arrangement mode enabled")
             } else if (test.phase === 1) {
-                const id = store.desktopWidgets["DP-1"].items[1].id
-                const edited = JSON.parse(JSON.stringify(store.desktopWidgets))
-                edited["DP-1"].items[1].opacity = 0.6
-                edited["DP-1"].items[1].width = 320
-                edited["DP-1"].items[1].height = 210
-                store.update({ desktopWidgets: edited })
-                page.updateItem(id, 1, "text", "Пример заметки")
+                let items = WidgetLayout.changeItem(store.desktopWidgets["DP-1"].items, "note", "opacity", 0.6)
+                items = WidgetLayout.resize(items, "note", 320, 210)
+                items = WidgetLayout.editText(items, "note", "Пример заметки")
+                store.update({desktopWidgets: {
+                    "DP-1": {snap:true, items:items},
+                    "HDMI-1": {snap:false, items:WidgetLayout.add([], {id:"weather", type:"weather"}, 1920, 1080)}
+                }})
                 test.check(store.desktopWidgets["DP-1"].items[1].text === "Пример заметки", "note persists")
-                page.selectedScreen = "HDMI-1"
-                page.addWidget("weather", "compact", "card")
                 test.check(store.desktopWidgets["DP-1"].items.length === 2 && store.desktopWidgets["HDMI-1"].items.length === 1, "separate screens")
-                page.setSnap(false)
                 test.check(!store.desktopWidgets["HDMI-1"].snap, "snap persisted")
                 store.flush(false)
             } else if (test.phase === 2 && !store.dirty && !store.saving) {

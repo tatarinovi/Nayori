@@ -13,6 +13,9 @@ FocusScope {
     property int screenWidth: 0
     property int screenHeight: 0
     property date now: new Date()
+    property string wallpaperSource: ""
+    property var calendarStore: null
+    property var widgetRuntime: null
     property var weatherService: null
     property var music: null
     property var audioReaction: null
@@ -21,6 +24,9 @@ FocusScope {
     property string focusId: ""
     signal commitPosition(string id, real x, real y, bool useSnap)
     signal removeRequested(string id)
+    signal selectedRequested(string id)
+    signal focusRequested(string id)
+    signal optionsEdited(string id, var options)
     signal noteEdited(string id, string text)
     signal maskDirty()
     signal menuRequested(string id, real x, real y)
@@ -45,7 +51,8 @@ FocusScope {
     readonly property bool inputVisible: editing || moving || dragging || activeFocus || contextArea.containsMouse
 
     readonly property var box: spec ? WidgetLayout.sizeOf(spec) : ({ width: 0, height: 0 })
-    readonly property bool card: spec && spec.style === "card"
+    readonly property bool imported: spec && WidgetLayout.isImported(spec.type)
+    readonly property bool card: spec && spec.style === "card" && !imported
     readonly property bool takesInput: spec !== null
     readonly property alias dragging: placement.dragging
     readonly property alias resizing: placement.resizing
@@ -71,14 +78,15 @@ FocusScope {
             return "Система"
         if (type === "note")
             return "Заметка"
-        return "Виджет"
+        const entry = WidgetLayout.importedEntry(type)
+        return entry ? entry.name : "Виджет"
     }
 
     visible: spec !== null
     width: resizing ? placement.previewWidth : box.width
-    height: (resizing ? placement.previewHeight : box.height) + (editing && spec && spec.type !== "note" ? 24 : 0)
+    height: resizing ? placement.previewHeight : box.height
     x: !spec ? 0 : (dragging || resizing) ? placement.dragX : spec.x
-    y: !spec ? 0 : (dragging || resizing) ? placement.dragY : editing ? Math.min(spec.y, Math.max(0, screenHeight - height)) : spec.y
+    y: !spec ? 0 : (dragging || resizing) ? placement.dragY : spec.y
     z: dragging ? 10 : 0
     objectName: spec ? "desktop-widget-" + spec.id : "desktop-widget"
     activeFocusOnTab: true
@@ -88,13 +96,12 @@ FocusScope {
     opacity: inputOverlay && !inputVisible ? 0.001 : (spec && typeof spec.opacity === "number" ? spec.opacity : 1)
     onInputVisibleChanged: maskDirty()
     onTakesInputChanged: maskDirty()
-    onSpecChanged: if (spec && editing && focusId === spec.id && !activeFocus) forceActiveFocus()
     Component.onCompleted: {
         maskDirty()
         if (spec && editing && focusId === spec.id)
             forceActiveFocus()
     }
-    onActiveFocusChanged: if (activeFocus && spec) focusId = spec.id
+    onActiveFocusChanged: if (activeFocus && spec) focusRequested(spec.id)
 
     Keys.onPressed: function(event) {
         if (!editing || !spec || root.Window.activeFocusItem !== root)
@@ -107,6 +114,11 @@ FocusScope {
         if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_Z) {
             if (event.modifiers & Qt.ShiftModifier) redoRequested()
             else undoRequested()
+            event.accepted = true
+            return
+        }
+        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+            selectedRequested(spec.id)
             event.accepted = true
             return
         }
@@ -132,13 +144,14 @@ FocusScope {
         anchors.fill: parent
         radius: 18
         color: root.card ? (root.spec && root.spec.type === "note" ? root.tokens.color.text : (root.tokens.frosted ? root.tokens.material.dense : root.tokens.color.background)) : "transparent"
-        border.width: root.card || root.editing || root.moving ? 1 : 0
-        border.color: (root.moving || (root.editing && (root.activeFocus || root.dragging))) ? root.tokens.color.accent : root.tokens.color.border
+        border.width: root.card ? 1 : 0
+        border.color: root.tokens.color.border
         antialiasing: true
     }
 
     MouseArea {
         id: dragArea
+        z: 3
         anchors.fill: parent
         enabled: (root.editing || root.moving) && root.spec !== null
         acceptedButtons: Qt.LeftButton
@@ -153,7 +166,12 @@ FocusScope {
         onPositionChanged: function(mouse) {
             if (pressed) placement.stageUpdateMove(mapToItem(root.parent, mouse.x, mouse.y), mouse.modifiers)
         }
-        onReleased: function(mouse) { placement.stageEndMove(mouse.modifiers); if (root.moving) root.moveFinished() }
+        onReleased: function(mouse) {
+            const moved = placement.dragging
+            placement.stageEndMove(mouse.modifiers)
+            if (!moved && root.editing && root.spec) root.selectedRequested(root.spec.id)
+            if (root.moving) root.moveFinished()
+        }
         onCanceled: { placement.stageCancelMove(); if (root.moving) root.moveFinished() }
     }
 
@@ -165,9 +183,30 @@ FocusScope {
         anchors.leftMargin: root.card ? 16 : 0
         anchors.rightMargin: root.card ? 16 : 0
         anchors.bottomMargin: root.card ? (root.spec && root.spec.type === "system" ? 10 : 16) : 0
-        anchors.topMargin: root.editing ? (root.card && root.spec && root.spec.type === "system" ? 34 : 40) : (root.card ? (root.spec && root.spec.type === "system" ? 10 : 16) : 0)
-        clip: true
+        anchors.topMargin: root.card ? (root.spec && root.spec.type === "system" ? 10 : 16) : 0
+        clip: !root.imported
 
+        Loader {
+            anchors.fill: parent
+            active: root.imported
+            sourceComponent: ImportedWidgetFace {
+                tokens: root.tokens
+                screenWidth: root.screenWidth
+                screenHeight: root.screenHeight
+                wallpaperSource: root.wallpaperSource
+                spec: root.spec
+                onOptionsEdited: options => { if (root.spec) root.optionsEdited(root.spec.id, options) }
+                onSettingsRequested: if (root.spec) root.selectedRequested(root.spec.id)
+                active: root.visible && (!root.inputOverlay || root.inputVisible)
+                enabled: !root.editing && !root.moving
+                music: root.music
+                systemReader: root.systemReader
+                calendarStore: root.calendarStore
+                widgetRuntime: root.widgetRuntime
+                weatherService: root.weatherService
+                audioReaction: root.audioReaction
+            }
+        }
         ClockWidget {
             anchors.fill: parent
             visible: root.spec && root.spec.type === "clock"
@@ -176,7 +215,7 @@ FocusScope {
             now: root.now
             wallpaperAccent: root.wallpaperClockAccent
             card: root.card
-            editing: root.editing
+            editing: false
             size: root.spec ? root.spec.size : "compact"
             large: root.spec && root.spec.size !== "compact"
         }
@@ -268,41 +307,13 @@ FocusScope {
         onReleased: placement.stageEndResize()
         onCanceled: placement.stageCancelResize()
         onDoubleClicked: placement.stageResetScale()
-        Rectangle {
-            anchors.centerIn: parent
-            width: 14; height: 14; radius: 4
-            color: root.tokens.color.accent
+        Item {
+            anchors.right: parent.right; anchors.bottom: parent.bottom
+            width: 16; height: 16
+            readonly property color ink: root.card && root.spec && root.spec.type === "note" ? root.tokens.color.background : root.tokens.color.accent
+            Rectangle { anchors.right: parent.right; anchors.bottom: parent.bottom; width: 14; height: 2; color: parent.ink }
+            Rectangle { anchors.right: parent.right; anchors.bottom: parent.bottom; width: 2; height: 14; color: parent.ink }
         }
     }
 
-    AbstractButton {
-        id: removeButton
-        z: 3
-        visible: root.editing && root.spec !== null
-        anchors.top: parent.top
-        anchors.right: parent.right
-        anchors.margins: 8
-        padding: 0
-        hoverEnabled: true
-        focusPolicy: Qt.StrongFocus
-        text: "Удалить"
-        Accessible.name: "Удалить"
-        Accessible.description: root.spec ? root.widgetName(root.spec.type) : ""
-        implicitWidth: Math.max(76, contentItem.implicitWidth + 16)
-        implicitHeight: 28
-        onClicked: if (root.spec) root.removeRequested(root.spec.id)
-        background: Rectangle {
-            radius: root.tokens.radius.small
-            color: removeButton.down || removeButton.hovered ? root.tokens.color.accentHover : root.tokens.color.surfaceAlt
-            border.width: 1
-            border.color: removeButton.visualFocus ? root.tokens.color.accent : root.tokens.color.border
-        }
-        contentItem: DesktopLabel {
-            tokens: root.tokens
-            text: removeButton.text
-            font.pixelSize: root.tokens.type.small.size
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-        }
-    }
 }

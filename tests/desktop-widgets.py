@@ -15,7 +15,8 @@ with tempfile.TemporaryDirectory(prefix="nayori-widgets-") as tmp:
     env = dict(os.environ, XDG_RUNTIME_DIR=str(runtime), NAYORI_WIDGETS_TEST_DIR=str(settings),
                QT_QPA_PLATFORM="offscreen", QT_QPA_PLATFORMTHEME="basic", QT_QUICK_BACKEND="software",
                QS_DISABLE_FILE_WATCHER="1")
-    env.pop("WAYLAND_DISPLAY", None)
+    for name in ("WAYLAND_DISPLAY", "DISPLAY", "NIRI_SOCKET"):
+        env.pop(name, None)
     for restore in (False, True):
         env["NAYORI_WIDGETS_RESTORE"] = "1" if restore else "0"
         result = subprocess.run(["qs", "-p", str(root / "tests/smoke/DesktopWidgetsSmoke.qml"), "--no-color"],

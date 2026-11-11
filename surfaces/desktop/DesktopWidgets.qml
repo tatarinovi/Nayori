@@ -23,6 +23,8 @@ PanelWindow {
     id: root
     required property var tokens
     property var layout: null
+    property var calendarStore: null
+    property var widgetRuntime: null
     property var weatherService: null
     property var music: null
     property var audioReaction: null
@@ -31,7 +33,9 @@ PanelWindow {
     property var systemMonitorService: null
     property var wallpaperClockAccent: null
     readonly property string audioKey: "desktop-music-" + String(root)
-    readonly property bool wantsAudio: root.visible && wantsMusic && !!music && !!music.player
+    readonly property bool wantsMusicAudio: containsType("music") || wantsNowPlaying
+        || viewItems.some(item => item.type.startsWith("python_Music") && !item.type.startsWith("python_MusicFaceLyrics"))
+    readonly property bool wantsAudio: root.visible && wantsMusicAudio && !!music && !!music.player
         && music.player.isPlaying && !tokens.motion.off
     function updateAudioConsumer() {
         if (audioReaction) audioReaction.consumer(audioKey, wantsAudio)
@@ -88,6 +92,16 @@ PanelWindow {
     property var undoStack: []
     property var redoStack: []
     property bool catalogOpen: false
+    property int widgetDrawerTab: 0
+    readonly property var selectedWidget: placement(focusedId)
+    onSelectedWidgetChanged: if (!selectedWidget) widgetDrawerTab = 0
+    function selectWidget(id) {
+        if (!editing || !placement(id)) return
+        focusedId = id
+        if (stageSession) stageSession.select(id)
+        widgetDrawerTab = 1
+        openCatalog("widgets")
+    }
     property string localCatalogSection: "widgets"
     readonly property string catalogSection: stageSession ? stageSession.section : localCatalogSection
     function openCatalog(section) {
@@ -126,10 +140,11 @@ PanelWindow {
         return map
     }
     readonly property bool wantsClock: containsType("clock")
-    readonly property bool wantsSystem: containsType("system")
+    readonly property bool wantsSystem: containsType("system") || viewItems.some(item => /^python_(Cpu|Ram|Temp|Disk)/.test(item.type) || item.type === "ii_concentric_clock" || item.type.startsWith("ii_resource_") || item.type === "ii_nothing_ram" || item.type === "shima_systemMonitor" || item.type === "shima_uptime")
     readonly property bool wantsNote: containsType("note")
+    readonly property bool wantsImportedText: viewItems.some(item => ["shima_notes","shima_todo","python_GithubFace"].includes(item.type))
     readonly property bool wantsNowPlaying: containsType("nowplaying")
-    readonly property bool wantsMusic: containsType("music") || wantsNowPlaying
+    readonly property bool wantsMusic: containsType("music") || wantsNowPlaying || viewItems.some(item => item.type.startsWith("python_Music"))
     readonly property var maskItems: {
         const epoch = inputEpoch
         const list = []
@@ -140,6 +155,13 @@ PanelWindow {
                 list.push(item)
         }
         return epoch >= 0 ? list : []
+    }
+    readonly property var dragGuideBox: {
+        for (const item of maskItems) {
+            if (item && item.dragging)
+                return {x:item.x, y:item.y, width:item.width, height:item.height}
+        }
+        return null
     }
 
     function containsType(type) {
@@ -211,11 +233,13 @@ PanelWindow {
         else if (action === "exit") editingRequested(false)
     }
 
-    function addWidget(type) {
+    function addWidget(type, size, style) {
         if (itemsNow().length >= 16) return
         idNonce++
         const id = "w-" + Date.now().toString(36) + "-" + idNonce.toString(36) + "-" + Math.random().toString(36).slice(2, 10)
-        publish(WidgetLayout.add(itemsNow(), { type: type, id: id }, screenWidth, screenHeight))
+        publish(WidgetLayout.add(itemsNow(), { type: type, id: id, size: size, style: style }, screenWidth, screenHeight))
+        focusedId = id
+        if (stageSession) stageSession.select(id)
     }
 
     function publish(items) {
@@ -227,25 +251,10 @@ PanelWindow {
     function applyPosition(id, x, y, useSnap) {
         if (screenWidth <= 0 || screenHeight <= 0)
             return
-        let moved = WidgetLayout.move(itemsNow(), id, x, y, useSnap, WidgetLayout.gridSize())
         const original = placement(id)
-        if (useSnap && original) {
-            const edge = WidgetLayout.snapEdges(x, y, WidgetLayout.sizeOf(original), screenWidth, screenHeight)
-            const gridItem = moved.find(item => item.id === id)
-            if (gridItem) moved = WidgetLayout.move(moved, id,
-                edge.x !== x ? edge.x : gridItem.x, edge.y !== y ? edge.y : gridItem.y, false)
-        }
-        let placed = null
-        for (let i = 0; i < moved.length; i++) {
-            if (moved[i].id === id)
-                placed = WidgetLayout.clamp([moved[i]], screenWidth, screenHeight)[0]
-        }
-        if (!placed)
-            return
-        const items = []
-        for (let i = 0; i < moved.length; i++)
-            items.push(moved[i].id === id ? placed : moved[i])
-        publish(items)
+        if (!original) return
+        const placed = WidgetLayout.placementPosition(x, y, WidgetLayout.sizeOf(original), screenWidth, screenHeight, useSnap)
+        publish(WidgetLayout.move(itemsNow(), id, placed.x, placed.y, false))
     }
 
     function applyRemove(id) {
@@ -301,6 +310,12 @@ PanelWindow {
     }
 
     function menuAction(action) {
+        if (action === "options") {
+            editingRequested(true)
+            selectWidget(menuId)
+            menuId = ""
+            return
+        }
         if (desktopMenuOpen) {
             menuNotice = ""
             if (action === "terminal") {
@@ -378,11 +393,11 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     exclusiveZone: 0
     // В покое слой не берёт клавиатуру. В правке OnDemand, иначе стрелки не доходят до виджета.
-    focusable: editing || wantsNote || menuVisible
+    focusable: editing || wantsNote || wantsImportedText || menuVisible
     mask: desktopMask
     WlrLayershell.layer: editorShowing ? WlrLayer.Overlay : WlrLayer.Bottom
     WlrLayershell.namespace: "nayori-desktop"
-    WlrLayershell.keyboardFocus: editing || wantsNote || menuVisible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: editing || wantsNote || wantsImportedText || menuVisible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     objectName: "nayori-desktop"
 
     Rectangle {
@@ -433,6 +448,7 @@ PanelWindow {
         sourceAudio: root.audioReaction
         paletteAccent: root.visualizerAccent
         editing: root.editing && root.catalogSection === "visualizer"
+        snap: root.snapOn
     }
     // The editor's preview scales only shell content; compositor windows stay put.
     Item { id: desktopBounds; anchors.fill: parent }
@@ -457,8 +473,8 @@ PanelWindow {
         objectName: "desktop-widget-grid"
         anchors.fill: parent
         z: -1
-        visible: root.editing
-        property color ink: Qt.alpha(root.tokens.color.text, root.snapOn ? 0.20 : 0.08)
+        visible: root.editing && root.snapOn
+        property color ink: Qt.alpha(root.tokens.color.text, 0.20)
         onInkChanged: requestPaint()
         onWidthChanged: requestPaint()
         onHeightChanged: requestPaint()
@@ -474,6 +490,14 @@ PanelWindow {
             for (let y = 0; y <= height; y += step) { ctx.moveTo(0, y + 0.5); ctx.lineTo(width, y + 0.5) }
             ctx.stroke()
         }
+    }
+    WidgetAlignmentGuides {
+        parent: editorCanvas
+        anchors.fill: parent
+        z: 0
+        tokens: root.tokens
+        box: root.dragGuideBox
+        visible: root.editing && root.snapOn && box !== null
     }
     // This chrome sits on the desktop input layer, leaving real Niri windows alone.
     Rectangle {
@@ -540,36 +564,54 @@ PanelWindow {
         radius: root.tokens.radius.medium
         color: root.tokens.material.menu
         border.color: root.tokens.color.border
-        Flickable {
+        SettingsSegmented {
+            id: widgetTabs
+            objectName: "desktop-widget-tabs"
+            tokens: root.tokens
+            equalWidth: true
+            height: 40
             visible: root.catalogSection === "widgets"
-            anchors.fill: parent
+            anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
+            anchors.margins: 12
+            currentKey: root.widgetDrawerTab === 1 ? "settings" : "catalog"
+            model: [{key:"catalog", label:"Каталог"}, {key:"settings", label:"Настройки", enabled:root.selectedWidget !== null}]
+            onActivated: key => { if (key !== "settings" || root.selectedWidget !== null) root.widgetDrawerTab = key === "settings" ? 1 : 0 }
+        }
+        Flickable {
+            id: widgetDrawerContent
+            objectName: "desktop-widget-drawer-content"
+            visible: root.catalogSection === "widgets"
+            anchors.top: widgetTabs.bottom; anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
             anchors.margins: 12
             contentWidth: width
             contentHeight: catalogColumn.implicitHeight
             clip: true
-        Column {
-            id: catalogColumn
-            width: parent.width
-            spacing: 6
-            TextField {
-                id: catalogSearch
-                objectName: "desktop-catalog-search"
+            function clampScroll() { contentY = Math.max(0, Math.min(contentY, Math.max(0, contentHeight - height))) }
+            onContentHeightChanged: Qt.callLater(clampScroll)
+            Connections { target: root; function onWidgetDrawerTabChanged() { widgetDrawerContent.contentY = 0 } }
+            Column {
+                id: catalogColumn
                 width: parent.width
-                placeholderText: "Поиск виджетов"
-            }
-            DesktopLabel { tokens: root.tokens; text: "Nayori" }
-            Repeater {
-                model: WidgetLayout.catalog(catalogSearch.text)
-                delegate: SettingsButton {
-                    required property var modelData
+                spacing: 12
+                WidgetCatalog {
+                    objectName: "desktop-widget-catalog-list"
+                    width: parent.width
+                    visible: root.widgetDrawerTab === 0
                     tokens: root.tokens
-                    width: catalogColumn.width
-                    text: modelData.icon + "  " + modelData.name + " — " + modelData.description
-                    enabled: root.itemsNow().length < 16
-                    onClicked: root.addWidget(modelData.id)
+                    canAdd: root.itemsNow().length < 16
+                    onAddRequested: (type, size, style) => root.addWidget(type, size, style)
+                }
+                WidgetSettingsPane {
+                    objectName: "desktop-widget-settings-pane"
+                    width: parent.width
+                    visible: root.widgetDrawerTab === 1 && root.selectedWidget !== null
+                    tokens: root.tokens
+                    spec: root.selectedWidget
+                    onFieldEdited: (id, field, value) => root.changeWidget(id, field, value)
+                    onNoteEdited: (id, text) => root.applyNote(id, text)
+                    onGeometryEdited: (id, x, y, width, height) => root.applyGeometry(id, x, y, width, height)
                 }
             }
-        }
         }
         Loader {
             anchors.fill: parent
@@ -604,7 +646,7 @@ PanelWindow {
         id: desktopSystemReader
         monitorService: root.systemMonitorService
         active: root.wantsSystem && root.visible
-        showDetails: root.viewItems.some(item => item.type === "system" && item.size !== "compact")
+        showDetails: root.wantsSystem
     }
     Timer {
         interval: 1000
@@ -637,9 +679,12 @@ PanelWindow {
             desktopDimOpacity: root.editorShowing ? 0 : root.desktopDimOpacity
             moving: root.movingId === modelData
             snap: root.snapOn
+            wallpaperSource: root.editorWallpaper.source || ""
             screenWidth: root.screenWidth
             screenHeight: root.screenHeight
             now: root.now
+            calendarStore: root.calendarStore
+            widgetRuntime: root.widgetRuntime
             weatherService: root.weatherService
             music: root.music
             audioReaction: root.audioReaction
@@ -649,6 +694,11 @@ PanelWindow {
             z: index + 1
             onCommitPosition: function(id, x, y, useSnap) { root.applyPosition(id, x, y, useSnap) }
             onRemoveRequested: function(id) { root.applyRemove(id) }
+            onSelectedRequested: id => {
+                if (!root.editing) root.editingRequested(true)
+                Qt.callLater(() => root.selectWidget(id))
+            }
+            onOptionsEdited: (id, options) => root.changeWidget(id, "options", options)
             onNoteEdited: function(id, text) { root.applyNote(id, text) }
             onMenuRequested: function(id, x, y) {
                 const point = editorCanvas.mapToItem(desktopBounds, x, y)
@@ -663,9 +713,9 @@ PanelWindow {
             onEscapeRequested: root.escapeEditor()
             onMusicStageRequested: root.musicStageRequested()
             onMaskDirty: root.bumpMask()
-            onFocusIdChanged: {
-                root.focusedId = focusId
-                if (root.stageSession && root.editing && focusId !== "") root.stageSession.select(focusId)
+            onFocusRequested: id => {
+                root.focusedId = id
+                if (root.stageSession && root.editing && id !== "") root.stageSession.select(id)
             }
         }
     }
@@ -703,8 +753,9 @@ PanelWindow {
                 list.push({ action: "metric:memory", text: (metrics.indexOf("memory") >= 0 ? "✓  " : "    ") + "Память" })
                 list.push({ action: "metric:gpu", text: (metrics.indexOf("gpu") >= 0 ? "✓  " : "    ") + "Видеокарта" })
             }
+            if (item && WidgetLayout.isImported(item.type)) list.push({action: "options", text: "Настройки виджета"})
             list.push({ action: "remove", text: "Удалить" })
-            return list
+            return item && WidgetLayout.isImported(item.type) ? list.filter(entry => entry.action !== "style") : list
         }
         DesktopContextMenu {
             id: desktopMenu

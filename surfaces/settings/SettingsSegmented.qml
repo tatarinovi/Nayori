@@ -8,7 +8,7 @@ import QtQuick.Layouts
 Rectangle {
     id: root
     required property var tokens
-    // [{ key: string, label: string }]
+    // [{ key: string, label: string, enabled?: bool }]
     property var model: []
     property string currentKey: ""
     // true: segments share the width equally; false: each takes its label width.
@@ -33,6 +33,8 @@ Rectangle {
                 id: segment
                 required property var modelData
                 readonly property bool selected: root.currentKey === modelData.key
+                enabled: modelData.enabled !== false
+                opacity: enabled ? 1 : 0.45
                 Layout.fillWidth: root.equalWidth
                 Layout.fillHeight: true
                 Layout.preferredWidth: root.equalWidth ? 1 : implicitWidth

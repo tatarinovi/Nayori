@@ -2,9 +2,11 @@ const fs = require("fs")
 const vm = require("vm")
 const assert = require("assert")
 
-const context = {}
+const importedWidgets = {}
+vm.runInNewContext(fs.readFileSync("surfaces/desktop/ImportedWidgets.js", "utf8").replace(/^\.pragma.*$/m, ""), importedWidgets)
+const context = {ImportedWidgets: importedWidgets}
 vm.createContext(context)
-vm.runInContext(fs.readFileSync("surfaces/desktop/WidgetLayout.js", "utf8").replace(/^\.pragma.*$/m, ""), context)
+vm.runInContext(fs.readFileSync("surfaces/desktop/WidgetLayout.js", "utf8").replace(/^\.(?:pragma|import).*$/gm, ""), context)
 
 assert.strictEqual(context.normalizeSize("system", "extraLarge"), "extraLarge")
 assert.strictEqual(context.sizeOf({type:"system", size:"extraLarge"}).height, 388)
@@ -227,14 +229,14 @@ assert.strictEqual(context.batteryPercent(0), "0%")
 assert.strictEqual(context.batteryPercent(150), "")
 assert.strictEqual(context.batteryPercent(Number.NaN), "")
 
-assert.strictEqual(context.gridSize(), 24)
+assert.strictEqual(context.gridSize(), 12)
 assert.strictEqual(context.sameLayout(normalized["DP-1"], context.normalizeScreen(saved["DP-1"])), true)
 assert.strictEqual(context.sameIds(normalized["DP-1"].items, [{ id: "a" }]), true)
 
 console.log("WIDGET_LAYOUT_PASS")
 
 // Catalog metadata and edge snapping are shared by all desktop outputs.
-assert.strictEqual(context.catalog("").length, 6)
+assert.strictEqual(context.catalog("", "Nayori").length, 6)
 assert.strictEqual(context.catalog("погод")[0].id, "weather")
 assert.strictEqual(context.catalog("не существует").length, 0)
 let edge = context.snapEdges(569, 399, { width: 220, height: 200 }, 800, 600)
@@ -246,6 +248,32 @@ assert.strictEqual(edge.y, 100)
 edge = context.snapEdges(5, 8, { width: 900, height: 900 }, 800, 600)
 assert.strictEqual(edge.x, 0)
 assert.strictEqual(edge.y, 0)
+
+// Live movement and persistence use an idempotent projection, including far
+// edges which do not fall on a grid line and oversized widgets.
+const dragBox = {width: 260, height: 168}
+const aligned = context.placementPosition(83, 101, dragBox, 801, 601, true)
+assert.strictEqual(aligned.x, 84)
+assert.strictEqual(aligned.y, 96)
+const unaligned = context.placementPosition(83, 101, dragBox, 801, 601, false)
+assert.strictEqual(unaligned.x, 83)
+assert.strictEqual(unaligned.y, 101)
+for (const snap of [true, false]) {
+    for (const x of [-100, 0, 5, 12, 13, 83, 519, 523, 529, 541, 9999, NaN]) {
+        for (const y of [-1, 0, 9, 17, 101, 415, 421, 433, 9999, NaN]) {
+            const position = context.placementPosition(x, y, dragBox, 801, 601, snap)
+            const savedPosition = context.placementPosition(position.x, position.y, dragBox, 801, 601, snap)
+            assert.strictEqual(JSON.stringify(savedPosition), JSON.stringify(position))
+            assert.ok(position.x >= 0 && position.x <= 541 && position.y >= 0 && position.y <= 433)
+        }
+    }
+}
+const farEdge = context.placementPosition(539, 431, dragBox, 801, 601, true)
+assert.strictEqual(farEdge.x, 541)
+assert.strictEqual(farEdge.y, 433)
+const largerThanScreen = context.placementPosition(100, 100, dragBox, 100, 100, true)
+assert.strictEqual(largerThanScreen.x, 0)
+assert.strictEqual(largerThanScreen.y, 0)
 
 // The editor uses Ryoku's bounded history stack, including its empty case.
 const history = {}

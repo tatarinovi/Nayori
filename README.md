@@ -271,3 +271,9 @@ Nayori развивается как самостоятельная оболоч
 распространяется по SIL OFL 1.1.
 
 Desktop Visualizer is a modified port of Ryoku. Based on iNiR by snowarch (https://github.com/snowarch/inir). See [third-party notices](LICENSES/visualizer/iNiR-NOTICE) and [visualizer documentation](docs/VISUALIZERS.md).
+
+Desktop widgets ii, Shima and Python are modified ports from Ryoku. Shima:
+Based on iNiR by snowarch (https://github.com/snowarch/inir). Python is based on
+Serpantinum by ilyamiro and contributors and retains AGPL-3.0-or-later;
+it is not relicensed under Nayori's GPL. See [widget provenance, licenses and
+transfer status](docs/IMPORTED_WIDGETS.md) and [NOTICE](NOTICE).

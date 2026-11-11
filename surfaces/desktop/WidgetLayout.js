@@ -1,9 +1,9 @@
 .pragma library
+.import "ImportedWidgets.js" as ImportedWidgets
 
 // Раскладка виджетов рабочего стола. Координаты — логические пиксели экрана.
-// Сетка 24. При snap позиция округляется к ближайшей линии: до линии не больше
-// половины шага (12), поэтому порог совпадает с обычным округлением.
-var GRID = 24
+// Шаг сетки — 12 логических пикселей, притяжение к краям — в пределах 12.
+var GRID = 12
 
 // The catalog and placement code share this registry. Rendering remains in the
 // existing hosts so the wallpaper and input layers use identical components.
@@ -16,10 +16,18 @@ var REGISTRY = [
     { id: "note", name: "Заметка", description: "Текст на рабочем столе", icon: "✎", category: "Nayori" }
 ]
 
-function catalog(query) {
+function importedEntry(type, options) { return ImportedWidgets.selected(type, options) }
+function isImported(type) { return importedEntry(type) !== null }
+function registry() {
+    return REGISTRY.concat(ImportedWidgets.entries.map(function(row) {
+        return {id: row.type, name: row.name, description: row.category, icon: "◈", category: row.category}
+    }))
+}
+function categoryNames() { return ["Nayori", "ii widgets", "Shima widgets", "Python widgets"] }
+function catalog(query, category) {
     var needle = typeof query === "string" ? query.trim().toLowerCase() : ""
-    return REGISTRY.filter(function(entry) {
-        return !needle || (entry.name + " " + entry.description + " " + entry.category).toLowerCase().indexOf(needle) >= 0
+    return registry().filter(function(entry) {
+        return (!category || category === entry.category) && (!needle || (entry.name + " " + entry.description + " " + entry.category).toLowerCase().indexOf(needle) >= 0)
     })
 }
 
@@ -51,7 +59,7 @@ function gridSize() {
 }
 
 function isType(type) {
-    return REGISTRY.some(function(entry) { return entry.id === type })
+    return registry().some(function(entry) { return entry.id === type })
 }
 
 function outputNameOk(name) {
@@ -104,17 +112,26 @@ function normalizeSize(type, size) {
 }
 
 function sizeOf(item) {
-    var type = item && BOX[item.type] ? item.type : "note"
+    var imported = item ? importedEntry(item.type, item.options) : null
+    var type = item && (BOX[item.type] || imported) ? item.type : "note"
     var size = normalizeSize(type, item && item.size)
-    var box = BOX[type][size]
-    var limits = sizeLimits(type)
-    return {
+    var box = imported ? [imported.width, imported.height] : BOX[type][size]
+    if (imported && size === "large") box = [box[0] * 1.5, box[1] * 1.5]
+    var limits = sizeLimits(type, item && item.options)
+    var result = {
         width: dimension(item && item.width, limits.minWidth, limits.maxWidth, box[0]),
         height: dimension(item && item.height, limits.minHeight, limits.maxHeight, box[1])
     }
+    if (imported && imported.minAspect > 0 && result.width / result.height < imported.minAspect)
+        result.width = Math.min(limits.maxWidth, Math.round(result.height * imported.minAspect))
+    if (imported && imported.maxAspect > 0 && result.width / result.height > imported.maxAspect)
+        result.height = Math.min(limits.maxHeight, Math.round(result.width / imported.maxAspect))
+    return result
 }
 
-function sizeLimits(type) {
+function sizeLimits(type, options) {
+    var imported = importedEntry(type, options)
+    if (imported) return {minWidth: imported.minWidth || 80, minHeight: imported.minHeight || 60, maxWidth: imported.maxWidth || 1800, maxHeight: imported.maxHeight || 1200}
     var variants = BOX[type] || BOX.note
     var smallest = variants.compact
     var maxWidth = smallest[0]
@@ -137,7 +154,7 @@ function copyOpacity(source, target) {
 }
 
 function copyDimensions(source, target) {
-    var limits = sizeLimits(source.type)
+    var limits = sizeLimits(source.type, source.options)
     if (typeof source.width === "number" && isFinite(source.width) && source.width > 0)
         target.width = dimension(source.width, limits.minWidth, limits.maxWidth, limits.minWidth)
     if (typeof source.height === "number" && isFinite(source.height) && source.height > 0)
@@ -148,7 +165,7 @@ function resize(items, id, width, height) {
     var list = normalizeItems(items)
     for (var i = 0; i < list.length; i++) {
         if (list[i].id !== id) continue
-        var limits = sizeLimits(list[i].type)
+        var limits = sizeLimits(list[i].type, list[i].options)
         var current = sizeOf(list[i])
         list[i].width = dimension(width, limits.minWidth, limits.maxWidth, current.width)
         list[i].height = dimension(height, limits.minHeight, limits.maxHeight, current.height)
@@ -166,6 +183,27 @@ function normalizeMetrics(metrics) {
     return result.length ? result : ["cpu", "memory", "gpu"]
 }
 
+// JSON-only, bounded instance settings; never retain functions or prototype keys.
+function cleanOptions(value, depth) {
+    depth = depth || 0
+    if (depth > 8 || value === undefined) return null
+    if (value === null || typeof value === "boolean") return value
+    if (typeof value === "number") return isFinite(value) ? value : null
+    if (typeof value === "string") return value.slice(0, 32768)
+    if (typeof value !== "object") return null
+    if (Array.isArray(value)) return value.slice(0, 512).map(function(v) { return cleanOptions(v, depth + 1) })
+    var result = {}
+    Object.keys(value).slice(0, 256).forEach(function(key) {
+        if (key === "__proto__" || key === "constructor" || key === "prototype") return
+        result[key] = cleanOptions(value[key], depth + 1)
+    })
+    return result
+}
+function instanceOptions(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+    var result = cleanOptions(value)
+    return JSON.stringify(result).length <= 65536 ? result : {}
+}
 function changeItem(items, id, field, value) {
     var list = normalizeItems(items)
     for (var i = 0; i < list.length; i++) {
@@ -174,6 +212,7 @@ function changeItem(items, id, field, value) {
         if (field === "size") { item.size = normalizeSize(item.type, value); delete item.width; delete item.height }
         if (field === "style") item.style = value === "plain" ? "plain" : "card"
         if (field === "opacity" && typeof value === "number" && isFinite(value)) item.opacity = Math.max(0.1, Math.min(1, value))
+        if (field === "options" && isImported(item.type)) item.options = instanceOptions(value)
         if (field === "metrics" && item.type === "system") item.metrics = normalizeMetrics(value)
     }
     return list
@@ -189,6 +228,7 @@ function copyItem(item) {
         size: normalizeSize(source.type, source.size),
         style: source.style === "plain" ? "plain" : "card"
     }
+    if (isImported(source.type)) next.options = instanceOptions(source.options)
     copyDimensions(source, next)
     copyOpacity(source, next)
     if (source.type === "system")
@@ -226,6 +266,7 @@ function normalizeItems(list) {
             size: normalizeSize(raw.type, raw.size),
             style: raw.style === "plain" ? "plain" : "card"
         }
+        if (isImported(raw.type)) item.options = instanceOptions(raw.options)
         copyDimensions(raw, item)
         copyOpacity(raw, item)
         if (item.type === "system")
@@ -308,6 +349,24 @@ function snapEdges(x, y, box, screenW, screenH, threshold) {
     }
 }
 
+// Use the same projection for the live drag and the saved placement. Applying
+// it twice must preserve screen edges even when they are between grid lines.
+function placementPosition(x, y, box, screenW, screenH, snap) {
+    function axis(value, screenExtent, size) {
+        var max = Math.max(0, extent(screenExtent) - size)
+        var number = Number(value)
+        var bounded = Math.max(0, Math.min(max, isFinite(number) ? Math.round(number) : 0))
+        if (snap !== true) return bounded
+        if (bounded <= 12) return 0
+        if (max - bounded <= 12) return max
+        var aligned = Math.max(0, Math.min(max, snapTo(bounded)))
+        if (aligned <= 12) return 0
+        if (max - aligned <= 12) return max
+        return aligned
+    }
+    return {x: axis(x, screenW, box.width), y: axis(y, screenH, box.height)}
+}
+
 function move(items, id, x, y, snap, grid) {
     var list = arrayValue(items)
     var next = []
@@ -355,6 +414,7 @@ function add(items, spec, screenW, screenH) {
         size: normalizeSize(spec.type, spec.size),
         style: spec.style === "plain" ? "plain" : "card"
     }
+    if (isImported(item.type)) { item.options = instanceOptions(spec.options); if (spec.style === undefined) item.style = "plain" }
     if (item.type === "system")
         item.metrics = normalizeMetrics(spec.metrics)
     if (item.type === "note")
@@ -440,6 +500,7 @@ function sameLayout(a, b) {
     for (i = 0; i < ai.length; i++) {
         var left = ai[i] || {}
         var right = bi[i] || {}
+        if (isImported(left.type) && JSON.stringify(instanceOptions(left.options)) !== JSON.stringify(instanceOptions(right.options))) return false
         if (left.id !== right.id || left.type !== right.type || left.x !== right.x || left.y !== right.y)
             return false
         if (normalizeSize(left.type, left.size) !== normalizeSize(right.type, right.size))

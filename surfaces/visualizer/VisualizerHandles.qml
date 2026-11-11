@@ -1,12 +1,24 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import "vendor"
+import "../desktop/WidgetLayout.js" as WidgetLayout
 
 Item {
     id: root
     required property VizItem cfg
     required property var service
     required property var tokens
+    property bool snap: false
+    function moveTo(x, y) {
+        if (fullFrame || width <= 0 || height <= 0) return
+        if (snap) {
+            const position = WidgetLayout.placementPosition(x * width, y * height,
+                {width:cfg.w * width, height:cfg.h * height}, width, height, true)
+            x = position.x / width
+            y = position.y / height
+        }
+        service.patch(cfg.instanceId, {x:x, y:y})
+    }
     focus: visible && selected
     readonly property bool fullFrame: cfg.isAura || cfg.styleId === "frame"
     readonly property bool selected: service.selectedId === cfg.instanceId
@@ -25,6 +37,7 @@ Item {
             radius: 6
         }
         MouseArea {
+            objectName: "visualizer-move-" + root.cfg.instanceId
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton
             cursorShape: root.fullFrame ? Qt.PointingHandCursor : Qt.SizeAllCursor
@@ -39,7 +52,7 @@ Item {
             onPositionChanged: mouse => {
                 if (!pressed || root.fullFrame) return
                 const p = mapToItem(root, mouse.x, mouse.y)
-                root.service.patch(root.cfg.instanceId, {x: origin.x + (p.x - start.x) / root.width, y: origin.y + (p.y - start.y) / root.height})
+                root.moveTo(origin.x + (p.x - start.x) / root.width, origin.y + (p.y - start.y) / root.height)
             }
         }
         Repeater {

@@ -10,6 +10,7 @@ Item {
     property var sourceAudio: null
     property color paletteAccent: tokens.color.accent
     property bool editing: false
+    property bool snap: false
     readonly property string roster: JSON.stringify(service ? service.onOutput(output).filter(v => v.enabled).map(v => v.id) : [])
     readonly property var instances: JSON.parse(roster)
     readonly property string consumerKey: "visualizers-" + String(root)
@@ -45,8 +46,10 @@ Item {
                 adaptive: root.service.config.adaptive
             }
             VisualizerHandles {
+                objectName: "visualizer-handles-" + instance.modelData
                 anchors.fill: parent
                 visible: root.editing
+                snap: root.snap
                 cfg: vizCfg
                 service: root.service
                 tokens: root.tokens

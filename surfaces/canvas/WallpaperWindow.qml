@@ -27,6 +27,8 @@ PanelWindow {
         armed: root.visible && wallpaperFrames.startupReady && root.widgetsReady
     }
     property bool widgetsReady: false
+    property var calendarStore: null
+    property var widgetRuntime: null
     property var weatherService: null
     property var music: null
     readonly property var wallpaper: manager.displayWallpaper(root.outputName)
@@ -70,10 +72,13 @@ PanelWindow {
         anchors.fill: parent
         visible: root.widgetsReady && !!root.widgetHost
         tokens: root.tokens
+        wallpaperSource: root.wallpaper.source || ""
         items: root.widgetHost ? root.widgetHost.viewItems : []
         hiddenIds: root.widgetHost ? root.widgetHost.hiddenFaces : []
         now: root.widgetHost ? root.widgetHost.now : new Date()
         systemReader: root.widgetHost ? root.widgetHost.sharedSystemReader : null
+        calendarStore: root.calendarStore
+                widgetRuntime: root.widgetRuntime
         weatherService: root.weatherService
         music: root.music
         audioReaction: root.widgetHost ? root.widgetHost.audioReaction : null

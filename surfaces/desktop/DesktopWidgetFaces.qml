@@ -8,6 +8,9 @@ Item {
     property var items: []
     property var hiddenIds: []
     property date now: new Date()
+    property string wallpaperSource: ""
+    property var calendarStore: null
+    property var widgetRuntime: null
     property var weatherService: null
     property var music: null
     property var audioReaction: null
@@ -21,9 +24,12 @@ Item {
             tokens: root.tokens
             spec: modelData
             visible: !!modelData && root.hiddenIds.indexOf(modelData.id) < 0
+            wallpaperSource: root.wallpaperSource
             screenWidth: root.width
             screenHeight: root.height
             now: root.now
+            calendarStore: root.calendarStore
+            widgetRuntime: root.widgetRuntime
             weatherService: root.weatherService
             music: root.music
             audioReaction: root.audioReaction

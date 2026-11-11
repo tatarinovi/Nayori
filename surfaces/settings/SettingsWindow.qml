@@ -15,8 +15,6 @@ FloatingWindow {
     property var keybindService: null
     property var settingsService: null
     property var polkitService: null
-    property bool widgetsEditing: false
-    signal widgetsEditingRequested(bool on)
     required property var tokens
     property var captureSettings: ({})
     signal captureSettingsChangedRequested(var patch)
@@ -155,8 +153,6 @@ FloatingWindow {
         bluetoothService: root.bluetoothService
         keybindService: root.keybindService
         settingsService: root.settingsService
-        widgetsEditing: root.widgetsEditing
-        onWidgetsEditingRequested: on => root.widgetsEditingRequested(on)
         polkitService: root.polkitService
         id: settings
         captureSettings: root.captureSettings

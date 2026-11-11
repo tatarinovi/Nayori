@@ -79,3 +79,36 @@ Desktop Visualizer
   original motion filters, normalization and editor controls use SettingsService.
   Unmodified GPU fields, shaders and pure maths retain original source; checksums
   and a file-by-file manifest are in LICENSES/visualizer/PROVENANCE.json.
+
+Imported desktop widgets (modified port, 2026-11-11 / 2026-11-12)
+- Source: https://github.com/Ryoku-dev/ryoku at
+  2befae30e0e1e8d370a8fdb4489e84be529af1bd.
+  Files and original/adapted SHA-256 values:
+  surfaces/desktop/vendor/widgets/manifest.json.
+- ii: stage/modules/ii/background/widgets and common widgets/functions.
+  Ryoku contributors; ii-p3drovfx/P3DROVFX, ii-vynx/vaguesyntax and
+  end-4/dots-hyprland authors and contributors. GPLv3; full text and upstream
+  notices are preserved in vendor/widgets/ii-LICENSE and Ryoku-NOTICE.
+- Shima: inir/modules/iris/widgets and their presentation dependencies.
+  Based on iNiR by snowarch (https://github.com/snowarch/inir).
+  Copyright (C) 2025-2026 snowarch and original contributors. GPLv3 plus the
+  section 7 terms in vendor/widgets/shima-NOTICE. This is a modified port,
+  not iNiR or iRiS, and grants no rights to those names or visual identity.
+- Python: shell/modules/bar/barstyles/python/widgets/faces and reusables.
+  Based on Serpantinum by ilyamiro and contributors, commit 3619689,
+  with media additions from b4e470a. AGPL-3.0-or-later, not relicensed;
+  vendor/widgets/python-LICENSE and python-NOTICE retain the license and credit.
+  Combination with GPLv3 code is subject to the respective section 13 terms;
+  AGPL source-availability obligations continue to apply to covered portions.
+- Modifications: upstream singleton imports use a per-instance data bridge;
+  existing Nayori services own metrics, calendar, media/lyrics and persistence;
+  the desktop editor owns placement, sizing and per-instance options. Original
+  presentation components are retained. Reduced motion, unavailable data,
+  subscriber cleanup and multi-day calendar boundaries have Nayori adaptations.
+- Material Shapes helper: MIT, see vendor/widgets/ii-shapes-LICENSE.
+  Inter, Rubik and Montserrat retain their bundled SIL OFL notices beside the
+  font files. Material Symbols Rounded is from google/material-design-icons,
+  commit 10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7, Apache-2.0; its license
+  is beside vendor/widgets/assets/fonts/material-symbols/MaterialSymbolsRounded.ttf.
+  Restricted Google Weather SVGs, SF Pro and missing Ndot/Nagasaki fonts are
+  not included. Their dependent faces are not represented as completed ports.

@@ -44,6 +44,14 @@ ShellRoot {
     function check(ok, message) {
         if (!ok) { console.error("VISUALIZER_FAIL " + message); Qt.exit(1) }
     }
+    function find(item, name) {
+        if (item.objectName === name) return item
+        for (const child of item.children || []) {
+            const result = find(child, name)
+            if (result) return result
+        }
+        return null
+    }
     Timer {
         interval: 180; running: true; repeat: true
         onTriggered: {
@@ -69,6 +77,24 @@ ShellRoot {
                 service.select(test.firstId)
                 test.check(service.items.length === 13 && layer.instances.length === 12, "independent instances")
             } else if (test.phase === 1) {
+                const handles = test.find(layer, "visualizer-handles-" + test.firstId)
+                const otherOutput = JSON.stringify(service.onOutput("DP-2"))
+                test.check(handles !== null, "placement handles loaded")
+                layer.snap = true
+                test.check(handles.snap, "layer forwards grid toggle")
+                handles.moveTo(83 / layer.width, 101 / layer.height)
+                test.check(Math.abs(cfg.x * layer.width - 84) < 0.001 && Math.abs(cfg.y * layer.height - 96) < 0.001, "visualizer snaps to widget grid during movement")
+                handles.moveTo(1, 1)
+                test.check(Math.abs(cfg.x + cfg.w - 1) < 0.001 && Math.abs(cfg.y + cfg.h - 1) < 0.001, "visualizer reaches screen edges")
+                layer.snap = false
+                handles.moveTo(83 / layer.width, 101 / layer.height)
+                test.check(Math.abs(cfg.x * layer.width - 83) < 0.001 && Math.abs(cfg.y * layer.height - 101) < 0.001, "disabled grid preserves free visualizer movement")
+                test.check(cfg.angle === 38 && JSON.stringify(service.onOutput("DP-2")) === otherOutput, "grid preserves rotation and other monitor")
+                const fullFrame = test.find(layer, "visualizer-handles-" + test.auraId)
+                const auraBefore = JSON.stringify(service.items.find(v=>v.id===test.auraId))
+                fullFrame.moveTo(0.2, 0.2)
+                test.check(JSON.stringify(service.items.find(v=>v.id===test.auraId)) === auraBefore, "full-screen styles keep fixed placement")
+                service.patch(test.firstId, {x:0.1,y:0.2})
                 test.check(motion.levels.length === 64 && motion.energy > 0, "spectrum responds")
                 test.check(auraMotion.bands.length === 12 && auraMotion.energy > 0, "aura responds")
                 pane.tab = "Place"

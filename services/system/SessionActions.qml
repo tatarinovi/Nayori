@@ -63,6 +63,12 @@ QtObject {
         return begin("reboot", ["systemctl", "reboot"])
     }
 
+    function suspend(): bool {
+        if (!_systemctlFound)
+            return reject("suspend", "Команда systemctl не найдена. Спящий режим недоступен")
+        return begin("suspend", ["systemctl", "suspend"])
+    }
+
     function powerOff(): bool {
         if (!_systemctlFound)
             return reject("powerOff", "Команда systemctl не найдена. Выключение недоступно")

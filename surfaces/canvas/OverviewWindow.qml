@@ -14,6 +14,8 @@ PanelWindow {
     property bool enabled: true
     property bool widgetsReady: false
     property var widgetHost: null
+    property var calendarStore: null
+    property var widgetRuntime: null
     property var weatherService: null
     property var music: null
     readonly property string outputName: screen && screen.name ? String(screen.name) : ""
@@ -68,9 +70,12 @@ PanelWindow {
         anchors.fill: parent
         visible: root.widgetsReady && !!root.widgetHost
         tokens: root.tokens
+        wallpaperSource: root.imageUrl
         items: root.widgetHost ? root.widgetHost.viewItems : []
         now: root.widgetHost ? root.widgetHost.now : new Date()
         systemReader: root.widgetHost ? root.widgetHost.sharedSystemReader : null
+        calendarStore: root.calendarStore
+                widgetRuntime: root.widgetRuntime
         weatherService: root.weatherService
         music: root.music
         audioReaction: root.widgetHost ? root.widgetHost.audioReaction : null

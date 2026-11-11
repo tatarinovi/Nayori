@@ -1,0 +1,208 @@
+import "."
+import "../BridgeContext.js" as BridgeContext
+// Modified for Nayori, 2026-11-12: imports, instance data and motion adapters.
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+
+
+
+Item {
+    readonly property var nayoriClickButton: BridgeContext.find(typeof parent !== "undefined" ? parent : null)
+
+    id: root
+
+    property int horizontalPadding: 12
+    property int cornerRadius: 10
+
+    property string buttonText: ""
+    property string subText: ""
+    property string buttonIcon: ""
+    property string iconFont: nayoriClickButton.pythonTheme.iconFont
+    property int iconFontSize: 15
+    property int textFontSize: 12
+    
+    property int maxTextWidth: 0
+    property int maxWidth: 0
+    property int contentAlignment: Qt.AlignHCenter
+
+    property real rawTextWidth: Math.max(mainLabel.visible ? mainLabel.implicitWidth : 0, subLabel.visible ? subLabel.implicitWidth : 0)
+    property real boundedTextWidth: root.maxTextWidth > 0 ? Math.min(rawTextWidth, root.maxTextWidth) : rawTextWidth
+
+    property real calculatedContentWidth: (iconLabel.visible ? iconLabel.implicitWidth : 0)
+                                         + (iconLabel.visible && textCol.visible ? mainRow.spacing : 0)
+                                         + (textCol.visible ? boundedTextWidth : 0)
+
+    property real desiredWidth: calculatedContentWidth + horizontalPadding * 2
+    implicitWidth: root.maxWidth > 0 ? Math.min(desiredWidth, root.maxWidth) : desiredWidth
+    implicitHeight: 30
+
+    property real availableTextWidth: Math.max(0, root.width - (root.horizontalPadding * 2) - (iconLabel.visible ? (iconLabel.implicitWidth + mainRow.spacing) : 0))
+
+    property color accentColor: nayoriClickButton.pythonTheme.surface0
+    property color textColor: nayoriClickButton.pythonTheme.text
+
+    activeFocusOnTab: root.enabled
+    Keys.onPressed: (event) => {
+        if (event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+            btnMa.clicked({ button: Qt.LeftButton });
+            event.accepted = true;
+        }
+    }
+
+    property bool action_highlight: false
+    property string clickSound: "reusables/clickbutton/click.wav"
+    property int acceptedButtons: Qt.LeftButton
+
+    signal clicked()
+    signal rightClicked()
+    signal triggered()
+    signal wheel(var wheel)
+
+    property real flashOpacity: 0.0
+    property real popScale: 1.0
+
+    property bool isHoveredOrHighlighted: btnMa.containsMouse || root.action_highlight
+
+    property real bgOpacity: 1.0
+    property real glassTintScale: 1.0
+    readonly property color displayTextColor: (glass.active && (0.2126 * textColor.r + 0.7152 * textColor.g + 0.0722 * textColor.b) < 0.5) ? nayoriClickButton.pythonTheme.text : textColor
+    function withBgOpacity(c) { return Qt.rgba(c.r, c.g, c.b, c.a * root.bgOpacity); }
+
+    Rectangle {
+        id: btnShape
+        anchors.fill: parent
+        radius: root.cornerRadius
+        clip: !glass.active
+        color: glass.active ? "transparent" : root.withBgOpacity((btnMa.pressed && root.enabled) ? Qt.darker(root.accentColor, 1.28) : (root.isHoveredOrHighlighted ? Qt.darker(root.accentColor, 1.14) : root.accentColor))
+        opacity: 1.0
+
+        GlassFill {
+            id: glass
+            anchors.fill: parent
+            shadow: 1
+            press: (btnMa.pressed && root.enabled) ? 1 : (root.isHoveredOrHighlighted ? 0.25 : 0)
+            pulse: Math.min(1, root.flashOpacity * 2.5)
+            Behavior on press { NumberAnimation { duration: (nayoriClickButton.reducedMotion ? 0 : 250); easing.type: Easing.OutCubic } }
+            radius: root.cornerRadius
+            tintColor: root.accentColor
+            tintAmount: ((btnMa.pressed && root.enabled) ? 0.55 : (root.isHoveredOrHighlighted ? 0.42 : 0.3)) * root.bgOpacity * root.glassTintScale
+            Behavior on tintAmount { NumberAnimation { duration: (nayoriClickButton.reducedMotion ? 0 : 150) } }
+        }
+
+        Behavior on color { ColorAnimation { duration: (nayoriClickButton.reducedMotion ? 0 : 150) } }
+        Behavior on opacity { NumberAnimation { duration: (nayoriClickButton.reducedMotion ? 0 : 150) } }
+
+        scale: ((btnMa.pressed && root.enabled) ? 0.985 : (root.isHoveredOrHighlighted ? 1.015 : 1.0)) * root.popScale
+        Behavior on scale { NumberAnimation { duration: (nayoriClickButton.reducedMotion ? 0 : 250); easing.type: Easing.OutQuint } }
+
+        SequentialAnimation {
+            id: btnPopAnim
+            NumberAnimation { target: root; property: "popScale"; to: 1.015; duration: (nayoriClickButton.reducedMotion ? 0 : 100); easing.type: Easing.OutQuad }
+            NumberAnimation { target: root; property: "popScale"; to: 1.0; duration: (nayoriClickButton.reducedMotion ? 0 : 400); easing.type: Easing.OutQuint }
+        }
+
+        RowLayout {
+            id: mainRow
+            layoutDirection: nayoriClickButton.i18n.layoutDirection
+            x: {
+                if (root.contentAlignment === Qt.AlignHCenter) {
+                    return Math.round((parent.width - width) / 2);
+                }
+                let alignLeft = (root.contentAlignment === Qt.AlignLeft && !nayoriClickButton.i18n.rtl) || (root.contentAlignment === Qt.AlignRight && nayoriClickButton.i18n.rtl);
+                return alignLeft ? root.horizontalPadding : (parent.width - width - root.horizontalPadding);
+            }
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 8
+
+            Text {
+                id: iconLabel
+                visible: root.buttonIcon !== ""
+                text: root.buttonIcon
+                font.family: root.iconFont
+                font.pixelSize: root.iconFontSize
+                color: root.displayTextColor
+                Layout.alignment: Qt.AlignVCenter
+            }
+
+            ColumnLayout {
+                id: textCol
+                visible: root.buttonText !== "" || root.subText !== ""
+                Layout.alignment: Qt.AlignVCenter
+                spacing: 0
+
+                Text {
+                    id: mainLabel
+                    visible: root.buttonText !== ""
+                    text: root.buttonText
+                    font.family: nayoriClickButton.pythonTheme.fontFamily
+                    font.weight: Font.Bold
+                    font.pixelSize: root.textFontSize
+                    color: root.displayTextColor
+                    horizontalAlignment: root.contentAlignment === Qt.AlignHCenter ? Text.AlignHCenter : nayoriClickButton.i18n.textAlignment
+                    elide: Text.ElideRight
+                    Layout.maximumWidth: Math.ceil(root.maxTextWidth > 0 ? Math.min(root.maxTextWidth, root.availableTextWidth) : root.availableTextWidth) + 2
+                }
+
+                Text {
+                    id: subLabel
+                    visible: root.subText !== ""
+                    text: root.subText
+                    font.family: nayoriClickButton.pythonTheme.fontFamily
+                    font.pixelSize: Math.max(10, root.textFontSize - 6)
+                    color: root.displayTextColor
+                    horizontalAlignment: root.contentAlignment === Qt.AlignHCenter ? Text.AlignHCenter : nayoriClickButton.i18n.textAlignment
+                    opacity: 0.75
+                    elide: Text.ElideRight
+                    Layout.maximumWidth: Math.ceil(root.maxTextWidth > 0 ? Math.min(root.maxTextWidth, root.availableTextWidth) : root.availableTextWidth) + 2
+                }
+            }
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            radius: root.cornerRadius
+            color: "#ffffff"
+            opacity: root.flashOpacity
+            visible: !glass.active
+            PropertyAnimation on opacity { id: btnFlashAnim; to: 0; duration: (nayoriClickButton.reducedMotion ? 0 : 400); easing.type: Easing.OutExpo }
+        }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: -2
+        radius: root.cornerRadius + 2
+        color: "transparent"
+        visible: root.activeFocus
+    }
+
+    MouseArea {
+        id: btnMa
+        anchors.fill: parent
+        hoverEnabled: true
+        acceptedButtons: root.acceptedButtons
+        cursorShape: root.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+
+        onClicked: mouse => {
+            if (!root.enabled) return;
+            if (mouse.button === Qt.RightButton) {
+                root.rightClicked();
+                return;
+            }
+            btnPopAnim.start();
+            root.flashOpacity = 0.15;
+            btnFlashAnim.start();
+            if (!!nayoriClickButton.sounds) {
+                nayoriClickButton.sounds.playSfx(root.clickSound);
+            }
+            root.clicked();
+            root.triggered();
+        }
+
+        onWheel: wheel => {
+            if (!root.enabled) return;
+            root.wheel(wheel);
+        }
+    }
+}
