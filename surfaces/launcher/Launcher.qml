@@ -31,18 +31,13 @@ Item {
     readonly property int rowHeight: 48
     readonly property int textInset: 22
     readonly property int searchIconSize: 22
-    // Подписи клавиш плашки справа. Единственное место, где они заданы.
-    readonly property var openShortcut: ["Alt", "Space"]
     // Крупнее текста панели: строка поиска острова читается как главный элемент.
     readonly property int fieldFontSize: root.embedded ? root.tokens.type.body.size + 2 : root.tokens.type.body.size
     readonly property color placeholderInk: Qt.alpha(root.tokens.color.textMuted, 0.7)
     readonly property real fieldX: root.embedded
         ? root.textInset + root.searchIconSize + root.tokens.spacing.medium - 2
         : root.tokens.spacing.medium
-    // Справа в строке стоит плашка с сочетанием открытия; поле заканчивается перед ней.
-    readonly property real fieldReserve: root.embedded
-        ? shortcutHint.width + root.textInset + root.tokens.spacing.small
-        : root.tokens.spacing.medium
+    readonly property real fieldReserve: root.embedded ? root.textInset : root.tokens.spacing.medium
 
     readonly property string queryText: field.text
     readonly property bool commandMode: SearchModel.isCommandQuery(root.queryText)
@@ -399,35 +394,6 @@ Item {
         }
     }
 
-    component KeyCap: Rectangle {
-        id: cap
-
-        required property var tokenSet
-        required property string label
-
-        implicitWidth: Math.max(28, capText.implicitWidth + cap.tokenSet.spacing.small * 2)
-        implicitHeight: 24
-        width: implicitWidth
-        height: implicitHeight
-        radius: cap.tokenSet.radius.small
-        color: cap.tokenSet.color.surfaceAlt
-        border.width: 1
-        border.color: cap.tokenSet.color.border
-        antialiasing: true
-
-        Text {
-            id: capText
-            anchors.centerIn: parent
-            text: cap.label
-            color: Qt.alpha(cap.tokenSet.color.textMuted, 0.85)
-            font.family: cap.tokenSet.type.small.family
-            font.pixelSize: cap.tokenSet.type.small.size - 1
-            font.weight: cap.tokenSet.type.small.weight
-            renderType: Text.NativeRendering
-            textFormat: Text.PlainText
-        }
-    }
-
     Process { id: webLaunch }
     Process { id: fileLaunch }
     Process { id: commandLaunch }
@@ -601,29 +567,6 @@ Item {
                     height: root.searchIconSize
                     kind: "search"
                     ink: root.tokens.color.text
-                }
-
-                // Плашка показывает сочетание открытия (openShortcut). Само сочетание задаёт
-                // niri (`Alt+Space ... qs ipc call launcher toggle`), поэтому подписи только здесь.
-                Row {
-                    id: shortcutHint
-                    visible: root.embedded
-                    anchors.right: parent.right
-                    anchors.rightMargin: root.textInset - root.tokens.spacing.small / 2
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: root.tokens.spacing.small / 2
-
-                    Accessible.role: Accessible.StaticText
-                    Accessible.name: "Открывается: " + root.openShortcut.join("+")
-
-                    Repeater {
-                        model: root.openShortcut
-                        delegate: KeyCap {
-                            required property string modelData
-                            tokenSet: root.tokenSet
-                            label: modelData
-                        }
-                    }
                 }
 
                 Item {
