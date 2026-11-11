@@ -773,7 +773,7 @@ FocusScope {
             SettingsScroll { BluetoothPage { width: parent.width; tokens: root.tokens; bluetoothService: root.bluetoothService; settingsService: root.settingsService } }
             SettingsScroll { MousePage { id: mousePage; width: parent.width; tokens: root.tokens; niriConfig: niriConfig } }
             SettingsScroll { KeyboardPage { id: keyboardPage; width: parent.width; tokens: root.tokens; niriConfig: niriConfig } }
-            SettingsScroll { ShortcutsPage { width: parent.width; tokens: root.tokens; service: root.keybindService } }
+            ShortcutsPage { tokens: root.tokens; service: root.keybindService }
             SettingsScroll {
                 id: startScroll
                 StartPage {
