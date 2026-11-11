@@ -137,10 +137,6 @@ FocusScope {
                 }
             }
         }
-        RowLayout {
-            Layout.fillWidth: true
-            Caption { text: root.locale.toString(root.now, "d MMMM, dddd"); Layout.fillWidth: true; elide: Text.ElideRight }
-        }
     }
     ColumnLayout {
         objectName: "calendarAgendaPage"
