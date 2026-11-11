@@ -164,6 +164,8 @@ QtObject {
             autoHideStatus: root.settingsService.autoHideStatus
             weatherCity: root.settingsService.weatherCity
             weatherRefreshMinutes: root.settingsService.weatherRefreshMinutes
+            startupValues: root.settingsService.values
+            onStartupChangedRequested: patch => root.settingsService.update(patch)
             windowBorderValues: root.settingsService.values
             windowBorderError: root.windowBorderError
             onWindowBorderChangedRequested: patch => root.settingsService.update(patch)

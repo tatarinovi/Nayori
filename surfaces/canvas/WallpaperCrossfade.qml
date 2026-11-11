@@ -18,6 +18,11 @@ Item {
     property int effectDuration: 300
     signal renderFailed(bool failed)
 
+    // An image failure is terminal: StaticRenderer still paints its opaque
+    // background, so startup can safely reveal that fallback.
+    readonly property bool startupReady: managerReady && frontRequest === root.source
+        && (fore().loaded || fore().failed)
+
     property int front: 0
     property bool live: false
     property bool settled: false

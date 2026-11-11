@@ -84,6 +84,7 @@ class Fixture(unittest.TestCase):
         ):
             (self.source / directory).mkdir(parents=True)
         (self.source / "shell.qml").write_text("import QtQuick\nQtObject {}\n")
+        (self.source / "ShellSession.qml").write_text("import QtQuick\nQtObject {}\n")
         (self.source / "pam/nayori-lock").write_text("auth required pam_unix.so\n")
         shutil.copyfile(
             ROOT / "scripts/installer/launcher.py",
@@ -182,6 +183,7 @@ class EngineTests(Fixture):
         manifest = json.loads((old / "manifest.json").read_text())
         self.assertEqual(manifest["commit"], "fixture-commit")
         self.assertIn("shell.qml", manifest["files"])
+        self.assertIn("ShellSession.qml", manifest["files"])
         launcher = self.paths.bin / "nayori"
         launcher.write_text("custom\n")
         with self.assertRaises(InstallError):

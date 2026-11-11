@@ -41,6 +41,8 @@ FloatingWindow {
     signal sectionVisited(string key)
     property string weatherCity: ""
     property int weatherRefreshMinutes: 15
+    property var startupValues: ({})
+    signal startupChangedRequested(var patch)
     property var windowBorderValues: ({})
     property string windowBorderError: ""
     signal windowBorderChangedRequested(var patch)
@@ -182,6 +184,8 @@ FloatingWindow {
         onSectionVisited: key => root.sectionVisited(key)
         weatherCity: root.weatherCity
         weatherRefreshMinutes: root.weatherRefreshMinutes
+        startupValues: root.startupValues
+        onStartupChangedRequested: patch => root.startupChangedRequested(patch)
         windowBorderValues: root.windowBorderValues
         windowBorderError: root.windowBorderError
         onWindowBorderChangedRequested: patch => root.windowBorderChangedRequested(patch)

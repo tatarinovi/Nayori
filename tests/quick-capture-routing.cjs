@@ -4,7 +4,7 @@ const path = require('node:path')
 const vm = require('node:vm')
 
 // Execute the real IPC opening logic without starting a desktop shell.
-const shell = fs.readFileSync(path.join(__dirname, '../shell.qml'), 'utf8')
+const shell = fs.readFileSync(path.join(__dirname, '../ShellSession.qml'), 'utf8')
 const start = shell.indexOf('    function openQuickCapture() {')
 const end = shell.indexOf('    function finishQuickCaptureLocation(', start)
 assert(start >= 0 && end > start)
@@ -19,7 +19,7 @@ for (const [enabled, vault] of [[false, ''], [true, ''], [false, '/vault'], [tru
     }
     const lockService = { locked: false }
     const context = {
-        root, lockService,
+        root, lockService, startup: { present: false },
         captureStore: { editing: false },
         quickCaptureStore: { text: '' },
         settingsStore: { values: { quickCaptureEnabled: enabled, quickCaptureVault: vault, quickCaptureContext: 'Personal' } },
@@ -35,6 +35,10 @@ for (const [enabled, vault] of [[false, ''], [true, ''], [false, '/vault'], [tru
     context.openQuickCapture()
     assert.equal(focused, 1)
     assert.equal(located, 1, 'repeat focuses existing capture')
+    context.startup.present = true
+    context.openQuickCapture()
+    assert.equal(focused, 1, 'startup prevents opening over the splash')
+    context.startup.present = false
     lockService.locked = true
     context.openQuickCapture()
     assert.equal(focused, 1, 'lock prevents opening or focusing')

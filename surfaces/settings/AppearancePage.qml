@@ -22,6 +22,8 @@ Column {
     property color accentPreview: "#C0AFD1"
     property var accentCandidates: []
     signal accentResetRequested()
+    property var startupValues: ({})
+    signal startupChangedRequested(var patch)
     property var windowBorderValues: ({})
     property string windowBorderError: ""
     signal windowBorderChangedRequested(var patch)
@@ -469,6 +471,43 @@ Column {
                     Label { width: parent.width; leftPadding: parent.labelIndent; text: "Движение лисы и переходы интерфейса"; color: root.tokens.color.textMuted; font.pixelSize: 13 }
                 }
             }
+            SettingsCard {
+                tokens: root.tokens
+                title: "Экран запуска"
+                subtitle: "Скрывает подготовку оболочки до появления готового рабочего стола"
+                SettingsToggle {
+                    objectName: "startupSplashEnabled"
+                    tokens: root.tokens
+                    text: "Показывать экран запуска"
+                    checked: root.startupValues.startupSplashEnabled !== false
+                    onClicked: root.startupChangedRequested({startupSplashEnabled: checked})
+                    onFocusReceived: root.revealRequested(this)
+                }
+                SettingsToggle {
+                    tokens: root.tokens
+                    text: "Использовать цвет акцента"
+                    description: "Окрашивает логотип, фон и индикатор"
+                    checked: root.startupValues.startupSplashDynamicAccent !== false
+                    enabled: root.startupValues.startupSplashEnabled !== false
+                    onClicked: root.startupChangedRequested({startupSplashDynamicAccent: checked})
+                    onFocusReceived: root.revealRequested(this)
+                }
+                Label {
+                    text: "Затухание: " + (root.startupValues.startupSplashFadeDuration === undefined
+                        ? 220 : root.startupValues.startupSplashFadeDuration) + " мс"
+                }
+                SettingsSlider {
+                    tokens: root.tokens
+                    width: parent.width
+                    label: "Длительность затухания экрана запуска"
+                    from: 0; to: 500; stepSize: 10
+                    source: root.startupValues.startupSplashFadeDuration === undefined ? 220 : root.startupValues.startupSplashFadeDuration
+                    enabled: root.startupValues.startupSplashEnabled !== false && root.animationsEnabled
+                    onChanged: value => root.startupChangedRequested({startupSplashFadeDuration: Math.round(value)})
+                    onActiveFocusChanged: if (activeFocus) root.revealRequested(this)
+                }
+            }
+
 
 
         }

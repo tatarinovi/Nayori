@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import "../desktop"
+import "../startup"
 import "../../services/canvas"
 
 PanelWindow {
@@ -19,6 +20,11 @@ PanelWindow {
         settings: root.settings
         reduceMotion: root.tokens.motion.off
     }
+    readonly property bool startupReady: manager.ready && (!visible || firstFrame.seen)
+    FirstFrame {
+        id: firstFrame
+        armed: root.visible && wallpaperFrames.startupReady && root.widgetsReady
+    }
     property bool widgetsReady: false
     property var weatherService: null
     property var music: null
@@ -34,6 +40,7 @@ PanelWindow {
     WlrLayershell.namespace: "nayori-canvas"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     WallpaperCrossfade {
+        id: wallpaperFrames
         anchors.fill: parent
         source: String(root.wallpaper.source)
         blur: root.blur

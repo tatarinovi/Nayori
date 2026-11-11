@@ -583,6 +583,7 @@ class Engine:
         try:
             include = [
                 "shell.qml",
+                "ShellSession.qml",
                 "tokens",
                 "services",
                 "surfaces",

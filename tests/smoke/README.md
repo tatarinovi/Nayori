@@ -10,7 +10,7 @@ bash scripts/check-canvas.sh
 qs -p tests/smoke/ClipboardSmoke.qml
 ```
 
-Quickshell ограничивает импорты каталогом конфигурации. Ссылки `tokens`, `services`, `surfaces`, `islands`, `assets`, `scripts` и `RealShell.qml` открывают стендам общие исходники и ресурсы без копирования. Ссылки `fake-audio.py` и `fake-lyrics-worker.py` ведут к искусственным источникам в `tests/`. Сохраняйте эти относительные ссылки при переносе репозитория. `RealShell.qml` используется только для проверки настоящей корневой конфигурации; для запуска стенда всегда указывайте его файл явно.
+Quickshell ограничивает импорты каталогом конфигурации. Ссылки `tokens`, `services`, `surfaces`, `islands`, `assets`, `scripts` и `RealShell.qml`, `ShellSession.qml` открывают стендам общие исходники и ресурсы без копирования. Ссылки `fake-audio.py` и `fake-lyrics-worker.py` ведут к искусственным источникам в `tests/`. Сохраняйте эти относительные ссылки при переносе репозитория. `RealShell.qml` используется только для проверки настоящей корневой конфигурации; для запуска стенда всегда указывайте его файл явно.
 
 Автоматические проверки используют временные каталоги и искусственные данные. Проверки материалов и корневой конфигурации требуют Wayland; уведомления проверяются на отдельной D-Bus-шине. Подробные команды — в корневом README и документации соответствующего компонента.
 
@@ -73,3 +73,12 @@ cards must hide, and the remaining cards must expand. The lower row has state on
 the right; the separate temperatures card is absent. Power buttons have equal
 geometry and centered icons, rendered by the shared SystemIcon SVG component.
 The uptime belongs to the system-state card; there is no inner page heading.
+
+### Startup splash
+
+`python3 tests/startup-splash.py` checks the shared startup barrier, first Qt
+frames, two-output fade completion, hotplug cancellation, timeout with explicit
+continue, failed wallpaper fallback, accent tinting, frozen startup palette/cache fallback and settings preservation.
+It uses temporary XDG directories and offscreen FloatingWindows with the real
+StartupCover; layer-shell stacking and physical monitor presentation require
+an isolated Wayland check. See [STARTUP_SPLASH.md](../../docs/STARTUP_SPLASH.md).

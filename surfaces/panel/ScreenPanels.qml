@@ -8,6 +8,7 @@ import "../../islands/workspaces"
 import "../../islands/apps"
 import "../../islands/status"
 import "../island"
+import "../startup"
 import "../launcher"
 import "../settings"
 import "../capture"
@@ -24,6 +25,10 @@ Scope {
     required property var shellState
     readonly property var tokenSet: shellState.tokenSet
     readonly property var tokens: tokenSet
+    // Keep even late-mapped panels below the splash until its fade completes.
+    // set_layer updates the existing Wayland surface; it does not recreate it.
+    readonly property bool startupBlocking: !!shellState.startupState && shellState.startupState.present
+    readonly property int panelLayer: startupBlocking ? WlrLayer.Top : WlrLayer.Overlay
     readonly property var captureService: shellState.captureService || null
     readonly property bool captureActive: !!captureService && (captureService.editing || captureService.controlsVisible)
     readonly property bool captureBlocksDashboard: !!captureService && captureService.editing
@@ -31,6 +36,9 @@ Scope {
     Region { id: emptyInputMask }
     readonly property bool fullscreen: fullscreenGuard.blocked
     readonly property real fullscreenReveal: fullscreenGuard.reveal
+    readonly property bool startupReady: panelsReady
+        && (!islandWindow.visible || topFrame.seen)
+        && workspacesWindow.startupReady && appsWindow.startupReady && statusWindow.startupReady
     property bool panelsReady: false
     Component.onCompleted: {
         panelsReady = true
@@ -285,6 +293,11 @@ Scope {
         property bool available: true
         property bool edgeHovered: false
         property bool heldOpen: false
+        readonly property bool startupReady: !visible || dockFrame.seen
+        FirstFrame {
+            id: dockFrame
+            armed: dock.visible && dock.contentOpacity === 1
+        }
 
         EdgeVisibility {
             id: visibility
@@ -337,7 +350,7 @@ Scope {
         }
         exclusionMode: ExclusionMode.Ignore
         focusable: false
-        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.layer: root.panelLayer
         WlrLayershell.namespace: ns
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
@@ -361,6 +374,10 @@ Scope {
 
     PanelWindow {
         id: islandWindow
+        FirstFrame {
+            id: topFrame
+            armed: islandWindow.visible && islandWindow.contentOpacity === 1
+        }
         EdgeVisibility {
             id: topVisibility
             autoHide: (root.topMode === "auto")
@@ -425,7 +442,7 @@ Scope {
         // отправить OnDemand поверх Exclusive, и niri отдаёт фокус только по наведению.
         // Режим клавиатуры задаёт один keyboardFocus ниже.
         focusable: true
-        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.layer: root.panelLayer
         WlrLayershell.namespace: "nayori-island"
         WlrLayershell.keyboardFocus: root.launcherHere || root.quickCaptureHere
             ? WlrKeyboardFocus.Exclusive
@@ -748,7 +765,7 @@ Scope {
         anchors.right: true
         exclusionMode: ExclusionMode.Ignore
         focusable: false
-        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.layer: root.panelLayer
         WlrLayershell.namespace: "nayori-launcher-dismiss"
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
         mask: Region {
@@ -804,7 +821,7 @@ Scope {
         implicitHeight: Math.max(1, Math.round(listBody.implicitHeight + root.tokens.spacing.small * 2))
         exclusionMode: ExclusionMode.Ignore
         focusable: false
-        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.layer: root.panelLayer
         WlrLayershell.namespace: "nayori-launcher-list"
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
         property real reveal: root.launcherHere && capsule.listOpen ? 1 : 0

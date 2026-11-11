@@ -172,6 +172,9 @@ QtObject {
             "topReserved": 0,
             "bottomReserved": 0,
             "animationsEnabled": true,
+            "startupSplashEnabled": true,
+            "startupSplashDynamicAccent": true,
+            "startupSplashFadeDuration": 220,
             "desktopBlurEnabled": true,
             "desktopBlurIntensity": 45,
             "desktopDimIntensity": 15,
@@ -238,6 +241,8 @@ QtObject {
 
     function normalize(key, value) {
         const fallback = defaults()[key];
+        if (key === "startupSplashFadeDuration")
+            return typeof value === "number" && isFinite(value) ? Math.max(0, Math.min(500, Math.round(value))) : fallback;
         if (key === "desktopBlurIntensity" || key === "desktopDimIntensity" || key === "desktopBlurDuration") {
             const min = key === "desktopBlurDuration" ? 150 : 0;
             const max = key === "desktopBlurDuration" ? 600 : 100;

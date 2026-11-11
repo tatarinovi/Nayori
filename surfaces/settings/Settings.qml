@@ -55,6 +55,8 @@ FocusScope {
     }).filter(item => item !== null).slice(0, 4)
     property string weatherCity: ""
     property int weatherRefreshMinutes: 15
+    property var startupValues: ({})
+    signal startupChangedRequested(var patch)
     property var windowBorderValues: ({})
     property string windowBorderError: ""
     signal windowBorderChangedRequested(var patch)
@@ -716,6 +718,8 @@ FocusScope {
                     accentStatus: root.accentStatus
                     accentPreview: root.accentPreview
                     accentCandidates: root.accentCandidates
+                    startupValues: root.startupValues
+                    onStartupChangedRequested: patch => root.startupChangedRequested(patch)
                     windowBorderValues: root.windowBorderValues
                     windowBorderError: root.windowBorderError
                     onWindowBorderChangedRequested: patch => root.windowBorderChangedRequested(patch)
