@@ -13,6 +13,7 @@ FocusScope {
     property var companionTokens: tokens
     property var calendarService: null
     property var bluetoothService: null
+    property var keybindService: null
     property var settingsService: null
     property var polkitService: null
     property bool widgetsEditing: false
@@ -121,6 +122,7 @@ FocusScope {
     property string strataNotice: ""
     signal islandRotationEnabledChangedRequested(bool enabled)
     signal islandRotationSecondsChangedRequested(int seconds)
+    signal preferredAppsChangedRequested(var patch)
     signal preferredTerminalChangedRequested(string terminalId)
     signal preferredFileManagerChangedRequested(string fileManagerId)
     property string settingsMessage: ""
@@ -212,7 +214,7 @@ FocusScope {
         {key: "bluetooth", page: 10, title: "Bluetooth", group: "Устройства", description: "Питание адаптера, поиск и подключение устройств"},
         {key: "mouse", page: 11, title: "Мышь", group: "Устройства", description: "Что можно прочитать о мыши в этой сессии niri"},
         {key: "keyboard", page: 12, title: "Клавиатура", group: "Устройства", description: "Раскладка и повтор, которые задаёт niri"},
-        {key: "shortcuts", page: 13, title: "Сочетания клавиш", group: "Устройства", description: "Сочетания из конфигурации niri. Запись файла выключена"},
+        {key: "shortcuts", page: 13, title: "Горячие клавиши", group: "Устройства", description: "Niri, Nayori и Kitty: поиск, запись сочетаний и конфликты"},
         {key: "appearance", page: 2, title: "Внешний вид", group: "Персонализация", description: "Тема, прозрачность, акцент и анимации интерфейса"},
         {key: "wallpapers", page: 4, title: "Обои", group: "Персонализация", description: "Выберите папку и изображение для рабочего стола"},
         {key: "panels", page: 1, title: "Панель задач", group: "Персонализация", description: "Автоскрытие островов, место для окон у краёв экрана и мониторы"},
@@ -771,7 +773,7 @@ FocusScope {
             SettingsScroll { BluetoothPage { width: parent.width; tokens: root.tokens; bluetoothService: root.bluetoothService; settingsService: root.settingsService } }
             SettingsScroll { MousePage { id: mousePage; width: parent.width; tokens: root.tokens; niriConfig: niriConfig } }
             SettingsScroll { KeyboardPage { id: keyboardPage; width: parent.width; tokens: root.tokens; niriConfig: niriConfig } }
-            SettingsScroll { ShortcutsPage { width: parent.width; tokens: root.tokens; niriConfig: niriConfig } }
+            SettingsScroll { ShortcutsPage { width: parent.width; tokens: root.tokens; service: root.keybindService } }
             SettingsScroll {
                 id: startScroll
                 StartPage {
@@ -814,7 +816,7 @@ FocusScope {
             }
             SettingsScroll { AltTabPage { width: parent.width; tokens: root.tokens; niriConfig: niriConfig } }
             SettingsScroll { WorkspacesPage { width: parent.width; tokens: root.tokens; niri: root.niri } }
-            SettingsScroll { DefaultsPage { width: parent.width; tokens: root.tokens } }
+            SettingsScroll { DefaultsPage { width: parent.width; tokens: root.tokens; settingsService: root.settingsService; onPreferredAppsChangedRequested: patch => root.preferredAppsChangedRequested(patch) } }
             SettingsScroll { AutostartPage { width: parent.width; tokens: root.tokens } }
             SettingsScroll { UpdatesPage { width: parent.width; tokens: root.tokens; updateService: root.updateService; systemUpdateService: root.systemUpdateService; settingsService: root.settingsService } }
             SettingsScroll { AboutPage { width: parent.width; tokens: root.tokens } }

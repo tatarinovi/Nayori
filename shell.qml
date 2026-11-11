@@ -7,6 +7,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "tokens"
+import "services"
 import "services/niri"
 import "services/strata"
 import "services/settings"
@@ -59,6 +60,23 @@ ShellRoot {
                 desktopStage.enterWidgets(root.probeScreen.name, "widgets")
         }
     }
+
+    Apps { id: shortcutApps }
+    function launchShortcutApp(role) {
+        const fields = {terminal: "preferredTerminal", browser: "preferredBrowser", files: "preferredFileManager",
+            editor: "preferredEditor", notes: "preferredNotes"}
+        if (!settingsStore.ready || !Object.prototype.hasOwnProperty.call(fields, role)) return false
+        return shortcutApps.launch(settingsStore.values[fields[role]]) !== ""
+    }
+    IpcHandler {
+        target: "apps"
+        function terminal(): bool { return root.launchShortcutApp("terminal") }
+        function browser(): bool { return root.launchShortcutApp("browser") }
+        function files(): bool { return root.launchShortcutApp("files") }
+        function editor(): bool { return root.launchShortcutApp("editor") }
+        function notes(): bool { return root.launchShortcutApp("notes") }
+    }
+
     BluetoothService { id: bluetoothStore }
     CodexLimits { id: codexLimits; enabled: settingsStore.ready && settingsStore.codexWidgetEnabled }
     readonly property var codexLimitsService: codexLimits
@@ -498,6 +516,7 @@ ShellRoot {
             root.startMenuToggleRequested(name)
     }
     SuperTap {
+        enabled: settingsStore.ready && settingsStore.values.superTapEnabled !== false && !settingsController.keybindService.recording
         onTapped: root.toggleStartMenu()
     }
     signal startMenuToggleRequested(string outputName)

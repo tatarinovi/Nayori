@@ -5,6 +5,8 @@ import "../../services/system"
 
 Column {
     id: root
+    property var settingsService: null
+    signal preferredAppsChangedRequested(var patch)
     required property var tokens
     spacing: 16
     component Label: SettingsLabel { tokens: root.tokens }
@@ -19,6 +21,41 @@ Column {
     ]
 
     DefaultApps { id: apps }
+
+    SettingsCard {
+        tokens: root.tokens
+        title: "Приложения для сочетаний Nayori"
+        subtitle: "Эти же терминал и файловый менеджер используются в меню «Пуск». В менеджере сочетаний выберите приложение по умолчанию для нужного бинда или создайте действие Nayori."
+        Repeater {
+            model: [{key: "preferredTerminal", title: "Терминал"}, {key: "preferredBrowser", title: "Браузер"},
+                {key: "preferredFileManager", title: "Файловый менеджер"}, {key: "preferredEditor", title: "Текстовый редактор"},
+                {key: "preferredNotes", title: "Заметки"}]
+            delegate: Column {
+                id: role
+                required property var modelData
+                width: parent.width
+                spacing: 6
+                Label { text: role.modelData.title }
+                SettingsField {
+                    id: preferred
+                    tokens: root.tokens
+                    text: root.settingsService ? root.settingsService.values[role.modelData.key] : ""
+                    placeholderText: "Идентификатор desktop-файла"
+                    Accessible.name: role.modelData.title
+                }
+                Action {
+                    text: "Сохранить"
+                    enabled: !!root.settingsService && /^[A-Za-z0-9_.-]+$/.test(preferred.text.trim())
+                    onClicked: {
+                        const patch = {}
+                        patch[role.modelData.key] = preferred.text.trim()
+                        root.preferredAppsChangedRequested(patch)
+                    }
+                }
+            }
+        }
+    }
+
 
     Label {
         width: parent.width

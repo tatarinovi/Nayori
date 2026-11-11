@@ -204,6 +204,10 @@ QtObject {
             "quickCapturePersonalPath": "Inbox/Personal",
             "islandRotationEnabled": true,
             "islandRotationSeconds": 15,
+            "superTapEnabled": true,
+            "preferredBrowser": "firefox",
+            "preferredEditor": "dev.zed.Zed",
+            "preferredNotes": "obsidian",
             "preferredTerminal": "kitty",
             "preferredFileManager": "io.github.lgse.Strata",
             "niriColorIntegration": true,
@@ -293,7 +297,7 @@ QtObject {
         if (key === "weatherCity" || key === "calendarUrl" || key === "calendarUser")
             return typeof value === "string" ? value.trim() : fallback;
 
-        if (key === "preferredTerminal" || key === "preferredFileManager") {
+        if (key === "preferredTerminal" || key === "preferredFileManager" || key === "preferredBrowser" || key === "preferredEditor" || key === "preferredNotes") {
             if (typeof value !== "string")
                 return fallback;
             const trimmed = value.trim();

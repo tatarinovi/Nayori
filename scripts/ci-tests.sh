@@ -4,6 +4,7 @@ cd "$(dirname "$0")/.."
 
 case "${1:-}" in
     unit)
+        python3 tests/keybinds.py
         python3 tests/cursor-theme.py
         python3 tests/calendar.py
         python3 tests/installer.py
@@ -34,6 +35,7 @@ case "${1:-}" in
         export XDG_CACHE_HOME="$runtime/cache" XDG_STATE_HOME="$runtime/state"
         export XDG_DATA_HOME="$runtime/data"
         mkdir -m 700 "$XDG_RUNTIME_DIR"
+        python3 tests/keybinds.py --smoke
         for suite in island music canvas accent shelf quick-capture; do
             printf '\n>>> %s\n' "$suite"
             bash "scripts/check-$suite.sh"

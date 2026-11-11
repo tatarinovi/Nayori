@@ -12,6 +12,7 @@ FloatingWindow {
     property var companionTokens: tokens
     property var calendarService: null
     property var bluetoothService: null
+    property var keybindService: null
     property var settingsService: null
     property var polkitService: null
     property bool widgetsEditing: false
@@ -102,6 +103,7 @@ FloatingWindow {
     signal dndClearRequested()
     signal islandRotationEnabledChangedRequested(bool enabled)
     signal islandRotationSecondsChangedRequested(int seconds)
+    signal preferredAppsChangedRequested(var patch)
     signal preferredTerminalChangedRequested(string terminalId)
     signal preferredFileManagerChangedRequested(string fileManagerId)
     property bool niriColorIntegration: true
@@ -147,6 +149,7 @@ FloatingWindow {
     Settings {
         calendarService: root.calendarService
         bluetoothService: root.bluetoothService
+        keybindService: root.keybindService
         settingsService: root.settingsService
         widgetsEditing: root.widgetsEditing
         onWidgetsEditingRequested: on => root.widgetsEditingRequested(on)
@@ -241,6 +244,7 @@ FloatingWindow {
         onDndClearRequested: root.dndClearRequested()
         onIslandRotationEnabledChangedRequested: enabled => root.islandRotationEnabledChangedRequested(enabled)
         onIslandRotationSecondsChangedRequested: seconds => root.islandRotationSecondsChangedRequested(seconds)
+        onPreferredAppsChangedRequested: patch => root.preferredAppsChangedRequested(patch)
         onPreferredTerminalChangedRequested: terminalId => root.preferredTerminalChangedRequested(terminalId)
         onPreferredFileManagerChangedRequested: fileManagerId => root.preferredFileManagerChangedRequested(fileManagerId)
         niriColorIntegration: root.niriColorIntegration

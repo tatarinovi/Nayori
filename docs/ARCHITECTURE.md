@@ -105,7 +105,7 @@ surfaces/clipboard/
 - `NiriAccent` при `niriColorIntegration` (по умолчанию включено) пишет уже посчитанный акцент во фрагмент `nayori-accent.kdl` рядом с `config.kdl` и подключает фрагмент из `config.kdl`. Путь: `NIRI_CONFIG`, иначе `$XDG_CONFIG_HOME/niri/config.kdl`, а если переменная пуста — `~/.config/niri/config.kdl`.
 - `OverviewRule` пишет `nayori-overview.kdl` с `layer-rule` для namespace `nayori-overview` (`place-within-backdrop`). Если строка include уже в файле, а правило ещё не загружено, один раз вызывается `Niri.reloadConfig()`.
 
-Оба скрипта после записи вызывают `niri validate` и при ошибке возвращают прежний текст. Страницы «Экран», «Мышь» и «Клавиатура» пишут в тот же `config.kdl` через `services/system/niri_config_apply.py`, только по кнопке. Старт оболочки этот модуль не вызывает. Перед заменой лежит копия, затем `niri validate -c`. Ошибка проверки или записи возвращает прежний текст. Правка экрана 15 секунд ждёт «Оставить» и сама возвращает копию, если подтверждения нет. Перечитать сессию просит отдельная команда `niri msg action load-config-file`; проверки её не вызывают. `services/system/niri_config_view.py` файл только читает и отдельно спрашивает раскладки командой `niri msg keyboard-layouts`. Выход из сеанса в `SessionActions` идёт командой `niri msg action quit --skip-confirmation`. Эти команды в очередь `Niri.qml` не входят. Сочетания клавиш оболочка не переписывает. Раздел «Клавиатура» по кнопке меняет блок `keyboard`: раскладку, повтор, `track-layout` и `numlock`.
+Оба скрипта после записи вызывают `niri validate` и при ошибке возвращают прежний текст. Страницы «Экран», «Мышь» и «Клавиатура» пишут в тот же `config.kdl` через `services/system/niri_config_apply.py`, только по кнопке. Старт оболочки этот модуль не вызывает. Перед заменой лежит копия, затем `niri validate -c`. Ошибка проверки или записи возвращает прежний текст. Правка экрана 15 секунд ждёт «Оставить» и сама возвращает копию, если подтверждения нет. Перечитать сессию просит отдельная команда `niri msg action load-config-file`; проверки её не вызывают. `services/system/niri_config_view.py` файл только читает и отдельно спрашивает раскладки командой `niri msg keyboard-layouts`. Выход из сеанса в `SessionActions` идёт командой `niri msg action quit --skip-confirmation`. Эти команды в очередь `Niri.qml` не входят. Горячие клавиши по явному сохранению редактирует `KeybindService` через адаптер Niri и тот же безопасный writer; подробности — [KEYBINDS.md](KEYBINDS.md). Раздел «Клавиатура» по кнопке меняет блок `keyboard`: раскладку, повтор, `track-layout` и `numlock`.
 
 ## Токены и акцент
 
@@ -202,3 +202,12 @@ surfaces/clipboard/
 ## Obsidian Quick Capture
 
 `ShellRoot` владеет одним `services/quickcapture/QuickCaptureService.qml`: JSON Lines связывает его с локальным Python-worker. Общий черновик передаётся существующей цепочкой ScreenPanels → MorphingIsland → IslandDashboard → ShelfPage → QuickCapture. Настройки проходят через SettingsController/SettingsService; `inbox.open`/`inbox.close` управляют маршрутом и фокусом существующего острова. Контракт хранения и проверки: [QUICK_CAPTURE.md](QUICK_CAPTURE.md).
+
+## Менеджер горячих клавиш
+
+`SettingsController` владеет `services/keybinds/KeybindService.qml`. Python-адаптеры
+читают Niri и Kitty, анализируют области действия и конфликты. Запись Niri
+делегируется `niri_config_apply.py`; UI держит только черновик. Метаданные
+пользовательских биндов находятся рядом с узлом KDL, а не во втором хранилище.
+IPC `apps` запускает пять ролей приложений через общий SettingsService и Apps.
+Контракт и ограничения: [KEYBINDS.md](KEYBINDS.md).

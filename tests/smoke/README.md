@@ -37,3 +37,7 @@ qs -p tests/smoke/NaomiPixelSmoke.qml
 `tests/settings.py` проверяет применение, нормализацию и сохранение
 `workspaceIndicatorStyle` после перезапуска. Оба стенда входят в smoke-набор CI;
 `tests/workspace-styles.cjs` входит в unit-набор.
+
+`python3 tests/keybinds.py --smoke` запускает `KeybindsSmoke.qml` с временной
+конфигурацией, mock Niri и offscreen Qt. Проверяет поиск, фильтры и подтверждение
+черновика, создание/отключение/удаление пользовательского бинда без живого IPC.

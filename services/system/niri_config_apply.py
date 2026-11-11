@@ -220,10 +220,19 @@ def _skip_ignored(text, index, newlines=True):
     size = len(text)
     while index < size:
         if text.startswith("/*", index):
-            end = text.find("*/", index + 2)
-            if end < 0:
-                raise ParseError("Незакрытый комментарий")
-            index = end + 2
+            depth = 1
+            index += 2
+            while depth:
+                if index >= size:
+                    raise ParseError("Незакрытый комментарий")
+                if text.startswith("/*", index):
+                    depth += 1
+                    index += 2
+                elif text.startswith("*/", index):
+                    depth -= 1
+                    index += 2
+                else:
+                    index += 1
             continue
         if text.startswith("//", index):
             end = text.find("\n", index)
@@ -375,7 +384,12 @@ def parse_node(text, index):
     size = len(text)
     index = _skip_ignored(text, index, newlines=False)
     start = index
-    name, index = _parse_ident(text, index)
+    if text[index] == '"' or (text[index] == "r" and text[index + 1:index + 2] in ('#', '"')):
+        token, index = _parse_string(text, index)
+        name = token[1]
+    else:
+        name, index = _parse_ident(text, index)
+    name_end = index
     content_end = index
     # A trailing comment is not part of the node. Only a real type annotation
     # extends the span past the name.
@@ -432,6 +446,7 @@ def parse_node(text, index):
         raise ParseError("Неразобранный фрагмент около «%s»" % text[index:index + 12].replace("\n", " "))
     return {
         "name": name,
+        "name_end": name_end,
         "start": start,
         "content_end": content_end,
         "end": index,
@@ -454,6 +469,7 @@ def _parse_children(text, brace):
             raise ParseError("Незакрытая скобка")
         if text[index] == "}":
             return nodes, brace, index, index + 1
+        marker_start = index
         commented = False
         if text.startswith("/-", index):
             commented = True
@@ -462,6 +478,7 @@ def _parse_children(text, brace):
                 raise ParseError("Комментарий / - без узла")
         node, index = parse_node(text, index)
         node["commented"] = commented
+        node["marker_start"] = marker_start
         nodes.append(node)
     raise ParseError("Незакрытая скобка")
 
@@ -478,6 +495,7 @@ def parse_document(text):
             break
         if text[index] == "}":
             raise ParseError("Лишняя закрывающая скобка")
+        marker_start = index
         commented = False
         if text.startswith("/-", index):
             commented = True
@@ -486,6 +504,7 @@ def parse_document(text):
                 raise ParseError("Комментарий / - без узла")
         node, index = parse_node(text, index)
         node["commented"] = commented
+        node["marker_start"] = marker_start
         nodes.append(node)
     return nodes
 
@@ -757,11 +776,16 @@ def _include_paths(text, parent):
             continue
         strings = _string_args(node)
         if strings:
-            paths.append(parent / strings[0])
+            target = Path(strings[0]).expanduser()
+            target = target if target.is_absolute() else parent / target
+            optional = any(key == "optional" and value == ("bool", True) for key, value in node["props"])
+            if optional and not target.exists():
+                continue
+            paths.append(target)
     return paths
 
 
-def collect_files(root):
+def collect_files(root, allow_external=False):
     warnings = []
     base = root.parent
     files = []
@@ -776,7 +800,7 @@ def collect_files(root):
             continue
         if real in seen:
             continue
-        if not inside_dir(base, real):
+        if not allow_external and not inside_dir(base, real):
             warnings.append("Пропущен include вне каталога niri: %s" % path.name)
             continue
         seen.add(real)
@@ -787,7 +811,7 @@ def collect_files(root):
             if real.stat().st_size > MAX_BYTES:
                 warnings.append("Файл слишком большой и пропущен: %s" % real.name)
                 continue
-            text = real.read_text(encoding="utf-8")
+            text = real.read_bytes().decode("utf-8")
         except OSError:
             warnings.append("Не удалось прочитать %s" % real.name)
             continue
@@ -805,6 +829,8 @@ def collect_files(root):
         })
         for include in _include_paths(text, real.parent):
             queue.append(include)
+    if queue:
+        warnings.append("Достигнут предел числа include")
     return files, warnings
 
 
@@ -1463,7 +1489,7 @@ def plan_changes(path, changes):
     path = Path(path)
     if not isinstance(changes, dict) or not changes:
         raise ApplyError("Нет изменений")
-    files, warnings = collect_files(path)
+    files, warnings = collect_files(path, allow_external="keybinds" in changes)
     if not files or files[0]["path"] != path.resolve():
         raise ApplyError("Не удалось прочитать конфигурацию niri")
     if files[0]["nodes"] is None:
@@ -1484,6 +1510,11 @@ def plan_changes(path, changes):
         files = _reload_planned(files, updated)
     if "cursor" in changes:
         updated.update(transform_cursor(files, changes["cursor"]))
+    if "keybinds" in changes:
+        # The adapter owns bind semantics; this module remains the only writer.
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "keybinds"))
+        from keybinds import plan_niri_changes
+        updated.update(plan_niri_changes(files, warnings, changes["keybinds"]))
     return files, updated, warnings
 
 
@@ -1566,6 +1597,12 @@ def apply_changes(path, changes, now=None, validator=None, dangerous=None):
     try:
         for file_path in updated:
             originals[file_path] = file_path.read_bytes()
+        if "keybinds" in changes:
+            for entry in _files:
+                if entry["path"].read_bytes() != entry["text"].encode("utf-8"):
+                    raise ApplyError("Конфигурация изменилась снаружи. Обновите список")
+    except ApplyError as error:
+        return fail(str(error))
     except OSError:
         return fail("Не удалось прочитать конфигурацию перед записью")
     if pending and _pending_covers(pending, updated) and not is_dangerous:

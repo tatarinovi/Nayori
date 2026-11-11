@@ -4,6 +4,7 @@ import "../../services/island/NotificationPolicy.js" as NotificationPolicy
 import QtQuick
 import Quickshell
 import "../../services/settings"
+import "../../services/keybinds"
 
 // Shell-owned: one UI instance, no storage and no dependency on panel geometry.
 QtObject {
@@ -27,6 +28,7 @@ QtObject {
     property var remindCompanion: null
     property var notificationBridge: null
     property bool widgetsEditing: false
+    property KeybindService keybindService: KeybindService { settingsService: root.settingsService }
     property SettingsUsage usage: SettingsUsage { }
 
     property string userName: Quickshell.env("USER") || ""
@@ -129,6 +131,7 @@ QtObject {
             widgetsEditing: root.widgetsEditing
             onWidgetsEditingRequested: on => root.widgetsEditing = on
             polkitService: root.polkitService
+            keybindService: root.keybindService
             settingsReady: root.settingsService.ready
             captureSettings: root.settingsService.values
             onCaptureSettingsChangedRequested: patch => root.settingsService.update(patch)
@@ -239,6 +242,7 @@ QtObject {
             onAnimationsChangedRequested: enabled => root.settingsService.update({animationsEnabled: enabled})
             onIslandRotationEnabledChangedRequested: enabled => root.settingsService.update({islandRotationEnabled: enabled})
             onIslandRotationSecondsChangedRequested: seconds => root.settingsService.update({islandRotationSeconds: seconds})
+            onPreferredAppsChangedRequested: patch => root.settingsService.update(patch)
             onPreferredTerminalChangedRequested: terminalId => root.settingsService.update({preferredTerminal: terminalId})
             onPreferredFileManagerChangedRequested: fileManagerId => root.settingsService.update({preferredFileManager: fileManagerId})
             niriColorIntegration: root.settingsService.niriColorIntegration
