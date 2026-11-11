@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 case "${1:-}" in
     unit)
         python3 tests/keybinds.py
+        python3 tests/wallpaper-scan.py
         python3 tests/cursor-theme.py
         python3 tests/calendar.py
         python3 tests/system-monitor.py

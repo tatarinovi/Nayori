@@ -4,10 +4,10 @@ import QtQuick.Controls
 import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Dialogs
-import Qt.labs.folderlistmodel
 import Quickshell
 import "../canvas"
 import "../../services/palette"
+import "../../services/canvas"
 
 ScrollView {
     id: root
@@ -22,6 +22,24 @@ ScrollView {
     property bool draftShared: true
     property bool draftEnabled: true
     property url libraryFolder: ""
+    property url browsingFolder: libraryFolder
+    property var folderHistory: []
+    function openFolder(folder) {
+        folderHistory = folderHistory.concat([String(browsingFolder)])
+        browsingFolder = folder
+        searchText = ""
+        appliedSearch = ""
+        gallery.positionViewAtBeginning()
+    }
+    function goUp() {
+        if (!folderHistory.length) return
+        const history = folderHistory.slice()
+        browsingFolder = history.pop()
+        folderHistory = history
+        searchText = ""
+        appliedSearch = ""
+        gallery.positionViewAtBeginning()
+    }
     property string searchText: ""
     property string appliedSearch: ""
     property bool desktopPreview: true
@@ -44,7 +62,13 @@ ScrollView {
         restoringLibrary = false
         libraryLoaded = true
     }
-    onLibraryFolderChanged: if (!restoringLibrary && libraryLoaded) librarySave.restart()
+    onLibraryFolderChanged: {
+        browsingFolder = libraryFolder
+        folderHistory = []
+        searchText = ""
+        appliedSearch = ""
+        if (!restoringLibrary && libraryLoaded) librarySave.restart()
+    }
     onSearchTextChanged: searchDelay.restart()
     onDraftSourceChanged: previewDelay.restart()
     onDraftModeChanged: previewDelay.restart()
@@ -78,11 +102,6 @@ ScrollView {
                 && manager.state.shared === draftShared) { manager.cancelPreview(); return }
         manager.preview(output, draftSource, draftMode, draftShared)
     }
-    function filters() {
-        // QDir wildcard character classes keep the query literal.
-        const query = appliedSearch.replace(/[\[\]*?]/g, ch => ch === "[" ? "[[]" : ch === "]" ? "[]]" : "[" + ch + "]")
-        return ["png", "jpg", "jpeg", "webp"].map(ext => "*" + query + "*." + ext)
-    }
     Timer { id: searchDelay; interval: 120; onTriggered: root.appliedSearch = root.searchText.trim() }
     Timer { id: previewDelay; interval: 80; onTriggered: root.updatePreview() }
     Timer {
@@ -94,7 +113,7 @@ ScrollView {
         }
     }
     AccentExtractor { id: draftPalette; source: root.visible ? root.draftSource : "" }
-    readonly property int imageCount: images.count
+    readonly property int imageCount: images.imageCount
     readonly property bool canApply: manager && manager.ready && !manager.saving
         && (preview.loaded || !draftEnabled) && (draftShared || selectedScreen !== null)
     function apply() {
@@ -122,19 +141,12 @@ ScrollView {
         return items
     }
     readonly property string folderText: {
-        let path = decodeURIComponent(String(root.libraryFolder).replace(/^file:\/\//, ""))
+        let path = decodeURIComponent(String(root.browsingFolder).replace(/^file:\/\//, ""))
         const home = Quickshell.env("HOME") || ""
         if (home && (path === home || path.startsWith(home + "/"))) path = "~" + path.slice(home.length)
         return path
     }
-    readonly property string countText: {
-        const n = images.count
-        const last = n % 10
-        const word = n % 100 >= 11 && n % 100 <= 14 ? "изображений"
-            : last === 1 ? "изображение"
-            : last >= 2 && last <= 4 ? "изображения" : "изображений"
-        return n + " " + word
-    }
+    readonly property string countText: "Папки: " + images.folderCount + " · Обои: " + images.imageCount
 
     // Normally only the gallery scrolls. The page scrolls only when the window is
     // too short to give the gallery one full row.
@@ -266,15 +278,12 @@ ScrollView {
         currentFolder: root.libraryFolder
         onAccepted: root.libraryFolder = selectedFolder
     }
-    FolderListModel {
+    WallpaperLibrary {
         id: images
         objectName: "wallpaper-library-model"
-        folder: root.libraryFolder
-        showDirs: false
-        showHidden: false
-        nameFilters: root.filters()
-        caseSensitive: false
-        sortField: FolderListModel.Name
+        folder: root.browsingFolder
+        query: root.appliedSearch
+        enabled: root.visible
     }
     FileDialog {
         id: picker
@@ -516,7 +525,7 @@ ScrollView {
             TextField {
                 objectName: "wallpaper-search"
                 Layout.fillWidth: true
-                placeholderText: "Поиск по имени файла"
+                placeholderText: "Поиск в текущей папке"
                 text: root.searchText
                 onTextEdited: root.searchText = text
                 color: root.tokens.color.text
@@ -531,29 +540,6 @@ ScrollView {
                 Layout.fillWidth: true
                 Layout.fillHeight: false
                 spacing: 8
-                Rectangle {
-                    visible: !root.compact
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                    implicitHeight: 40
-                    radius: root.tokens.radius.small + 4
-                    color: root.tokens.material.sidebar
-                    border.width: 1
-                    border.color: root.tokens.color.border
-                    SettingsNavGlyph {
-                        id: folderGlyph
-                        width: 20; height: 20
-                        name: "folder"
-                        ink: root.tokens.color.textMuted
-                        anchors { left: parent.left; leftMargin: 14; verticalCenter: parent.verticalCenter }
-                    }
-                    Caption {
-                        objectName: "wallpaper-folder-path"
-                        anchors { left: folderGlyph.right; leftMargin: 12; right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
-                        text: root.folderText
-                        elide: Text.ElideMiddle; wrapMode: Text.NoWrap
-                    }
-                }
                 Action { text: "Выбрать папку…"; onClicked: folderPicker.open() }
                 Rectangle {
                     visible: root.width >= 560
@@ -594,10 +580,26 @@ ScrollView {
                 }
             }
 
+            RowLayout {
+                Layout.fillWidth: true
+                Action {
+                    objectName: "wallpaper-folder-up"
+                    text: "Назад"
+                    enabled: root.folderHistory.length > 0
+                    onClicked: root.goUp()
+                }
+                Caption {
+                    objectName: "wallpaper-folder-path"
+                    Layout.fillWidth: true
+                    text: root.folderText
+                    elide: Text.ElideMiddle
+                    wrapMode: Text.NoWrap
+                }
+            }
             Caption {
                 visible: images.count === 0
                 Layout.fillWidth: true
-                text: images.status === FolderListModel.Loading ? "Загрузка изображений…" : root.appliedSearch ? "Изображения не найдены. Измените запрос." : "В папке нет доступных изображений. Выберите другую папку."
+                text: images.loading ? "Загрузка изображений…" : root.appliedSearch ? "Ничего не найдено. Измените запрос." : "В папке нет обоев и вложенных папок."
                 color: root.tokens.color.textMuted
             }
             GridView {
@@ -612,7 +614,7 @@ ScrollView {
                 Layout.preferredHeight: cellHeight
                 cellWidth: width / columns
                 cellHeight: (cellWidth - gap) * 9 / 16 + 6 + labelHeight + gap
-                model: images
+                model: images.model
                 reuseItems: true
                 cacheBuffer: cellHeight
                 clip: true
@@ -622,15 +624,16 @@ ScrollView {
                     id: thumbnail
                     required property url fileUrl
                     required property string fileName
+                    required property bool isFolder
                     required property int index
-                    readonly property bool selected: String(root.draftSource) === String(fileUrl)
+                    readonly property bool selected: !isFolder && String(root.draftSource) === String(fileUrl)
                     width: gallery.cellWidth - gallery.gap
                     height: gallery.cellHeight - gallery.gap
                     hoverEnabled: true
                     focusPolicy: Qt.StrongFocus
-                    Accessible.name: fileName
+                    Accessible.name: isFolder ? "Папка: " + fileName : fileName
                     Accessible.selected: selected
-                    onClicked: root.chooseSource(fileUrl)
+                    onClicked: isFolder ? root.openFolder(fileUrl) : root.chooseSource(fileUrl)
                     onActiveFocusChanged: if (activeFocus) {
                         gallery.positionViewAtIndex(index, GridView.Contain)
                     }
@@ -645,11 +648,18 @@ ScrollView {
                                 Rectangle { anchors.fill: parent; color: root.tokens.color.background }
                                 Image {
                                     anchors.fill: parent
-                                    source: thumbnail.fileUrl
+                                    source: thumbnail.isFolder ? "" : thumbnail.fileUrl
                                     sourceSize: Qt.size(320, 180)
                                     asynchronous: true
                                     fillMode: Image.PreserveAspectCrop
                                 }
+                            }
+                            SettingsNavGlyph {
+                                anchors.centerIn: parent
+                                width: 40; height: 40
+                                visible: thumbnail.isFolder
+                                name: "folder"
+                                ink: root.tokens.color.accent
                             }
                             Rectangle {
                                 anchors.fill: parent

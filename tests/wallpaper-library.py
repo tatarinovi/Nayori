@@ -16,7 +16,7 @@ ShellRoot {
  Tokens { id: theme }
  Process {
   id: addImage
-  command: ["cp", "--", decodeURIComponent(String(manager.defaultSource).replace(/^file:\\/\\//, "")), decodeURIComponent(String(page.libraryFolder).replace(/^file:\\/\\//, "")) + "/added.png"]
+  command: ["cp", "--", decodeURIComponent(String(manager.defaultSource).replace(/^file:\\/\\//, "")), decodeURIComponent(String(page.libraryFolder).replace(/^file:\\/\\//, "")) + "/nested/deeper/added.png"]
  }
  WallpaperManager { id: manager; storageDirectory: Quickshell.env("NAYORI_TEST_CONFIG") }
  FloatingWindow {
@@ -53,11 +53,32 @@ ShellRoot {
     page.draftDynamic = false
     page.apply()
     if (test.colorWrites !== 2 || page.accentMode !== "default") { console.error("LIBRARY_FAIL disable automatic"); Qt.exit(1); return }
+    page.openFolder(String(page.libraryFolder) + "/nested")
+    page.openFolder(String(page.libraryFolder) + "/nested/deeper")
     addImage.running = true; test.phase = 16; return
    }
    if (test.phase === 16) {
-    if (page.imageCount !== 3) return
+    if (page.imageCount !== 2 || !String(page.browsingFolder).endsWith("/nested/deeper")) return
     console.log("LIBRARY_PASS preview/cancel/close/search/missing/manual/watch"); Qt.quit(); return
+   }
+   if (test.phase === 20) {
+    if (page.imageCount !== 0) return
+    page.openFolder(String(page.libraryFolder) + "/nested/deeper")
+    test.phase = 21; return
+   }
+   if (test.phase === 21) {
+    if (page.imageCount !== 1) return
+    if (!manager.state.wallpaper.source.endsWith("/a.png") || String(page.libraryFolder) === String(page.browsingFolder)) { console.error("LIBRARY_FAIL navigation changed selection/root"); Qt.exit(1); return }
+    page.goUp(); test.phase = 22; return
+   }
+   if (test.phase === 22) {
+    if (page.imageCount !== 0) return
+    page.goUp(); test.phase = 23; return
+   }
+   if (test.phase === 23) {
+    if (page.imageCount !== 2) return
+    if (page.folderHistory.length || String(page.libraryFolder) !== String(page.browsingFolder)) { console.error("LIBRARY_FAIL back"); Qt.exit(1); return }
+    page.searchText = "B"; test.phase = 10; return
    }
    if (test.phase === 10) {
     if (page.imageCount !== 1) return
@@ -116,7 +137,7 @@ ShellRoot {
     page.apply()
    } else if (test.phase > 8 && !manager.saving) {
     if (!manager.state.wallpaper.source.endsWith("/a.png")) { console.error("LIBRARY_FAIL apply"); Qt.exit(1); return }
-    page.searchText = "B"; test.phase = 10
+    page.openFolder(String(page.libraryFolder) + "/nested"); test.phase = 20
    }
   }
  }
@@ -128,8 +149,8 @@ try:
   base=Path(d); images=base/'images with spaces'; images.mkdir(); config=base/'config';config.mkdir()
   for name in ['a.png','B.PNG']: shutil.copy(root/'assets/wallpapers/nayori.png', images/name)
   (images/'notes.txt').write_text('ignored')
-  (images/'nested').mkdir()
-  shutil.copy(root/'assets/wallpapers/nayori.png',images/'nested/hidden.png')
+  (images/'nested/deeper').mkdir(parents=True)
+  shutil.copy(root/'assets/wallpapers/nayori.png',images/'nested/deeper/hidden.png')
   large=base/'large'; large.mkdir()
   for index in range(3000): (large/f'wall-{index:05d}.png').symlink_to(root/'tests/fixtures/palette/red.png')
   for mode in ['0','1','large']:
@@ -138,7 +159,7 @@ try:
    result=subprocess.run(['qs','-p',str(harness),'--no-color'],env=env,capture_output=True,text=True,timeout=20)
    output=result.stdout+result.stderr
    assert result.returncode == 0 and 'LIBRARY_PASS' in output and not any(s in output for s in ['LIBRARY_FAIL','TypeError','ReferenceError','Binding loop','Unable to assign']), output
-   if mode == '0': (images/'added.png').unlink(missing_ok=True)
+   if mode == '0': (images/'nested/deeper/added.png').unlink(missing_ok=True)
    print('PASS', {'0':'gallery, search, preview, cancel, hide, missing file, folder watch', '1':'folder persists after restart', 'large':'3000 images, responsive filename search'}[mode])
   assert json.loads((config/'canvas.json').read_text())['wallpaper']['source'].endswith('/a.png')
 finally: harness.unlink(missing_ok=True)
