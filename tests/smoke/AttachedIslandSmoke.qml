@@ -169,6 +169,15 @@ ShellRoot {
                 island.expanded = true
                 compare(island.width, 240)
                 island.launcherOpen = true
+                const launcher = findChild(island, "islandLauncherLoader").item
+                compare(launcher.embeddedChromeOpacity, 0)
+                compare(findChild(launcher, "embeddedLauncherRing").opacity, 0)
+                compare(findChild(launcher, "embeddedLauncherFill").opacity, 0)
+                compare(island.color, theme.color.background)
+                motion.attached = false
+                compare(launcher.embeddedChromeOpacity, 1)
+                compare(findChild(launcher, "embeddedLauncherRing").opacity, 1)
+                motion.attached = true
                 compare(island.width, 240)
                 compare(island.y, 0)
                 island.launcherOpen = false

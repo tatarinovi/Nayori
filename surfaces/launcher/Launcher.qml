@@ -16,6 +16,8 @@ Item {
     property var tokens: fallbackTokens
     property bool opened: false
     property bool embedded: false
+    // An attached host owns the full silhouette, including the search fill.
+    property real embeddedChromeOpacity: 1
     property int selectedIndex: 0
 
     signal closeRequested()
@@ -451,18 +453,20 @@ Item {
         antialiasing: true
         clip: column.implicitHeight + root.padY * 2 > root.panelMaxHeight
 
-        // Строка поиска острова: тёмная подложка и лавандовая рамка поверх капсулы.
-        // Проявляются вместе с раскрытием; рамка капсулы под ними остаётся нетронутой.
+        // Floating keeps its search capsule; an attached host fades this
+        // inner chrome out so it cannot cut a capsule across the shoulders.
         Rectangle {
             id: barFill
+            objectName: "embeddedLauncherFill"
             anchors.fill: parent
             visible: root.embedded && !root.tokens.frosted
             radius: Math.min(height / 2, 24)
             color: root.tokens.color.background
-            opacity: root.opened ? 1 : 0
+            property real reveal: root.opened ? 1 : 0
+            opacity: reveal * root.embeddedChromeOpacity
             antialiasing: true
 
-            Behavior on opacity {
+            Behavior on reveal {
                 NumberAnimation {
                     duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast
                     easing.type: Easing.OutCubic
@@ -472,16 +476,18 @@ Item {
 
         Rectangle {
             id: barRing
+            objectName: "embeddedLauncherRing"
             anchors.fill: parent
             visible: root.embedded
             radius: Math.min(height / 2, 24)
             color: "transparent"
             border.width: 1
             border.color: field.activeFocus ? root.tokens.color.accentBorder : root.tokens.color.accentSoft
-            opacity: root.opened ? 1 : 0
+            property real reveal: root.opened ? 1 : 0
+            opacity: reveal * root.embeddedChromeOpacity
             antialiasing: true
 
-            Behavior on opacity {
+            Behavior on reveal {
                 NumberAnimation {
                     duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast
                     easing.type: Easing.OutCubic

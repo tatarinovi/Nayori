@@ -105,7 +105,10 @@ AttachedSurface {
         ? root.originH + (root.closedHeight - root.originH) * root.launcherBlend
         : root.restHeight)
     radius: root.morphing ? Math.min(height / 2, 24) : (24 + 4 * progress)
-    color: root.tokens.frosted ? root.tokens.material.island : Qt.tint(root.tokens.material.island, Qt.alpha(root.tokens.material.islandExpanded, progress))
+    readonly property color restingColor: root.tokens.frosted ? root.tokens.material.island
+        : Qt.tint(root.tokens.material.island, Qt.alpha(root.tokens.material.islandExpanded, progress))
+    color: root.tokens.frosted ? restingColor
+        : Qt.tint(restingColor, Qt.alpha(root.tokens.color.background, root.attachment * root.launcherBlend))
     border.width: 1
     border.color: root.tokens.color.border
     antialiasing: true
@@ -116,7 +119,7 @@ AttachedSurface {
         accent: root.tokens.color.accent
         attachment: root.attachment
         cornerRadius: root.radius
-        pulse: compact.musicPulse
+        pulse: compact.musicPulse * (1 - root.launcherBlend)
     }
 
     Behavior on closedWidth {
@@ -312,6 +315,7 @@ AttachedSurface {
             sourceComponent: Launcher {
                 tokens: root.tokens
                 embedded: true
+                embeddedChromeOpacity: 1 - root.attachment
                 panelWidth: root.launcherWidth
                 onCloseRequested: root.launcherDismissed()
             }
