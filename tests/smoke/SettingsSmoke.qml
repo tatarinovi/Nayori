@@ -889,6 +889,7 @@ ShellRoot {
                 } else {
                     settings.update({
                         "weatherCity": "  Москва  ",
+                        "islandPlacement": "attached",
                         "weatherRefreshMinutes": 30,
                         "colorScheme": "light",
                         "surfaceStyle": "frosted",

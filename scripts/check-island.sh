@@ -34,7 +34,7 @@ timeout 10s qs -p tests/smoke/IslandWheelSmoke.qml --no-color > "$runtime/wheel.
 cat "$runtime/wheel.log"
 rg -q ISLAND_WHEEL_PASS "$runtime/wheel.log"
 ! rg -q 'FAIL!|Error:|Unable to assign|ReferenceError|TypeError|Failed to load configuration' "$runtime/wheel.log"
-timeout 12s qs -p tests/smoke/NotificationUiSmoke.qml --no-color > "$runtime/notification-ui.log" 2>&1
+timeout 12s qs -p tests/smoke/NotificationUiSmoke.qml --no-color > "$runtime/notification-ui.log" 2>&1 || { cat "$runtime/notification-ui.log"; exit 1; }
 cat "$runtime/notification-ui.log"
 rg -q NOTIFICATION_UI_PASS "$runtime/notification-ui.log"
 ! rg -q 'FAIL!|Error:|Unable to assign|ReferenceError|TypeError|Failed to load configuration' "$runtime/notification-ui.log"

@@ -71,7 +71,14 @@ ShellRoot {
             anchors.verticalCenter: island.verticalCenter
         }
         }
-        Timer { interval: 300; running: true; onTriggered: tests.run() }
+        Timer {
+            interval: 300
+            running: true
+            onTriggered: {
+                try { tests.run() }
+                catch (error) { console.error("NOTIFICATION_UI_FAIL " + error.stack); Qt.exit(1) }
+            }
+        }
         TestCase {
             id: tests
             name: "NotificationUi"
@@ -129,8 +136,11 @@ ShellRoot {
                 verify(sourceLabel.visible, "следующее уведомление появляется в свёрнутом острове")
                 records.close(7)
                 island.expanded = true
-                verify(!mediaControls.visible)
-                verify(!sideClock.visible)
+                verify(!mediaControls.showing)
+                verify(!mediaControls.enabled)
+                // Attached controls remain visible while their exit animation finishes.
+                tryCompare(mediaControls, "visible", false, 1000)
+                tryCompare(sideClock, "visible", false, 1000)
                 verify(!island.lyricsClock)
                 wait(350)
                 verify(island.notificationPage)

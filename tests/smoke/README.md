@@ -42,6 +42,13 @@ qs -p tests/smoke/NaomiPixelSmoke.qml
 конфигурацией, mock Niri и offscreen Qt. Проверяет поиск, фильтры и подтверждение
 черновика, создание/отключение/удаление пользовательского бинда без живого IPC.
 
+The keybind fixture uses valid multiline KDL. Searching `Terminal` must return
+both the configured Niri bind and the unassigned `registry:apps.terminal` action;
+searching `spawn` returns only the configured bind. An unmatched query must
+produce an empty list. `tests/keybinds.py` validates the initial fixture with
+real Niri before checking edits and rollback, so malformed fixture errors include
+the validator output.
+
 ### Desktop blur
 
 `DesktopBlurSmoke.qml` feeds fixture snapshots and events into the shared Niri
@@ -87,3 +94,11 @@ an isolated Wayland check. See [STARTUP_SPLASH.md](../../docs/STARTUP_SPLASH.md)
 капсул, прерывание перехода Floating ↔ Attached, изменение размеров и палитры,
 затухание музыкальных кнопок и отключённые анимации. CI запускает его offscreen
 с временными XDG-каталогами; живую оболочку и Niri стенд не запускает.
+
+`NotificationUiSmoke.qml` checks that media controls stop accepting input as soon
+as the island expands, then waits for their exit animation before checking
+visibility. Assertion failures print a stack and exit immediately; the island
+runner preserves that output in CI instead of reporting only a timeout.
+
+The `SettingsSmoke.qml` write scenario explicitly selects `islandPlacement:
+"attached"` before persistence checks; the missing-key default remains `floating`.

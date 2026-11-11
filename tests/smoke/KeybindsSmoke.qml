@@ -21,8 +21,8 @@ ShellRoot {
     FloatingWindow {
         id: window
         visible: true
-        width: 1000
-        height: 900
+        implicitWidth: 1000
+        implicitHeight: 900
         Flickable {
             anchors.fill: parent
             contentHeight: page.implicitHeight
@@ -53,7 +53,14 @@ ShellRoot {
                 const search = test.find(page, "keybindSearch")
                 test.check(!!search, "search exists")
                 search.text = "Terminal"
-                test.check(page.shown.length === 1, "instant action search")
+                // Search includes both the configured bind and the unassigned app action.
+                test.check(page.shown.length === 2
+                    && page.shown.some(row => row.title === "Terminal" && row.adapter === "niri")
+                    && page.shown.some(row => row.id === "registry:apps.terminal"), "instant action search")
+                search.text = "spawn"
+                test.check(page.shown.length === 1 && page.shown[0].title === "Terminal", "command search")
+                search.text = "no-such-keybind-fixture"
+                test.check(page.shown.length === 0, "unmatched search")
                 search.text = "Mod+Return"
                 test.check(page.shown.length === 1, "key search")
                 search.text = ""

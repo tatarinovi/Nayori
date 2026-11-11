@@ -219,7 +219,9 @@ binds {
     @unittest.skipUnless(shutil.which("niri"), "niri validate unavailable")
     def test_real_validation_without_session(self):
         # Use the actual validator, never niri msg, on disposable files only.
-        self.child.write_text('binds { Mod+Return { spawn "kitty"; } }\n')
+        self.child.write_text('binds {\n    Mod+Return { spawn "kitty"; }\n}\n')
+        baseline = subprocess.run(["niri", "validate", "-c", str(self.path)], capture_output=True, text=True)
+        self.assertEqual(baseline.returncode, 0, baseline.stdout + baseline.stderr)
         result = self.apply("rebind", self.niri_rows()[0], keys="Super+F10", validator=kb.config.niri_validate)
         self.assertTrue(result["ok"], result)
         result = self.apply("create", keys="Super+F11", title="New", kind="niri", value="close-window", validator=kb.config.niri_validate)
@@ -236,7 +238,7 @@ def smoke():
         base = Path(temporary)
         path = base / "config/niri/config.kdl"
         path.parent.mkdir(parents=True)
-        path.write_text('binds { Mod+Return hotkey-overlay-title="Terminal" { spawn "kitty"; } }\n')
+        path.write_text('binds {\n    Mod+Return hotkey-overlay-title="Terminal" { spawn "kitty"; }\n}\n')
         binary = base / "bin"
         binary.mkdir()
         log = base / "niri.log"
