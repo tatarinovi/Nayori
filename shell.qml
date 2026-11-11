@@ -44,7 +44,7 @@ ShellRoot {
     function beginSession() {
         if (sessionStarted || !appearanceReady || (bootState.present && !bootState.covered)) return
         sessionStarted = true
-        session.setSource(Qt.resolvedUrl("ShellSession.qml"), {startup: bootState, startupCache: cache})
+        session.setSource(Qt.resolvedUrl("surfaces/ShellSession.qml"), {startup: bootState, startupCache: cache})
         session.active = true
     }
     Loader {

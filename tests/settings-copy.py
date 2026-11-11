@@ -7,7 +7,7 @@ import tempfile
 
 root = Path(__file__).resolve().parents[1]
 
-shell = (root / "ShellSession.qml").read_text()
+shell = (root / "surfaces/ShellSession.qml").read_text()
 status_start = shell.index("readonly property string accentStatus")
 status_end = shell.index("readonly property string niriAccentError")
 accent_status = shell[status_start:status_end]

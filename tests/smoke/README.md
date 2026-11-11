@@ -102,3 +102,7 @@ runner preserves that output in CI instead of reporting only a timeout.
 
 The `SettingsSmoke.qml` write scenario explicitly selects `islandPlacement:
 "attached"` before persistence checks; the missing-key default remains `floating`.
+
+Основная сессия bootstrap находится в `surfaces/ShellSession.qml`; ссылка
+`surfaces` уже открывает её стендам. Корневой `ShellSession.qml` оставлен
+переходником для совместимости со старыми updater.

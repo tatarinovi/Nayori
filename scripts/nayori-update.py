@@ -12,7 +12,7 @@ import tempfile
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from installer.core import Engine, Paths, InstallError, sync_directory
+from installer.core import Engine, Paths, InstallError, sync_directory, validate_runtime_entrypoints
 
 REMOTE = 'https://github.com/tatarinovi/Nayori.git'
 SCRIPT_ROOT = Path(__file__).resolve().parents[1]
@@ -133,7 +133,7 @@ def restart_process(pid, start, launcher, runtime):
 
 def execute(operation, wanted=None):
     paths = Paths()
-    if not installed(paths):
+    if operation != 'refresh-launcher' and not installed(paths):
         return {'ok': True, 'installed': False}
     if operation == 'restart':
         return prepare_restart(paths, os.getppid())
@@ -143,6 +143,12 @@ def execute(operation, wanted=None):
         if engine.pending():
             raise InstallError('Сначала завершите восстановление прерванной установки')
         current, manifest, previous = state(paths)
+        if operation == 'refresh-launcher':
+            # Explicitly usable from a source checkout to bootstrap old launchers.
+            # The release pointers and running shell remain untouched.
+            update_launcher(paths, SCRIPT_ROOT)
+            return {'ok': True, 'installed': True,
+                    'message': 'Launcher обновлён. Теперь доступна команда nayori update.'}
         if operation == 'check':
             remote = git('ls-remote', '--exit-code', REMOTE, 'refs/heads/main').split()[0]
             if not SHA.fullmatch(remote):
@@ -162,6 +168,7 @@ def execute(operation, wanted=None):
                 if commit == manifest.get('commit'):
                     raise InstallError('Эта версия уже установлена')
                 new = Engine(paths=paths, source=source)._copy_release(manifest.get('components', ['nayori']))
+                validate_runtime_entrypoints(new)
                 if release(paths, 'current') != current:
                     raise InstallError('Установленная версия изменилась во время обновления')
                 update_launcher(paths, new)

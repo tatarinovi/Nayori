@@ -13,10 +13,54 @@ import tempfile
 INSTALL_BASE = None  # Replaced by the installer, never inferred from a mutable CWD.
 
 
+def update_release(base, options):
+    if options not in ([], ["--check"]):
+        raise RuntimeError("Использование: nayori update [--check]")
+    release = (base / "current").resolve(strict=True)
+    if release.parent != (base / "releases").resolve():
+        raise RuntimeError("Некорректный указатель установленной версии")
+    script = release / "scripts/nayori-update.py"
+    if not (release / "manifest.json").is_file() or not script.is_file():
+        raise RuntimeError("В установленной версии нет updater Nayori")
+
+    def request(operation, *arguments):
+        result = subprocess.run(
+            [sys.executable, str(script), operation, *arguments],
+            capture_output=True, text=True,
+        )
+        try:
+            reply = json.loads(result.stdout)
+        except ValueError:
+            raise RuntimeError(result.stderr.strip() or "Updater вернул некорректный ответ") from None
+        if not isinstance(reply, dict) or not reply.get("ok") or result.returncode:
+            message = reply.get("error") if isinstance(reply, dict) else None
+            raise RuntimeError(message or result.stderr.strip() or "Не удалось обновить Nayori")
+        if reply.get("installed") is not True:
+            raise RuntimeError("Установленная версия Nayori не найдена")
+        return reply
+
+    checked = request("check")
+    if not checked.get("available"):
+        print("Nayori уже обновлена.")
+        return 0
+    latest = checked.get("latest")
+    if not isinstance(latest, str) or len(latest) != 40 or any(c not in "0123456789abcdef" for c in latest):
+        raise RuntimeError("Updater вернул некорректный идентификатор версии")
+    if options == ["--check"]:
+        print("Доступно обновление Nayori: " + latest[:12])
+        return 0
+    print("Устанавливаем обновление Nayori…", flush=True)
+    applied = request("apply", latest)
+    print(applied.get("message") or "Обновление установлено. Перезапустите Nayori.")
+    return 0
+
+
 def main():
     base = Path(INSTALL_BASE)
-    runtime = Path(os.environ["XDG_RUNTIME_DIR"]) / "nayori"
     args = sys.argv[1:]
+    if args and args[0] == "update":
+        return update_release(base, args[1:])
+    runtime = Path(os.environ["XDG_RUNTIME_DIR"]) / "nayori"
     if args and args[0] in ("ipc", "status", "settings", "-stop"):
         if args[0] == "-stop" and len(args) != 1:
             raise RuntimeError("Использование: nayori -stop")
@@ -48,7 +92,7 @@ def main():
         return subprocess.call(command)
     if args:
         raise RuntimeError(
-            "Использование: nayori [ipc TARGET METHOD [ARGS...] | settings | status | -stop]"
+            "Использование: nayori [update [--check] | ipc TARGET METHOD [ARGS...] | settings | status | -stop]"
         )
     runtime.mkdir(mode=0o700, parents=True, exist_ok=True)
     info = runtime.lstat()

@@ -12,7 +12,7 @@ Nayori — оболочка на Quickshell и QML. Вход — `shell.qml`, о
 |---|---|---|
 | Токены | `tokens/Tokens.qml`, `tokens/AccentRoles.js` | Роли цвета, шаг, шрифт, длительность |
 | Настройки | `services/settings/SettingsService.qml` | Выбор человека, файл `settings.json` |
-| Сессия запуска | свойства `Scope` в `ShellSession.qml` | Какие поверхности открыты в этом процессе |
+| Сессия запуска | свойства `Scope` в `surfaces/ShellSession.qml` | Какие поверхности открыты в этом процессе |
 | Сервисы | `services/` | Сокет niri, звук, сеть, обои, буфер, музыка, погода |
 | Поверхности | `surfaces/`, `islands/` | Окна слоя и их жест |
 
@@ -22,7 +22,7 @@ Nayori — оболочка на Quickshell и QML. Вход — `shell.qml`, о
 
 ## Вход
 
-`shell.qml` сначала читает кэш палитры и показывает splash. После первого кадра Loader загружает `ShellSession.qml`: этот Scope создаёт сервисы и держит флаги запуска. На каждый подключённый экран `Variants` строит `surfaces/panel/ScreenPanels.qml`. Экран с `focus-at-startup` в конфигурации niri задаёт `probeScreen`, обои для акцента и полный экран основного монитора; если он отключён или не задан, используется первый подключённый экран Quickshell. `Niri.focusedOutput` для этой привязки не используется.
+`shell.qml` сначала читает кэш палитры и показывает splash. После первого кадра Loader загружает `surfaces/ShellSession.qml`: этот Scope создаёт сервисы и держит флаги запуска. На каждый подключённый экран `Variants` строит `surfaces/panel/ScreenPanels.qml`. Экран с `focus-at-startup` в конфигурации niri задаёт `probeScreen`, обои для акцента и полный экран основного монитора; если он отключён или не задан, используется первый подключённый экран Quickshell. `Niri.focusedOutput` для этой привязки не используется.
 
 Сервисы, которые оболочка создаёт сама:
 
@@ -34,9 +34,9 @@ Nayori — оболочка на Quickshell и QML. Вход — `shell.qml`, о
 - `SettingsController` — окно настроек
 - `SuperTap` — клавиша Super открывает и закрывает меню Пуск
 
-Флаги сессии живут на корневом `Scope` в `ShellSession.qml`: `launcherOpened` и `overlayScreen`, `startMenuOutput`, `clipboardOpened`, `settingsController.opened`. Меню Пуск одно на все мониторы. Раскрытый Dynamic Island — свойство `expandedOpened` внутри `ScreenPanels`, у каждого экрана своё.
+Флаги сессии живут на корневом `Scope` в `surfaces/ShellSession.qml`: `launcherOpened` и `overlayScreen`, `startMenuOutput`, `clipboardOpened`, `settingsController.opened`. Меню Пуск одно на все мониторы. Раскрытый Dynamic Island — свойство `expandedOpened` внутри `ScreenPanels`, у каждого экрана своё.
 
-Связанные закрытия в `ShellSession.qml`: Пуск закрывает буфер; лаунчер закрывает буфер; буфер закрывает лаунчер и просит открытый Пуск переключиться; настройки закрывают буфер и лаунчер.
+Связанные закрытия в `surfaces/ShellSession.qml`: Пуск закрывает буфер; лаунчер закрывает буфер; буфер закрывает лаунчер и просит открытый Пуск переключиться; настройки закрывают буфер и лаунчер.
 
 Команды `qs ipc` этого процесса:
 
@@ -54,7 +54,7 @@ Nayori — оболочка на Quickshell и QML. Вход — `shell.qml`, о
 
 ```text
 shell.qml                 ранний bootstrap
-ShellSession.qml          отложенная основная сессия
+surfaces/ShellSession.qml отложенная основная сессия
 tokens/Tokens.qml
 tokens/AccentRoles.js
 services/niri/             синглтон Niri, акцент, правило обзора
@@ -110,7 +110,7 @@ surfaces/clipboard/
 
 ## Токены и акцент
 
-Определение ролей одно: `tokens/Tokens.qml`. В `ShellSession.qml` два экземпляра; отдельные лёгкие токены bootstrap задают типографику и анимации splash.
+Определение ролей одно: `tokens/Tokens.qml`. В `surfaces/ShellSession.qml` два экземпляра; отдельные лёгкие токены bootstrap задают типографику и анимации splash.
 
 Экземпляр оболочки получает `surfaceStyle`, `animationsEnabled`, акцент и нейтрали. Его читают панели, остров, настройки, буфер и Canvas. В `Launcher.qml` есть запасной `Tokens`, если свойство `tokens` пустое. Живой остров передаёт экземпляр оболочки. Экземпляр Naomi получает `animationsEnabled` и цвет `AccentExtractor`, в том числе при `accentMode: default`. `surfaceStyle` и нейтрали с обоев ему не передаются, поэтому стекло оболочки на Naomi не распространяется. Подробности заливок: [MATERIALS.md](MATERIALS.md).
 
@@ -162,7 +162,7 @@ surfaces/clipboard/
 
 Нижние острова и Dynamic Island стоят с `ExclusionMode.Ignore`. Место у краёв отдаёт `ReservedSpace`. Клавиатуру верхний остров берёт на время поиска (`Exclusive`) и раскрытия (`OnDemand`) и отпускает в покое. Поведение островов, автоскрытие и полный экран: [PANEL.md](PANEL.md). Жест лисы, уведомления и раскладка капсулы: [ISLAND_INTERACTION.md](ISLAND_INTERACTION.md). Музыка и текст песни: [MUSIC_LYRICS.md](MUSIC_LYRICS.md).
 
-Маршрут верхнего острова между мониторами считает `services/ui/IslandRouting.js`. Имя выхода (`screen.name`) связывает снимок niri, обои и перенос острова. Полный экран читает `FullscreenGuard`: один на основной экран в `ShellSession.qml`, по одному в `ScreenPanels` и в окне Naomi.
+Маршрут верхнего острова между мониторами считает `services/ui/IslandRouting.js`. Имя выхода (`screen.name`) связывает снимок niri, обои и перенос острова. Полный экран читает `FullscreenGuard`: один на основной экран в `surfaces/ShellSession.qml`, по одному в `ScreenPanels` и в окне Naomi.
 
 Лаунчер ищет приложения по `DesktopEntries` и запускает `execute()`. Оценка строки живёт в `services/Apps.qml`. Файлы и папки ищет `services/launcher/` в домашней папке и каталогах XDG, вне потока интерфейса. Команда появляется только у запроса с префиксом `>` и запускается списком аргументов, без оболочки. Меню Пуск создаёт свой экземпляр каталога и свой `SessionActions` для блокировки, выхода и питания.
 
@@ -194,7 +194,7 @@ surfaces/clipboard/
 
 ## Подтверждение действий
 
-`PolkitService` в `ShellSession.qml` по умолчанию не регистрирует агент: ключ `polkitAgent` выключен. После включения он проверяет имя `org.freedesktop.PolicyKit1.AuthenticationAgent` на шинах и только потом создаёт `Quickshell.Services.Polkit.PolkitAgent`. Регистрация и проверка пароля остаются у polkit и `polkit-agent-helper-1`. Чужой агент не останавливается. Диалог и блокировка используют выбранный основной экран. Подробности — [POLKIT.md](POLKIT.md).
+`PolkitService` в `surfaces/ShellSession.qml` по умолчанию не регистрирует агент: ключ `polkitAgent` выключен. После включения он проверяет имя `org.freedesktop.PolicyKit1.AuthenticationAgent` на шинах и только потом создаёт `Quickshell.Services.Polkit.PolkitAgent`. Регистрация и проверка пароля остаются у polkit и `polkit-agent-helper-1`. Чужой агент не останавливается. Диалог и блокировка используют выбранный основной экран. Подробности — [POLKIT.md](POLKIT.md).
 
 ## Bluetooth
 
@@ -221,7 +221,7 @@ IPC `apps` запускает пять ролей приложений чере�
 
 `shell.qml` читает `StartupCache`, фиксирует сохранённую палитру, создаёт общий
 `StartupState` и Overlay-поверхности `surfaces/startup/StartupWindow.qml` на всех
-мониторах. Только после их первого кадра загружается `ShellSession.qml`. Они ждут настроек,
+мониторах. Только после их первого кадра загружается `surfaces/ShellSession.qml`. Они ждут настроек,
 палитры, Niri и первых кадров обоев, панелей и Dynamic Island; после затухания
 поверхности удаляются. Прежняя `SessionEntrance` при запуске не подключена.
 Условия готовности, ошибки и ограничения: [STARTUP_SPLASH.md](STARTUP_SPLASH.md).

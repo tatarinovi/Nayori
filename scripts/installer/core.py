@@ -125,6 +125,21 @@ def inventory(root):
     return result
 
 
+def validate_runtime_entrypoints(root):
+    """Reject a payload whose bootstrap refers to a missing local QML file."""
+    root = root.resolve()
+    shell = root / "shell.qml"
+    if not shell.is_file():
+        raise InstallError("В версии отсутствует shell.qml")
+    references = re.findall(
+        r"Qt\.resolvedUrl\(\s*([\"'])([^\"']+\.qml)\1\s*\)", shell.read_text()
+    )
+    for _, relative in references:
+        target = (root / relative).resolve()
+        if not target.is_relative_to(root) or not target.is_file():
+            raise InstallError(f"В версии отсутствует стартовый QML: {relative}")
+
+
 def remove(path):
     if path.is_dir() and not path.is_symlink():
         shutil.rmtree(path)
@@ -618,6 +633,7 @@ class Engine:
                     or not path.resolve().is_relative_to(stage)
                 ):
                     raise InstallError(f"Ссылка вне версии: {path}")
+            validate_runtime_entrypoints(stage)
             # Always verify PAM: LockService loads it even when not selected in this run.
             original = validate_pam(self.source / "pam/nayori-lock", self.source)
             if validate_pam(stage / "pam/nayori-lock", stage) != original:

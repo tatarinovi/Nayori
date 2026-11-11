@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import time
 from unittest import mock
@@ -30,6 +31,7 @@ with tempfile.TemporaryDirectory(prefix='nayori-update-test-') as tmp:
         new = paths.base / 'releases' / 'new'
         new.mkdir()
         (new / 'manifest.json').write_text(json.dumps({'commit': 'b' * 40, 'components': ['nayori']}))
+        (new / 'shell.qml').write_text('import QtQuick\nQtObject {}\n')
         (new / 'scripts/installer').mkdir(parents=True)
         (new / 'scripts/installer/launcher.py').write_text((root / 'scripts/installer/launcher.py').read_text())
         paths.bin.mkdir(parents=True)
@@ -47,6 +49,16 @@ with tempfile.TemporaryDirectory(prefix='nayori-update-test-') as tmp:
                 raise AssertionError('changed main accepted')
             except update.InstallError:
                 assert (paths.base / 'current').resolve() == old
+            (new / 'shell.qml').write_text('Qt.resolvedUrl("surfaces/ShellSession.qml")')
+            launcher_before = (paths.bin / 'nayori').read_bytes()
+            try:
+                update.execute('apply', checked['latest'])
+                raise AssertionError('incomplete startup payload accepted')
+            except update.InstallError:
+                assert (paths.base / 'current').resolve() == old
+                assert (paths.bin / 'nayori').read_bytes() == launcher_before
+                assert not (paths.base / 'previous').exists()
+            (new / 'shell.qml').write_text('import QtQuick\nQtObject {}\n')
             applied = update.execute('apply', checked['latest'])
             assert applied['rollback'] and (paths.base / 'current').resolve() == new
             assert 'INSTALL_BASE = ' + repr(str(paths.base)) in (paths.bin / 'nayori').read_text()
@@ -54,6 +66,16 @@ with tempfile.TemporaryDirectory(prefix='nayori-update-test-') as tmp:
             rolled = update.execute('rollback')
             assert rolled['current'] == 'a' * 40 and (paths.base / 'current').resolve() == old
             assert (paths.base / 'previous').resolve() == new
+        # Bootstrap the new launcher directly from a checkout, even though
+        # execute(check/apply) correctly rejects non-installed script roots.
+        update.SCRIPT_ROOT = root
+        current_before = (paths.base / 'current').readlink()
+        with mock.patch.object(update.subprocess, 'Popen') as spawn:
+            assert update.execute('refresh-launcher')['ok']
+            spawn.assert_not_called()
+        assert 'def update_release' in (paths.bin / 'nayori').read_text()
+        assert (paths.base / 'current').readlink() == current_before
+        update.SCRIPT_ROOT = old
         invalid = home / 'invalid'
         (invalid / 'scripts/installer').mkdir(parents=True)
         (invalid / 'scripts/installer/launcher.py').write_text('invalid launcher')
@@ -155,3 +177,51 @@ with tempfile.TemporaryDirectory(prefix='nayori-launcher-lock-test-') as tmp:
             except ProcessLookupError:
                 pass
 print('Nayori launcher lock tests passed')
+
+# Exercise the installed CLI with a disposable updater, no running shell,
+# no XDG_RUNTIME_DIR and no network or package commands.
+with tempfile.TemporaryDirectory(prefix='nayori-launcher-update-test-') as tmp:
+    home = Path(tmp)
+    base = home / 'data/nayori'
+    release = base / 'releases/one'
+    (release / 'scripts').mkdir(parents=True)
+    (release / 'manifest.json').write_text('{"components": []}')
+    (base / 'current').symlink_to('releases/one')
+    launcher = home / 'nayori'
+    launcher.write_text((root / 'scripts/installer/launcher.py').read_text().replace(
+        'INSTALL_BASE = None', 'INSTALL_BASE = ' + repr(str(base))))
+    fake = release / 'scripts/nayori-update.py'
+    fake.write_text('''import json, os, sys
+from pathlib import Path
+mode = os.environ['UPDATE_SCENARIO']
+action = sys.argv[1]
+with Path(os.environ['UPDATE_CALLS']).open('a') as stream:
+    stream.write(json.dumps(sys.argv[1:]) + '\\n')
+if mode == 'invalid':
+    print('invalid JSON')
+elif mode == 'check-failed' or (mode == 'apply-failed' and action == 'apply'):
+    print(json.dumps({'ok': False, 'error': 'fixture failure'}))
+else:
+    print(json.dumps({'ok': True, 'installed': True, 'available': mode != 'current',
+                      'latest': 'b' * 40, 'message': 'fixture installed'}))
+''')
+    for scenario, arguments, expected, ok in (
+        ('available', [], [['check'], ['apply', 'b' * 40]], True),
+        ('available', ['--check'], [['check']], True),
+        ('current', [], [['check']], True),
+        ('check-failed', [], [['check']], False),
+        ('apply-failed', [], [['check'], ['apply', 'b' * 40]], False),
+        ('invalid', [], [['check']], False),
+        ('available', ['unexpected'], [], False),
+    ):
+        calls = home / 'calls.jsonl'
+        calls.unlink(missing_ok=True)
+        env = dict(os.environ, UPDATE_SCENARIO=scenario, UPDATE_CALLS=str(calls))
+        env.pop('XDG_RUNTIME_DIR', None)
+        result = subprocess.run([sys.executable, str(launcher), 'update', *arguments],
+                                env=env, capture_output=True, text=True, timeout=10)
+        assert (result.returncode == 0) == ok, (scenario, result.stdout, result.stderr)
+        actual = [json.loads(line) for line in calls.read_text().splitlines()] if calls.exists() else []
+        assert actual == expected, (scenario, actual)
+        assert (base / 'current').readlink() == Path('releases/one')
+print('Nayori update CLI tests passed')

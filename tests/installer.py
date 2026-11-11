@@ -26,6 +26,7 @@ from scripts.installer.core import (
     inventory,
     resolve_components,
     validate_pam,
+    validate_runtime_entrypoints,
 )
 
 
@@ -206,6 +207,30 @@ class EngineTests(Fixture):
                 self.engine.apply({"nayori"}, set())
         self.assertEqual((self.paths.base / "current").readlink(), original)
         self.assertIsNone(self.engine.pending())
+
+    def test_pre_splash_copy_list_keeps_bootstrap_session(self):
+        # This is the copy contract of an already-installed pre-splash updater.
+        # It cannot learn about new files at the repository root during apply.
+        (self.source / "shell.qml").write_text((ROOT / "shell.qml").read_text())
+        (self.source / "surfaces/ShellSession.qml").write_text("import Quickshell\nScope {}\n")
+        payload = self.root / "legacy-payload"
+        payload.mkdir()
+        for name in ("shell.qml", "tokens", "services", "surfaces", "islands", "assets", "pam", "scripts"):
+            source, target = self.source / name, payload / name
+            if source.is_dir():
+                shutil.copytree(source, target)
+            else:
+                shutil.copy2(source, target)
+        self.assertFalse((payload / "ShellSession.qml").exists())
+        validate_runtime_entrypoints(payload)
+        self.assertTrue((payload / "surfaces/ShellSession.qml").is_file())
+
+    def test_missing_startup_session_rejects_release(self):
+        (self.source / "shell.qml").write_text((ROOT / "shell.qml").read_text())
+        with self.assertRaisesRegex(InstallError, "стартовый QML"):
+            self.engine._copy_release(["nayori"])
+        self.assertFalse((self.paths.base / "current").exists())
+        self.assertEqual(list((self.paths.base / "releases").iterdir()), [])
 
     def test_niri_validation_failure_preserves_original(self):
         self.paths.niri.mkdir(parents=True)
@@ -526,6 +551,8 @@ class EngineTests(Fixture):
         current = (self.paths.base / "current").resolve()
         self.assertTrue((current / "sddm/nayori/Main.qml").is_file())
         self.assertTrue((current / "configs/niri/config.kdl").is_file())
+        self.assertTrue((current / "surfaces/ShellSession.qml").is_file())
+        validate_runtime_entrypoints(current)
         for name in ("LICENSE", "NOTICE", "LICENSES/OFL-1.1.txt"):
             self.assertTrue((current / name).is_file(), name)
         self.assertEqual(self.engine.modified_files(), [])

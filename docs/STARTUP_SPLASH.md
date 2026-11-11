@@ -3,7 +3,7 @@
 `shell.qml` создаёт полноэкранный `StartupWindow` на каждом выходе Quickshell.
 Он использует слой Overlay, namespace `nayori-startup`, нулевую exclusive zone
 и эксклюзивный ввод. Сначала отображается splash, затем после его первого кадра
-асинхронный Loader загружает `ShellSession.qml` с сервисами и поверхностями.
+асинхронный Loader загружает `surfaces/ShellSession.qml` с сервисами и поверхностями.
 Даже импорты основной оболочки откладываются до первого кадра splash.
 Запросы Пуска, лаунчера, буфера, захвата и настроек
 игнорируются, пока splash присутствует. Прежняя `SessionEntrance` больше
@@ -36,6 +36,10 @@ Session lock и интерфейсы безопасности compositor ост�
 не может. Он не заменяет экран входа или загрузку compositor. Функция работает
 при входе и запуске Nayori; после обычного разблокирования повторного splash нет.
 Завершённый показ не повторяется при горячей перезагрузке QML.
+
+Корневой `ShellSession.qml` — переходник для промежуточных updater. Основной файл
+лежит внутри `surfaces/`, чтобы старые updater с прежним списком файлов доставляли
+его вместе с остальными поверхностями. Подробнее — [INSTALLER.md](INSTALLER.md).
 
 ## Ранний запуск и сохранённая палитра
 
@@ -154,12 +158,12 @@ hotplug нескольких мониторов требуют отдельно�
 
 | Файлы | Назначение |
 |---|---|
-| `shell.qml`, `ShellSession.qml` | Ранний bootstrap и отложенная основная сессия |
+| `shell.qml`, `surfaces/ShellSession.qml` | Ранний bootstrap и отложенная основная сессия |
 | `services/startup/StartupCache.qml`, `StartupState.qml` | Кэш последнего вида и барьер готовности |
 | `surfaces/startup/StartupWindow.qml`, `StartupCover.qml`, `StartupArtwork.qml`, `FirstFrame.qml` | Слой, затухание, оформление и подтверждение кадров |
 | `surfaces/canvas/WallpaperWindow.qml`, `WallpaperCrossfade.qml` | Готовность изображения и первого кадра фона |
 | `surfaces/panel/ScreenPanels.qml` | Готовность панелей и слой под splash |
 | `services/settings/SettingsService.qml`, `surfaces/settings/{AppearancePage,Settings,SettingsWindow,SettingsController}.qml` | Настройки и их сохранение |
-| `scripts/installer/core.py` | Включение ShellSession.qml в устанавливаемую версию |
+| `scripts/installer/core.py` | Проверка стартового QML и совместимость состава устанавливаемой версии |
 | `tests/startup-splash.py`, `tests/smoke/StartupSplashSmoke.qml`, `scripts/ci-tests.sh` | Регрессии в CI |
 | `tests/installer.py`, `tests/settings-copy.py`, `tests/quick-capture-routing.cjs`, `tests/smoke/ShellSession.qml` | Совместимость проверок с разделением точки входа |

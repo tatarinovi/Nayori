@@ -4,7 +4,7 @@ const path = require('node:path')
 const vm = require('node:vm')
 
 // Execute the real IPC opening logic without starting a desktop shell.
-const shell = fs.readFileSync(path.join(__dirname, '../ShellSession.qml'), 'utf8')
+const shell = fs.readFileSync(path.join(__dirname, '../surfaces/ShellSession.qml'), 'utf8')
 const start = shell.indexOf('    function openQuickCapture() {')
 const end = shell.indexOf('    function finishQuickCaptureLocation(', start)
 assert(start >= 0 && end > start)
