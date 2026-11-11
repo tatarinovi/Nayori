@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 
-Rectangle {
+AttachedSurface {
     id: root
     objectName: "compactMediaIsland"
     required property var tokens
@@ -26,7 +26,7 @@ Rectangle {
     border.width: 1
     border.color: tokens.color.border
     antialiasing: true
-    visible: showing && reveal > 0.001
+    visible: reveal > 0.001
     enabled: showing
     opacity: reveal
     transform: Translate { x: root.tokens.motion.off ? 0 : (1 - root.reveal) * -root.tokens.spacing.small }
@@ -39,6 +39,7 @@ Rectangle {
     }
     Canvas {
         id: progress
+        visible: root.attachment === 0
         objectName: "compactMediaProgress"
         anchors.fill: parent
         property real amount: root.paintedProgress
@@ -69,6 +70,22 @@ Rectangle {
             c.beginPath()
             c.roundedRect(1.5, 1.5, width - 3, height - 3, radius - 1.5, radius - 1.5)
             c.stroke()
+        }
+    }
+    Item {
+        x: -root.shoulder
+        width: (root.width + 2 * root.shoulder) * root.paintedProgress
+        height: root.height
+        clip: true
+        visible: root.attachment > 0 && root.paintedProgress > 0
+        AttachedPath {
+            x: root.shoulder
+            width: root.width; height: root.height
+            attachment: root.attachment
+            cornerRadius: root.radius
+            fillColor: Qt.alpha(root.tokens.color.accent, 0.055)
+            strokeColor: Qt.alpha(root.tokens.color.accent, 0.8)
+            strokeWidth: 3
         }
     }
     Row {

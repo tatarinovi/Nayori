@@ -591,6 +591,7 @@ ShellRoot {
                     settings.recover();
                     test.phase = 3;
                 } else if (test.scenario === "normalize") {
+                    test.check(settings.islandPlacement === "floating", "missing placement defaults to floating");
                     test.check(settings.topReserved === 4 && settings.bottomReserved === 0, "normalize loaded reservations");
                     test.check(settings.autoHideTop === false && settings.animationsEnabled === true && settings.weatherCity === "", "invalid and missing fields use defaults");
                     test.check(!settings.dirty, "load normalization does not write");
@@ -719,6 +720,13 @@ ShellRoot {
                         test.check(settings.notificationSources[0].mode === "normal" && settings.notificationSources[1].mode === "off", "source modes are normalized");
                         test.check(settings.notificationSources[1].key === "name:Захват экрана", "name source is kept");
                     }
+                    for (const invalid of ["left", "right", "bottom", "", null, 1, true, {}]) {
+                        settings.update({islandPlacement: "attached"});
+                        settings.update({islandPlacement: invalid});
+                        test.check(settings.islandPlacement === "floating", "invalid placement uses floating");
+                    }
+                    settings.update({islandPlacement: "attached"});
+                    test.check(settings.islandPlacement === "attached", "attached applies immediately");
                     test.check(settings.islandRotationEnabled === true && settings.islandRotationSeconds === 15, "rotation defaults");
                     test.check(settings.preferredTerminal === "kitty" && settings.preferredFileManager === "io.github.lgse.Strata", "app defaults");
                     test.check(settings.niriColorIntegration === true && settings.strataThemeIntegration === true, "integration defaults");
@@ -757,6 +765,7 @@ ShellRoot {
                     settings.flush(true);
                     test.finish();
                 } else if (test.scenario === "restore") {
+                    test.check(settings.islandPlacement === "attached", "placement survives restart");
                     test.check(settings.workspaceIndicatorStyle === "kanji", "workspace style survives restart");
                     test.check(settings.weatherCity === "Москва" && settings.topReserved === 200 && !settings.animationsEnabled && settings.weatherRefreshMinutes === 30 && settings.surfaceStyle === "frosted" && settings.startIconStyle === "fox", "restored values");
                     test.check(settings.colorScheme === "light", "restored light scheme");

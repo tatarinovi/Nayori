@@ -171,6 +171,7 @@ QtObject {
             onWindowBorderChangedRequested: patch => root.settingsService.update(patch)
             quickCaptureValues: root.settingsService.values
             onQuickCaptureChangedRequested: patch => root.settingsService.update(patch)
+            islandPlacement: root.settingsService.islandPlacement
             islandRotationEnabled: root.settingsService.islandRotationEnabled
             islandRotationSeconds: root.settingsService.islandRotationSeconds
             startIconStyle: root.settingsService.startIconStyle
@@ -242,6 +243,7 @@ QtObject {
             onManualAccentChangedRequested: color => root.settingsService.update({manualAccent: color, accentMode: "manual"})
             onAccentResetRequested: root.settingsService.update({accentMode: "default", manualAccent: "#C0AFD1"})
             onAnimationsChangedRequested: enabled => root.settingsService.update({animationsEnabled: enabled})
+            onIslandPlacementChangedRequested: placement => root.settingsService.update({islandPlacement: placement})
             onIslandRotationEnabledChangedRequested: enabled => root.settingsService.update({islandRotationEnabled: enabled})
             onIslandRotationSecondsChangedRequested: seconds => root.settingsService.update({islandRotationSeconds: seconds})
             onPreferredAppsChangedRequested: patch => root.settingsService.update(patch)

@@ -25,6 +25,14 @@ Scope {
     required property var shellState
     readonly property var tokenSet: shellState.tokenSet
     readonly property var tokens: tokenSet
+    AttachmentMotion {
+        id: attachmentMotion
+        tokens: root.tokens
+        attached: root.shellState.islandPlacement === "attached"
+    }
+    readonly property real attachment: attachmentMotion.progress
+    readonly property real islandTop: attachmentMotion.topOffset
+    readonly property real capsuleGap: attachmentMotion.gap
     // Keep even late-mapped panels below the splash until its fade completes.
     // set_layer updates the existing Wayland surface; it does not recreate it.
     readonly property bool startupBlocking: !!shellState.startupState && shellState.startupState.present
@@ -170,7 +178,7 @@ Scope {
         return Math.round((root.panelScreen.width - capsule.width) / 2)
     }
     function capsuleScreenY() {
-        return root.tokens.spacing.small + Math.round(capsule.y)
+        return Math.round(capsule.y)
     }
     onLauncherHereChanged: {
         if (!launcherHere)
@@ -383,7 +391,7 @@ Scope {
             autoHide: (root.topMode === "auto")
             obstructed: root.obstruction({
                 x: root.panelScreen ? (root.panelScreen.width - capsule.implicitWidth) / 2 : 0,
-                y: root.tokens.spacing.small,
+                y: root.islandTop,
                 width: capsule.implicitWidth,
                 height: capsule.implicitHeight
             })
@@ -422,10 +430,10 @@ Scope {
         anchors.bottom: false
         anchors.left: false
         anchors.right: false
-        margins.top: root.tokens.spacing.small
+        margins.top: 0
         implicitWidth: Math.min(root.panelScreen ? root.panelScreen.width : 1200,
-            Math.max(792, capsule.closedWidth + 2 * (Math.max((lyricClock.visible ? lyricClock.width + root.tokens.spacing.small : 0) + (captureControls.visible ? captureControls.width + root.tokens.spacing.small : 0), mediaControls.width) + root.tokens.spacing.small)))
-        implicitHeight: Math.min(662, root.panelScreen ? root.panelScreen.height - 16 : 662)
+            Math.max(792, capsule.naturalClosedWidth + 2 * (Math.max((lyricClock.visible ? lyricClock.width + root.tokens.spacing.small : 0) + (captureControls.visible ? captureControls.width + root.tokens.spacing.small : 0), mediaControls.width) + root.tokens.spacing.small + 36 * root.attachment)))
+        implicitHeight: Math.min(670, root.panelScreen ? root.panelScreen.height - 8 : 670)
         onVisibleChanged: {
             if (visible && root.launcherHere)
                 Qt.callLater(islandWindow.focusLauncherField)
@@ -457,43 +465,22 @@ Scope {
 
         Region {
             id: islandGlass
-            Region { x: Math.round(captureControls.x); y: Math.round(captureControls.y); width: captureControls.visible ? Math.round(captureControls.width) : 0; height: captureControls.visible ? 48 : 0; radius: 24 }
-            Region { item: capsule; radius: Math.round(capsule.radius) }
-            // Explicit bounds: Region.item keeps the item's geometry even while it is hidden.
-            Region {
-                x: Math.round(lyricClock.x)
-                y: Math.round(lyricClock.y)
-                width: lyricClock.visible ? Math.round(lyricClock.width) : 0
-                height: lyricClock.visible ? Math.round(lyricClock.height) : 0
-                radius: 24
-            }
-            // Explicit bounds: Region.item keeps the item's geometry even while it is hidden.
-            Region {
-                x: Math.round(mediaControls.x)
-                y: Math.round(mediaControls.y)
-                width: mediaControls.visible ? Math.round(mediaControls.width) : 0
-                height: mediaControls.visible ? Math.round(mediaControls.height) : 0
-                radius: 24
-            }
+            AttachedRegion { surface: capsule }
+            AttachedRegion { surface: mediaControls }
+            AttachedRegion { surface: lyricClock }
+            AttachedRegion { surface: captureControls }
         }
         BackgroundEffect.blurRegion: root.tokens.frosted && (root.launcherHere || root.quickCaptureHere || (!root.fullscreen && root.fullscreenReveal === 1)) ? islandGlass : null
         mask: (root.fullscreen || !topVisibility.shown) && !root.launcherHere && !root.quickCaptureHere ? emptyInputMask : islandMask
         Region {
             id: islandMask
-            Region { x: Math.round(captureControls.x); y: Math.round(captureControls.y); width: captureControls.visible ? Math.round(captureControls.width) : 0; height: captureControls.visible ? 48 : 0; radius: 24 }
-            Region { item: capsule; radius: Math.round(capsule.radius) }
-            // Explicit bounds: Region.item keeps the item's geometry even while it is hidden.
-            Region {
-                x: Math.round(mediaControls.x)
-                y: Math.round(mediaControls.y)
-                width: mediaControls.visible ? Math.round(mediaControls.width) : 0
-                height: mediaControls.visible ? Math.round(mediaControls.height) : 0
-                radius: 24
-            }
+            AttachedRegion { surface: capsule }
+            AttachedRegion { surface: mediaControls }
+            AttachedRegion { surface: captureControls }
         }
 
         RectangularShadow {
-            opacity: islandWindow.contentOpacity
+            opacity: islandWindow.contentOpacity * (1 - root.attachment)
             anchors.fill: capsule
             radius: capsule.radius
             blur: 16
@@ -505,8 +492,14 @@ Scope {
 
         MorphingIsland {
             systemMonitorService: root.shellState.systemMonitorService || null
-            availableWidth: Math.max(1, islandWindow.width - 16)
-            availableHeight: Math.max(1, islandWindow.height - 16)
+            attachment: root.attachment
+            // Reserve the visible neighbours throughout their exit, including
+            // the shoulders. Centre remains on the monitor, even on narrow ones.
+            availableWidth: Math.max(1, islandWindow.width - 2 * (8 + root.attachment * (4 + Math.max(
+                (mediaControls.width + root.capsuleGap) * mediaControls.reveal,
+                (lyricClock.width + root.capsuleGap) * lyricClock.reveal
+                    + (captureControls.visible ? captureControls.width + root.capsuleGap : 0)))))
+            availableHeight: Math.max(1, islandWindow.height - root.islandTop - 16)
             systemUpdateService: root.shellState.systemUpdateService || null
             quickCaptureService: root.shellState.quickCaptureService || null
             quickCaptureOpen: root.quickCaptureHere
@@ -536,7 +529,7 @@ Scope {
                 root.shellState.openSettings("weather")
             }
             anchors.top: parent.top
-            anchors.topMargin: islandWindow.arrivalShift
+            anchors.topMargin: root.islandTop + islandWindow.arrivalShift
             anchors.horizontalCenter: parent.horizontalCenter
             tokens: root.tokenSet
             active: islandWindow.visible
@@ -559,38 +552,44 @@ Scope {
         }
 
         CompactMediaControls {
+            attachment: root.attachment
             id: mediaControls
             z: 2
             tokens: root.tokens
             player: capsule.compactPlayer
             position: root.shellState.islandMusic ? root.shellState.islandMusic.position : 0
-            showing: capsule.compactControls
+            showing: capsule.compactControls && islandWindow.width >= 640
             anchors.verticalCenter: capsule.verticalCenter
+            anchors.verticalCenterOffset: -root.attachment * (capsule.height - height) / 2
             anchors.left: capsule.right
-            anchors.leftMargin: root.tokens.spacing.small
+            anchors.leftMargin: root.capsuleGap
             opacity: reveal * islandWindow.contentOpacity
             HoverHandler { id: mediaHover }
         }
 
         CompactClock {
+            attachment: root.attachment
             id: lyricClock
             z: 2
             tokens: root.tokens
-            showing: capsule.lyricsClock
+            showing: capsule.lyricsClock && islandWindow.width >= 640
             active: islandWindow.visible
             anchors.verticalCenter: capsule.verticalCenter
+            anchors.verticalCenterOffset: -root.attachment * (capsule.height - height) / 2
             anchors.right: capsule.left
-            anchors.rightMargin: root.tokens.spacing.small
+            anchors.rightMargin: root.capsuleGap
             opacity: reveal * islandWindow.contentOpacity
         }
         CaptureCapsule {
+            attachment: root.attachment
             id: captureControls
             z: 2
             tokens: root.tokens
             service: root.captureService
             anchors.verticalCenter: capsule.verticalCenter
+            anchors.verticalCenterOffset: -root.attachment * (capsule.height - height) / 2
             anchors.right: lyricClock.visible ? lyricClock.left : capsule.left
-            anchors.rightMargin: root.tokens.spacing.small
+            anchors.rightMargin: root.capsuleGap
             opacity: islandWindow.contentOpacity
         }
     }

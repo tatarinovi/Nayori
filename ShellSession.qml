@@ -622,6 +622,7 @@ Scope {
     readonly property bool autoHideStatus: settingsStore.autoHideStatus
     readonly property int topReserved: settingsStore.topReserved
     readonly property int bottomReserved: settingsStore.bottomReserved
+    readonly property string islandPlacement: settingsStore.islandPlacement
     readonly property bool islandRotationEnabled: settingsStore.islandRotationEnabled
     readonly property int islandRotationSeconds: settingsStore.islandRotationSeconds
     readonly property string startIconStyle: settingsStore.startIconStyle

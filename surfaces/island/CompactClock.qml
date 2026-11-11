@@ -2,12 +2,12 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 
-Rectangle {
+AttachedSurface {
     id: root
     required property var tokens
     property bool showing: false
     property bool active: true
-    visible: showing && reveal > 0.001
+    visible: reveal > 0.001
     height: 48
     radius: height / 2
     width: lyricClockText.implicitWidth + root.tokens.spacing.medium * 2

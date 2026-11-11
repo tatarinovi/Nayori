@@ -48,6 +48,8 @@ FloatingWindow {
     signal windowBorderChangedRequested(var patch)
     property var quickCaptureValues: ({})
     signal quickCaptureChangedRequested(var patch)
+    property string islandPlacement: "floating"
+    signal islandPlacementChangedRequested(string placement)
     property bool islandRotationEnabled: true
     property int islandRotationSeconds: 15
     property string startIconStyle: "current"
@@ -191,6 +193,7 @@ FloatingWindow {
         onWindowBorderChangedRequested: patch => root.windowBorderChangedRequested(patch)
         quickCaptureValues: root.quickCaptureValues
         onQuickCaptureChangedRequested: patch => root.quickCaptureChangedRequested(patch)
+        islandPlacement: root.islandPlacement
         islandRotationEnabled: root.islandRotationEnabled
         islandRotationSeconds: root.islandRotationSeconds
         startIconStyle: root.startIconStyle
@@ -246,6 +249,7 @@ FloatingWindow {
         onDndUntilRequested: until => root.dndUntilRequested(until)
         onDndManualRequested: root.dndManualRequested()
         onDndClearRequested: root.dndClearRequested()
+        onIslandPlacementChangedRequested: placement => root.islandPlacementChangedRequested(placement)
         onIslandRotationEnabledChangedRequested: enabled => root.islandRotationEnabledChangedRequested(enabled)
         onIslandRotationSecondsChangedRequested: seconds => root.islandRotationSecondsChangedRequested(seconds)
         onPreferredAppsChangedRequested: patch => root.preferredAppsChangedRequested(patch)

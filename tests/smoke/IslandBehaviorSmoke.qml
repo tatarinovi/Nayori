@@ -73,6 +73,14 @@ ShellRoot {
             console.log("ISLAND_BEHAVIOR_PASS"); Qt.quit()
         })
     }
+    function find(item, name) {
+        if (item.objectName === name) return item
+        for (const child of item.children || []) {
+            const found = find(child, name)
+            if (found) return found
+        }
+        return null
+    }
     function check(value, message) { if (!value) throw new Error(message) }
     Timer {
         running: Quickshell.env("NAYORI_ISLAND_AUTOTEST") === "1"; interval: 200
@@ -94,7 +102,7 @@ ShellRoot {
             island.expanded = false
             root.check(notifications.current === null, "no replay")
             island.expanded = true
-            const page = island.children.find(c => c.objectName === "islandDashboardLoader").item
+            const page = root.find(island, "islandDashboardLoader").item
             root.check(page.currentPage === 0 && !island.notificationPage, "reopening defaults to home")
             island.notificationPage = true
             page.navigateWheel(120, 1000)

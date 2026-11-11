@@ -45,6 +45,7 @@ QtObject {
     readonly property bool animationsEnabled: values.animationsEnabled
     readonly property string weatherCity: values.weatherCity
     readonly property int weatherRefreshMinutes: values.weatherRefreshMinutes
+    readonly property string islandPlacement: values.islandPlacement
     readonly property bool islandRotationEnabled: values.islandRotationEnabled
     readonly property int islandRotationSeconds: values.islandRotationSeconds
     readonly property string startIconStyle: values.startIconStyle
@@ -209,6 +210,7 @@ QtObject {
             "quickCaptureContext": "Work",
             "quickCaptureWorkPath": "Inbox/Work",
             "quickCapturePersonalPath": "Inbox/Personal",
+            "islandPlacement": "floating",
             "islandRotationEnabled": true,
             "islandRotationSeconds": 15,
             "superTapEnabled": true,
@@ -283,6 +285,9 @@ QtObject {
 
         if (key === "weatherRefreshMinutes")
             return typeof value === "number" && isFinite(value) && Math.floor(value) === value && value >= 1 && value <= 180 ? value : fallback;
+
+        if (key === "islandPlacement")
+            return value === "floating" || value === "attached" ? value : fallback;
 
         if (key === "islandRotationSeconds") {
             if (typeof value !== "number" || !isFinite(value))

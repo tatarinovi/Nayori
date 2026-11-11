@@ -3,7 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import "../island"
 
-Rectangle {
+AttachedSurface {
     id: root
     required property var tokens
     required property var service

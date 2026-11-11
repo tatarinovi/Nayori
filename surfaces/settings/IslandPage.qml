@@ -6,6 +6,8 @@ import QtQuick.Controls
 Column {
     id: root
     required property var tokens
+    property string islandPlacement: "floating"
+    signal islandPlacementChangedRequested(string placement)
     property bool islandRotationEnabled: true
     property int islandRotationSeconds: 15
     property string weatherCity: ""
@@ -34,6 +36,25 @@ Column {
         color: root.tokens.color.textMuted
         font.pixelSize: 13
          text: "Остров и кнопка «Пуск» читают эти значения из настроек Nayori" 
+    }
+    Label { text: "Расположение острова" }
+    SettingsSegmented {
+        objectName: "islandPlacementSelector"
+        tokens: root.tokens
+        width: Math.min(parent.width, 360)
+        equalWidth: true
+        model: [{key: "floating", label: "Floating — плавающий"}, {key: "attached", label: "Attached — у края"}]
+        currentKey: root.islandPlacement
+        onActivated: key => root.islandPlacementChangedRequested(key)
+        onFocusReceived: root.reveal(this)
+    }
+    Label {
+        width: parent.width
+        font.pixelSize: 13
+        color: root.tokens.color.textMuted
+        text: root.islandPlacement === "attached"
+            ? "Остров и боковые капсулы соединяются с верхним краем экрана. Остров раскрывается вниз"
+            : "Капсулы со скруглёнными углами располагаются с отступом от верхнего края экрана"
     }
     SettingsToggle {
         objectName: "islandRotationToggle"

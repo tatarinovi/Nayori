@@ -62,6 +62,8 @@ FocusScope {
     signal windowBorderChangedRequested(var patch)
     property var quickCaptureValues: ({})
     signal quickCaptureChangedRequested(var patch)
+    property string islandPlacement: "floating"
+    signal islandPlacementChangedRequested(string placement)
     property bool islandRotationEnabled: true
     property int islandRotationSeconds: 15
     property string startIconStyle: "current"
@@ -797,10 +799,12 @@ FocusScope {
                 IslandPage {
                     width: parent.width
                     tokens: root.tokens
+                    islandPlacement: root.islandPlacement
                     islandRotationEnabled: root.islandRotationEnabled
                     islandRotationSeconds: root.islandRotationSeconds
                     weatherCity: root.weatherCity
                     weatherRefreshMinutes: root.weatherRefreshMinutes
+                    onIslandPlacementChangedRequested: placement => root.islandPlacementChangedRequested(placement)
                     onIslandRotationEnabledChangedRequested: enabled => root.islandRotationEnabledChangedRequested(enabled)
                     onIslandRotationSecondsChangedRequested: seconds => root.islandRotationSecondsChangedRequested(seconds)
                     onWeatherCityChangedRequested: city => root.weatherCityChangedRequested(city)

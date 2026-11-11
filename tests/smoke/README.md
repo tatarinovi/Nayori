@@ -82,3 +82,8 @@ continue, failed wallpaper fallback, accent tinting, frozen startup palette/cach
 It uses temporary XDG directories and offscreen FloatingWindows with the real
 StartupCover; layer-shell stacking and physical monitor presentation require
 an isolated Wayland check. See [STARTUP_SPLASH.md](../../docs/STARTUP_SPLASH.md).
+
+`AttachedIslandSmoke.qml` проверяет общую геометрию верхнего острова и боковых
+капсул, прерывание перехода Floating ↔ Attached, изменение размеров и палитры,
+затухание музыкальных кнопок и отключённые анимации. CI запускает его offscreen
+с временными XDG-каталогами; живую оболочку и Niri стенд не запускает.
