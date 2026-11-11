@@ -45,11 +45,12 @@ case "${1:-}" in
             printf '\n>>> %s\n' "$test"
             python3 "tests/$test.py"
         done
-        for fixture in AttachedIsland DesktopBlur SystemMonitor SystemPageLoad CalendarPane AppsScope Battery Clipboard NaomiPixel NayoriUpdate PolkitDialog DesktopWidgetContent StatusPopup WorkspaceMotion; do
+        for fixture in DesktopContextMenu AttachedIsland DesktopBlur SystemMonitor SystemPageLoad CalendarPane AppsScope Battery Clipboard NaomiPixel NayoriUpdate PolkitDialog DesktopWidgetContent StatusPopup WorkspaceMotion; do
             log="$runtime/$fixture.log"
             timeout 20s qs -p "tests/smoke/${fixture}Smoke.qml" --no-color > "$log" 2>&1 || { cat "$log"; exit 1; }
             cat "$log"
             case "$fixture" in
+                DesktopContextMenu) marker=DESKTOP_CONTEXT_PASS ;;
                 AttachedIsland) marker=ATTACHED_ISLAND_PASS ;;
                 DesktopBlur) marker=DESKTOP_BLUR_SMOKE_PASS ;;
                 SystemPageLoad) marker=SYSTEM_PAGE_LOAD_PASS ;;

@@ -4,6 +4,7 @@ import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
 import "../../services"
+import "../../services/system"
 import "../canvas"
 import "../settings"
 import "WidgetLayout.js" as WidgetLayout
@@ -70,6 +71,9 @@ PanelWindow {
     }
     signal layoutEdited(var next)
     signal editingRequested(bool enabled)
+    signal wallpaperRequested()
+    signal searchRequested()
+    signal settingsRequested()
     signal musicStageRequested()
     signal monitorCycleRequested()
     readonly property string lyricsKey: "desktop-lyrics-" + String(root)
@@ -291,18 +295,22 @@ PanelWindow {
         desktopMenuOpen = true
         menuX = Math.max(0, Math.min(x, screenWidth - contextMenu.width))
         menuY = Math.max(0, Math.min(y, screenHeight - contextMenu.height))
-        Qt.callLater(() => contextMenu.forceActiveFocus())
     }
 
     function menuAction(action) {
         if (desktopMenuOpen) {
-            if (action === "widgets") {
-                desktopMenuOpen = false
-                editingRequested(!editing)
+            menuNotice = ""
+            if (action === "terminal") {
+                if (apps.launch(preferredTerminal)) desktopMenuOpen = false
+                else menuNotice = "Не удалось открыть терминал. Проверьте приложение в настройках"
+            } else if (["lock", "logout", "reboot", "powerOff"].indexOf(action) >= 0) {
+                session[action]()
             } else {
-                const id = action === "terminal" ? preferredTerminal : preferredFileManager
-                if (apps.launch(id)) desktopMenuOpen = false
-                else menuNotice = "Не удалось открыть приложение"
+                desktopMenuOpen = false
+                if (action === "widgets") editingRequested(!editing)
+                else if (action === "wallpaper") wallpaperRequested()
+                else if (action === "search") searchRequested()
+                else if (action === "settings") settingsRequested()
             }
             return
         }
@@ -629,26 +637,27 @@ PanelWindow {
             }
         }
     }
+    SessionActions {
+        id: session
+        onStarted: root.desktopMenuOpen = false
+        onFailed: function(action, message) { root.menuNotice = message; root.desktopMenuOpen = true }
+    }
     FocusScope {
         id: contextMenu
         objectName: "desktop-widget-menu"
         z: 100
-        visible: root.menuVisible && (root.desktopMenuOpen || !!root.placement(root.menuId))
+        readonly property bool desktopPresentation: root.desktopMenuOpen || (desktopMenu.presenting && root.menuId === "")
+        visible: desktopPresentation || (root.menuId !== "" && !!root.placement(root.menuId))
         x: root.menuX
         y: root.menuY
-        width: root.desktopMenuOpen ? 304 : 224
-        height: menuColumn.implicitHeight + 12
+        width: desktopPresentation ? desktopMenu.implicitWidth : 224
+        height: desktopPresentation ? desktopMenu.implicitHeight : menuColumn.implicitHeight + 12
         onHeightChanged: if (visible) root.menuY = Math.max(0, Math.min(root.menuY, root.screenHeight - height))
         activeFocusOnTab: true
         Keys.onEscapePressed: function(event) { root.menuId = ""; root.desktopMenuOpen = false; event.accepted = true }
         readonly property var item: root.placement(root.menuId)
         readonly property var metrics: item && item.type === "system" ? WidgetLayout.normalizeMetrics(item.metrics) : []
         readonly property var entries: {
-            if (root.desktopMenuOpen) return [
-                { action: "terminal", text: "Терминал" },
-                { action: "files", text: "Файлы" },
-                { action: "widgets", text: "Редактировать рабочий стол", icon: "edit-desktop" }
-            ]
             const list = [
                 { action: "move", text: "Переместить" },
                 { action: "smaller", text: "Уменьшить" },
@@ -665,7 +674,20 @@ PanelWindow {
             list.push({ action: "remove", text: "Удалить" })
             return list
         }
+        DesktopContextMenu {
+            id: desktopMenu
+            anchors.fill: parent
+            visible: presenting && root.menuId === ""
+            tokens: root.tokens
+            opened: root.desktopMenuOpen && root.visible
+            wallpaperSource: root.visualBackdrop ? root.editorWallpaper.source : ""
+            busy: session.busy
+            notice: root.menuNotice
+            onRequested: action => root.menuAction(action)
+            onDismissed: root.desktopMenuOpen = false
+        }
         Rectangle {
+            visible: !contextMenu.desktopPresentation
             anchors.fill: parent
             radius: root.tokens.radius.medium
             color: root.tokens.material.menu
@@ -674,6 +696,7 @@ PanelWindow {
         }
         Column {
             id: menuColumn
+            visible: !contextMenu.desktopPresentation
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top

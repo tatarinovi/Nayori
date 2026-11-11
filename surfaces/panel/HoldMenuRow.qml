@@ -7,6 +7,7 @@ MenuRow {
 
     property bool holdEnabled: true
     property real holdProgress: 0
+    backgroundProgress: tile ? holdProgress : 0
     signal held()
 
     Accessible.description: "Удерживайте 500 миллисекунд"
@@ -14,11 +15,12 @@ MenuRow {
     function cancelHold() {
         holdTimer.stop()
         progressAnimation.stop()
-        holdProgress = 0
+        resetAnimation.restart()
     }
 
     onDownChanged: {
         if (down && holdEnabled && enabled) {
+            resetAnimation.stop()
             holdProgress = 0
             progressAnimation.restart()
             holdTimer.restart()
@@ -28,6 +30,8 @@ MenuRow {
     }
     onHoldEnabledChanged: if (!holdEnabled) cancelHold()
     onEnabledChanged: if (!enabled) cancelHold()
+    onVisibleChanged: if (!visible) cancelHold()
+    onActiveFocusChanged: if (!activeFocus) cancelHold()
 
     Timer {
         id: holdTimer
@@ -41,7 +45,13 @@ MenuRow {
         id: progressAnimation
         target: root
         property: "holdProgress"
-        from: 0; to: 1; duration: 500
+        from: 0; to: 1; duration: root.tokens.motion.off ? 0 : 500
+    }
+    NumberAnimation {
+        id: resetAnimation
+        target: root; property: "holdProgress"; to: 0
+        duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast
+        easing.type: Easing.OutCubic
     }
     Rectangle {
         anchors.left: parent.left
@@ -52,6 +62,6 @@ MenuRow {
         height: 2
         radius: 1
         color: root.tokens.color.accent
-        visible: root.holdProgress > 0
+        visible: !root.tile && root.holdProgress > 0
     }
 }

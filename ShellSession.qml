@@ -462,6 +462,17 @@ Scope {
                     if (enabled) desktopStage.enterWidgets(desktopOutput.modelData.name, "widgets")
                     settingsController.widgetsEditing = enabled
                 }
+                onWallpaperRequested: {
+                    desktopStage.enterWidgets(desktopOutput.modelData.name, "wallpaper")
+                    settingsController.widgetsEditing = true
+                    desktopInput.openCatalog("wallpaper")
+                }
+                onSearchRequested: {
+                    root.locatingLauncher = false
+                    root.overlayScreen = desktopOutput.modelData
+                    root.launcherOpened = true
+                }
+                onSettingsRequested: root.openSettings("")
                 onMonitorCycleRequested: {
                     const screens = Quickshell.screens
                     if (screens.length < 2) return

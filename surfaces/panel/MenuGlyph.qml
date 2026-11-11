@@ -15,7 +15,13 @@ Canvas {
         c.reset(); c.scale(width / 24, height / 24)
         c.strokeStyle = ink; c.lineWidth = 1.7
         c.lineCap = "round"; c.lineJoin = "round"; c.beginPath()
-        if (kind === "apps") {
+        if (kind === "search") {
+            c.arc(10, 10, 6, 0, Math.PI * 2)
+            c.moveTo(15, 15); c.lineTo(21, 21)
+        } else if (kind === "wallpaper") {
+            c.rect(3, 4, 18, 16)
+            c.moveTo(3, 17); c.lineTo(9, 10); c.lineTo(14, 16); c.lineTo(17, 12); c.lineTo(21, 17)
+        } else if (kind === "apps") {
             for (let x = 4; x < 20; x += 10)
                 for (let y = 4; y < 20; y += 10) c.roundedRect(x, y, 6, 6, 1.5, 1.5)
         } else if (kind === "terminal") {
