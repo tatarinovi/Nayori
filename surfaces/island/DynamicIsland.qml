@@ -327,13 +327,13 @@ Rectangle {
                     id: weatherIcon
                     tokens: root.tokens
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 7
-                    height: 12.25
+                    width: 14
+                    height: 14
                     weatherCode: root.weather ? root.weather.weatherCode : null
                 }
                 IslandText {
                     id: tempLabel
-                    x: weatherIcon.width + 1
+                    x: weatherIcon.width + 3
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.weatherReady && root.weather ? root.weather.temp_C + "°" : ""
                     color: root.tokens.color.textMuted
