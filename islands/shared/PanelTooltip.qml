@@ -21,7 +21,8 @@ PopupWindow {
     Region { id: glassRegion; item: root.contentItem; radius: root.tokens.radius.small }
     BackgroundEffect.blurRegion: root.tokens.frosted ? glassRegion : null
     grabFocus: false
-    implicitWidth: Math.min(300, label.implicitWidth + 26)
+    // Popup widths are integral; rounding down steals space from the last glyph.
+    implicitWidth: Math.min(300, Math.ceil(label.implicitWidth) + 26)
     implicitHeight: label.contentHeight + 20
     mask: Region {}
 
