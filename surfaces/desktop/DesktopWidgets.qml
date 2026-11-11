@@ -68,7 +68,6 @@ PanelWindow {
     }
     signal layoutEdited(var next)
     signal editingRequested(bool enabled)
-    signal wallpaperRequested()
     signal musicStageRequested()
     signal monitorCycleRequested()
     readonly property string lyricsKey: "desktop-lyrics-" + String(root)
@@ -80,6 +79,15 @@ PanelWindow {
     property var undoStack: []
     property var redoStack: []
     property bool catalogOpen: false
+    property string localCatalogSection: "widgets"
+    readonly property string catalogSection: stageSession ? stageSession.section : localCatalogSection
+    function openCatalog(section) {
+        if (stageSession) stageSession.openSection(section)
+        else localCatalogSection = section
+        catalogOpen = true
+    }
+    readonly property var editorWallpaper: wallpaperManager
+        ? wallpaperManager.displayWallpaper(screen ? screen.name : "") : ({ source: "", mode: "fill" })
     property int idNonce: 0
     property var pendingLayout: null
     property var lastReceivedLayout: null
@@ -286,10 +294,7 @@ PanelWindow {
 
     function menuAction(action) {
         if (desktopMenuOpen) {
-            if (action === "wallpapers") {
-                desktopMenuOpen = false
-                wallpaperRequested()
-            } else if (action === "widgets") {
+            if (action === "widgets") {
                 desktopMenuOpen = false
                 editingRequested(!editing)
             } else {
@@ -394,8 +399,8 @@ PanelWindow {
             anchors.fill: parent
             visible: root.editorShowing && !!root.wallpaperManager && root.visualBackdrop
             z: -2
-            source: root.wallpaperManager ? String(root.wallpaperManager.wallpaper(root.screen ? root.screen.name : "").source) : ""
-            mode: root.wallpaperManager ? root.wallpaperManager.wallpaper(root.screen ? root.screen.name : "").mode : "fill"
+            source: String(root.editorWallpaper.source)
+            mode: root.editorWallpaper.mode
             backgroundColor: root.tokens.color.background
             reduceMotion: root.tokens.motion.off
             duration: root.tokens.motion.base
@@ -480,8 +485,11 @@ PanelWindow {
                     Accessible.name: modelData.action === "undo" ? "Отменить" : modelData.action === "redo" ? "Повторить" : text
                     onClicked: {
                         if (modelData.action === "screen") root.monitorCycleRequested()
-                        else if (modelData.action === "catalog") root.catalogOpen = !root.catalogOpen
-                        else if (modelData.action === "wallpapers") root.wallpaperRequested()
+                        else if (modelData.action === "catalog") {
+                            if (root.catalogOpen && root.catalogSection === "widgets") root.catalogOpen = false
+                            else root.openCatalog("widgets")
+                        }
+                        else if (modelData.action === "wallpapers") root.openCatalog("wallpaper")
                         else if (modelData.action === "snap") root.applyLayout({snap: !root.snapOn, items: root.itemsNow()}, true)
                         else if (modelData.action === "undo") root.undoEdit()
                         else if (modelData.action === "redo") root.redoEdit()
@@ -505,6 +513,7 @@ PanelWindow {
         color: root.tokens.material.menu
         border.color: root.tokens.color.border
         Flickable {
+            visible: root.catalogSection !== "wallpaper"
             anchors.fill: parent
             anchors.margins: 12
             contentWidth: width
@@ -533,6 +542,17 @@ PanelWindow {
                 }
             }
         }
+        }
+        Loader {
+            objectName: "desktop-wallpaper-loader"
+            anchors.fill: parent
+            anchors.margins: 12
+            active: root.editing && root.catalogOpen && root.catalogSection === "wallpaper" && !!root.wallpaperManager
+            sourceComponent: DesktopWallpaperPicker {
+                tokens: root.tokens
+                manager: root.wallpaperManager
+                output: root.screen ? root.screen.name : ""
+            }
         }
     }
 
@@ -612,7 +632,7 @@ PanelWindow {
         visible: root.menuVisible && (root.desktopMenuOpen || !!root.placement(root.menuId))
         x: root.menuX
         y: root.menuY
-        width: 224
+        width: root.desktopMenuOpen ? 304 : 224
         height: menuColumn.implicitHeight + 12
         onHeightChanged: if (visible) root.menuY = Math.max(0, Math.min(root.menuY, root.screenHeight - height))
         activeFocusOnTab: true
@@ -623,8 +643,7 @@ PanelWindow {
             if (root.desktopMenuOpen) return [
                 { action: "terminal", text: "Терминал" },
                 { action: "files", text: "Файлы" },
-                { action: "wallpapers", text: "Обои" },
-                { action: "widgets", text: "Виджеты" }
+                { action: "widgets", text: "Редактировать рабочий стол", icon: "edit-desktop" }
             ]
             const list = [
                 { action: "move", text: "Переместить" },
@@ -691,7 +710,7 @@ PanelWindow {
                             anchors.verticalCenter: parent.verticalCenter
                             width: 18
                             height: 18
-                            name: menuButton.modelData.action
+                            name: menuButton.modelData.icon || menuButton.modelData.action
                             ink: root.tokens.color.textMuted
                         }
                         DesktopLabel {

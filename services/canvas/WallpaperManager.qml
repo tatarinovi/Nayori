@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import QtCore as Core
 import "WallpaperPreview.js" as Preview
 
 QtObject {
@@ -11,11 +12,19 @@ QtObject {
     property var state: ({ version: 1, enabled: true, shared: true, wallpaper: { source: "", mode: "fill" }, outputs: {} })
     property bool ready: false
     property bool saving: false
+    property bool writeFailed: false
+    property bool refreshingWriteCache: false
     property string message: ""
     property var renderErrors: ({})
     property var previewState: null
     readonly property bool previewing: previewState !== null
     readonly property bool enabled: ready && state.enabled && Quickshell.env("NAYORI_CANVAS_DISABLED") !== "1"
+    readonly property url libraryFolder: typeof state.libraryFolder === "string" && /^file:\/\/\//.test(state.libraryFolder)
+        ? state.libraryFolder : legacyLibrary.folder
+    property Core.Settings legacyLibrary: Core.Settings {
+        location: "file://" + root.storageDirectory + "/wallpaper-library.ini"
+        property url folder: "file://" + Core.StandardPaths.writableLocation(Core.StandardPaths.PicturesLocation)
+    }
 
     function validWallpaper(value) {
         return value && typeof value.source === "string"
@@ -49,9 +58,27 @@ QtObject {
         save()
     }
     function save() {
+        if (writeFailed) {
+            // FileView also caches failed writes. Refresh that cache so an
+            // identical retry really writes, without restoring over the draft.
+            refreshingWriteCache = true
+            store.reload()
+            store.waitForJob()
+            refreshingWriteCache = false
+        }
+        const text = JSON.stringify(state, null, 2) + "\n"
+        // An unchanged setText() emits neither saved nor saveFailed.
+        // Do not enter the saving state when there is no I/O job to finish it.
+        if (store.text() === text) {
+            saving = false
+            writeFailed = false
+            message = "Обои сохранены."
+            return
+        }
         message = "Сохранение…"
         saving = true
-        store.setText(JSON.stringify(state, null, 2) + "\n")
+        writeFailed = false
+        store.setText(text)
     }
     function restore(text) {
         try {
@@ -108,8 +135,10 @@ QtObject {
         id: store
         atomicWrites: true
         printErrors: false
-        onLoaded: root.restore(text())
+        watchChanges: false
+        onLoaded: if (!root.refreshingWriteCache) root.restore(text())
         onLoadFailed: function(error) {
+            if (root.refreshingWriteCache) return
             root.ready = true
             if (error !== FileViewError.FileNotFound)
                 root.message = "Не удалось прочитать настройки обоев. Проверьте доступ к canvas.json."
@@ -117,6 +146,7 @@ QtObject {
         onSaved: { root.saving = false; root.message = "Обои сохранены." }
         onSaveFailed: {
             root.saving = false
+            root.writeFailed = true
             root.message = "Обои применены, но не сохранены. Проверьте доступ к каталогу настроек и повторите попытку."
         }
     }

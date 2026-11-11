@@ -50,8 +50,15 @@ ShellRoot {
      manager.apply("DP-2", String(manager.defaultSource), "fill", false, true)
      test.check(!manager.previewing, "commit supersedes preview")
      test.phase = 1
-    } else {
+    } else if (test.phase === 1) {
      test.check(manager.message === "Обои сохранены.", "save completed")
+     manager.apply("DP-2", String(manager.defaultSource), "fill", false, true)
+     test.check(!manager.saving && manager.message === "Обои сохранены.", "identical apply must not await saved signal")
+     manager.setLibraryFolder("file:///tmp/nayori-wallpaper-test-collection")
+     test.phase = 2
+    } else {
+     manager.setLibraryFolder("file:///tmp/nayori-wallpaper-test-collection")
+     test.check(!manager.saving && manager.message === "Обои сохранены.", "identical folder save must not await saved signal")
      console.log("PREVIEW_PASS targets/cancel/no-write/invalid/commit"); Qt.quit()
     }
    } catch (error) { console.error("PREVIEW_FAIL", error); Qt.exit(1) }

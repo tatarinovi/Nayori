@@ -33,11 +33,16 @@ Canvas {
             c.lineTo(11.5, 6.5); c.lineTo(9.5, 4.5); c.lineTo(4.5, 4.5)
             c.quadraticCurveTo(3, 4.5, 3, 6); c.lineTo(3, 7)
             c.moveTo(3, 9.5); c.lineTo(21, 9.5)
-        } else if (name === "widgets") {
-            c.rect(3, 3, 7, 7)
-            c.rect(14, 3, 7, 7)
-            c.rect(3, 14, 7, 7)
-            c.rect(14, 14, 7, 7)
+        } else if (name === "edit-desktop") {
+            // A display with a pencil: editing the whole desktop.
+            c.moveTo(20.5, 8); c.lineTo(20.5, 4); c.lineTo(3, 4)
+            c.lineTo(3, 17); c.lineTo(10, 17)
+            c.moveTo(3, 14); c.lineTo(10, 14)
+            c.moveTo(9, 17); c.lineTo(9, 21)
+            c.moveTo(6, 21); c.lineTo(12, 21)
+            c.moveTo(14, 16); c.lineTo(20, 10); c.lineTo(22, 12)
+            c.lineTo(16, 18); c.lineTo(13, 19); c.closePath()
+            c.moveTo(18.5, 11.5); c.lineTo(20.5, 13.5)
         }
         c.stroke()
     }

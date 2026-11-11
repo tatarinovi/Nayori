@@ -38,7 +38,7 @@ case "${1:-}" in
             printf '\n>>> %s\n' "$suite"
             bash "scripts/check-$suite.sh"
         done
-        for test in cursor-preview bluetooth color-scheme settings panel-modes weather-service settings-window settings-usage desktop-widgets naomi-sprite wallpaper-library wallpaper-preview lockscreen wireguard launcher-search launcher-usage launcher-interaction; do
+        for test in cursor-preview bluetooth color-scheme settings panel-modes weather-service settings-window settings-usage desktop-widgets naomi-sprite wallpaper-library wallpaper-preview desktop-wallpaper lockscreen wireguard launcher-search launcher-usage launcher-interaction; do
             printf '\n>>> %s\n' "$test"
             python3 "tests/$test.py"
         done

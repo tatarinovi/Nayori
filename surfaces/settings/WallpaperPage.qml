@@ -4,7 +4,6 @@ import QtQuick.Controls
 import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Dialogs
-import QtCore as Core
 import Qt.labs.folderlistmodel
 import Quickshell
 import "../canvas"
@@ -13,6 +12,7 @@ import "../../services/palette"
 ScrollView {
     id: root
     property bool showHeading: true
+    property bool compact: false
     required property var tokens
     required property var manager
     property string output: Quickshell.screens.length ? Quickshell.screens[0].name : ""
@@ -39,9 +39,7 @@ ScrollView {
     function loadLibrary() {
         if (!manager || !manager.ready || libraryLoaded) return
         restoringLibrary = true
-        const savedFolder = manager.state.libraryFolder
-        if (String(libraryFolder) === "") libraryFolder = typeof savedFolder === "string" && /^file:\/\/\//.test(savedFolder)
-            ? savedFolder : legacyLibrary.folder
+        if (String(libraryFolder) === "") libraryFolder = manager.libraryFolder
         restoringLibrary = false
         libraryLoaded = true
     }
@@ -64,6 +62,10 @@ ScrollView {
         manager.cancelPreview()
         desktopPreview = false
         load()
+    }
+    function chooseSource(source) {
+        if (compact) desktopPreview = true
+        draftSource = source
     }
     function updatePreview() {
         if (!manager) return
@@ -99,7 +101,7 @@ ScrollView {
         const mode = draftDynamic ? "automatic" : accentMode === "manual" ? "manual" : "default"
         manager.apply(output, String(draftSource) === String(manager.defaultSource) ? "" : draftSource,
             draftMode, draftShared, draftEnabled, libraryFolder)
-        if (mode !== accentMode) accentModeChangedRequested(mode)
+        if (!compact && mode !== accentMode) accentModeChangedRequested(mode)
     }
     readonly property var selectedScreen: {
         for (const screen of Quickshell.screens) if (screen.name === output) return screen
@@ -156,7 +158,7 @@ ScrollView {
     function load() {
         if (!manager) return
         loadWallpaper()
-        draftShared = manager.state.shared
+        draftShared = compact ? false : manager.state.shared
         draftEnabled = manager.state.enabled
         draftDynamic = accentMode === "automatic"
         loadedWallpaperState = wallpaperStateKey()
@@ -181,6 +183,12 @@ ScrollView {
         function onStateChanged() {
             // A collection-path save must not discard the selected image.
             if (root.loadedWallpaperState !== root.wallpaperStateKey()) root.load()
+        }
+        function onLibraryFolderChanged() {
+            if (!root.libraryLoaded || librarySave.running) return
+            root.restoringLibrary = true
+            root.libraryFolder = root.manager.libraryFolder
+            root.restoringLibrary = false
         }
     }
     Connections {
@@ -251,12 +259,6 @@ ScrollView {
         }
     }
 
-    Core.Settings {
-        id: legacyLibrary
-        // Read the old collection path once; all new writes belong to canvas.json.
-        location: root.manager ? "file://" + root.manager.storageDirectory + "/wallpaper-library.ini" : ""
-        property url folder: "file://" + Core.StandardPaths.writableLocation(Core.StandardPaths.PicturesLocation)
-    }
     FolderDialog {
         id: folderPicker
         title: "Папка с обоями"
@@ -278,7 +280,7 @@ ScrollView {
         title: "Выбрать обои"
         fileMode: FileDialog.OpenFile
         nameFilters: ["Изображения (*.png *.jpg *.jpeg *.webp *.PNG *.JPG *.JPEG *.WEBP)"]
-        onAccepted: root.draftSource = selectedFile
+        onAccepted: root.chooseSource(selectedFile)
     }
 
     Item {
@@ -300,6 +302,7 @@ ScrollView {
 
             SettingsSegmented {
                 objectName: "wallpaper-monitors"
+                visible: !root.compact
                 Layout.alignment: Qt.AlignLeft
                 tokens: root.tokens
                 model: root.monitorModel
@@ -308,6 +311,7 @@ ScrollView {
             }
 
             GridLayout {
+                visible: !root.compact
                 Layout.fillWidth: true
                 Layout.fillHeight: false
                 columns: width >= 640 ? 2 : 1
@@ -411,25 +415,29 @@ ScrollView {
 
             RowLayout {
                 Layout.fillWidth: true
+                visible: !root.compact
                 SettingsSwitch {
+                    visible: !root.compact
                     Layout.fillWidth: true
                     tokens: root.tokens
                     text: "Предпросмотр на рабочем столе"
                     checked: root.desktopPreview
                     onClicked: root.desktopPreview = checked
                 }
-                Action { text: "Отменить"; enabled: root.manager && root.manager.previewing; onClicked: root.cancel() }
+                Action { visible: !root.compact; text: "Отменить"; enabled: root.manager && root.manager.previewing; onClicked: root.cancel() }
             }
             SettingsSwitch {
                 Layout.fillWidth: true
                 tokens: root.tokens
                 text: "Цвета интерфейса из обоев"
+                visible: !root.compact
                 checked: root.draftDynamic
                 onClicked: root.draftDynamic = checked
             }
             RowLayout {
                 Layout.fillWidth: true
                 Caption { text: root.paletteReady ? "Палитра изображения" : "Извлечение палитры…"; color: root.tokens.color.textMuted }
+                visible: !root.compact
                 Repeater {
                     model: root.paletteReady ? [draftPalette.accent, draftPalette.background, draftPalette.surface, draftPalette.surfaceAlt] : []
                     Rectangle {
@@ -446,6 +454,15 @@ ScrollView {
                 Layout.fillWidth: true
                 text: "Сейчас: " + decodeURIComponent(String(root.manager ? root.manager.wallpaper(root.output).source : "").split("/").pop())
                 elide: Text.ElideMiddle; wrapMode: Text.NoWrap
+            }
+            SettingsSegmented {
+                visible: root.compact
+                Layout.fillWidth: true
+                tokens: root.tokens
+                model: root.modeModel
+                equalWidth: true
+                currentKey: root.draftMode
+                onActivated: key => { root.desktopPreview = true; root.draftMode = key }
             }
             TextField {
                 objectName: "wallpaper-search"
@@ -466,6 +483,7 @@ ScrollView {
                 Layout.fillHeight: false
                 spacing: 8
                 Rectangle {
+                    visible: !root.compact
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
                     implicitHeight: 40
@@ -522,7 +540,7 @@ ScrollView {
                         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
                         background: Rectangle { radius: root.tokens.radius.medium; color: root.tokens.color.surface; border.width: 1; border.color: root.tokens.color.border }
                         Entry { text: "Выбрать файл…"; onTriggered: picker.open() }
-                        Entry { text: "Стандартный фон"; onTriggered: { root.draftSource = root.manager.defaultSource; root.draftMode = "fill" } }
+                        Entry { text: "Стандартный фон"; onTriggered: { root.chooseSource(root.manager.defaultSource); root.draftMode = "fill" } }
                     }
                 }
             }
@@ -563,7 +581,7 @@ ScrollView {
                     focusPolicy: Qt.StrongFocus
                     Accessible.name: fileName
                     Accessible.selected: selected
-                    onClicked: root.draftSource = fileUrl
+                    onClicked: root.chooseSource(fileUrl)
                     onActiveFocusChanged: if (activeFocus) {
                         gallery.positionViewAtIndex(index, GridView.Contain)
                     }
