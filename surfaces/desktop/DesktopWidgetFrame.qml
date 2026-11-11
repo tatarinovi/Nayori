@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import "WidgetLayout.js" as WidgetLayout
 
 FocusScope {
@@ -32,6 +33,15 @@ FocusScope {
     signal musicStageRequested()
     property bool moving: false
     property bool inputOverlay: false
+    property real desktopDimOpacity: 0
+    // Hover/focus moves the face above the wallpaper scrim. Tint only that
+    // small interactive copy; preserve alpha around plain widgets and artwork.
+    layer.enabled: inputOverlay && inputVisible && desktopDimOpacity > 0
+    layer.effect: MultiEffect {
+        colorization: root.desktopDimOpacity
+        colorizationColor: "black"
+        autoPaddingEnabled: false
+    }
     readonly property bool inputVisible: editing || moving || dragging || activeFocus || contextArea.containsMouse
 
     readonly property var box: spec ? WidgetLayout.sizeOf(spec) : ({ width: 0, height: 0 })

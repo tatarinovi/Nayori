@@ -39,6 +39,7 @@ PanelWindow {
     property bool editing: false
     property var stageSession: null
     property bool visualBackdrop: false
+    property real desktopDimOpacity: 0
     property var wallpaperManager: null
     property real editProgress: editing ? 1 : 0
     property real drawerProgress: catalogOpen && editing ? 1 : 0
@@ -591,6 +592,7 @@ PanelWindow {
             spec: root.placement(modelData)
             editing: root.editing
             inputOverlay: root.visualBackdrop && !root.editorShowing
+            desktopDimOpacity: root.editorShowing ? 0 : root.desktopDimOpacity
             moving: root.movingId === modelData
             snap: root.snapOn
             screenWidth: root.screenWidth

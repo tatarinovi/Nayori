@@ -154,7 +154,7 @@ surfaces/clipboard/
 | `nayori-launcher-dismiss` | щелчок мимо поиска |
 | `nayori-start` | меню Пуск |
 | `nayori-reserve-top`, `nayori-reserve-bottom` | `exclusiveZone` под окна |
-| `nayori-canvas` | резкие обои, слой Background |
+| `nayori-canvas` | обои, динамическое размытие и затемнение с виджетами, слой Background |
 | `nayori-overview` | размытая копия в фоне обзора |
 | `nayori-clipboard` | журнал буфера |
 | `nayori-companion` | Naomi |
@@ -171,7 +171,7 @@ surfaces/clipboard/
 
 ## Canvas и обзор
 
-`WallpaperManager` хранит `canvas.json` и выбирает картинку по имени выхода. На каждый экран, пока фон включён, есть `WallpaperWindow` (`nayori-canvas`, `exclusiveZone: 0`, пустая маска ввода). Файл, режимы, растворение и слой обзора описаны в [CANVAS.md](CANVAS.md).
+`WallpaperManager` хранит `canvas.json` и выбирает картинку по имени выхода. На каждый экран, пока фон включён, есть `WallpaperWindow` (`nayori-canvas`, `exclusiveZone: 0`, пустая маска ввода). `DesktopBlur` определяет наличие окон активного рабочего пространства этого выхода по EventStream Niri. `StaticRenderer` смешивает обои с готовой копией из `OverviewBlur`; общий слой затемнения в `WallpaperWindow` покрывает также виджеты. Настройки эффекта принадлежат `SettingsService`. Файл, режимы, растворение и слой обзора описаны в [CANVAS.md](CANVAS.md).
 
 Обзор — второе фоновое окно. `OverviewBlur` готовит размытую копию обоев в `$XDG_CACHE_HOME/nayori/overview` (иначе `~/.cache/nayori/overview`), пока Canvas включён. При открытии обзора `OverviewWindow` (`nayori-overview`) показывает её вместе с виджетами. Резкая картинка и виджеты находятся на `nayori-canvas`, который закреплён в backdrop; подложка рабочих столов прозрачна. Прозрачный слой рабочего стола обрабатывает ввод.
 

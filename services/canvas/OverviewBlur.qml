@@ -100,10 +100,21 @@ QtObject {
                 continue
             next[name] = {
                 path: String(item.pointer),
+                source: String(item.source || ""),
+                originalSize: item.originalSize || [0, 0],
+                previousFrame: prior ? {path: prior.path, source: prior.source, originalSize: prior.originalSize} : null,
                 previous: prior && prior.path && prior.path !== item.pointer ? prior.path : (prior && prior.previous ? prior.previous : "")
             }
         }
         root.shown = next
+    }
+
+    // Match the exact source, including the outgoing wallpaper during its dissolve.
+    function frame(output, source) {
+        const slot = root.shown[output]
+        if (!slot) return null
+        if (slot.source === source) return slot
+        return slot.previousFrame && slot.previousFrame.source === source ? slot.previousFrame : null
     }
 
     function revert(output, path) {
@@ -111,8 +122,8 @@ QtObject {
         if (!slot || slot.path !== path)
             return
         const next = Object.assign({}, root.shown)
-        if (slot.previous)
-            next[output] = { path: slot.previous, previous: "" }
+        if (slot.previousFrame)
+            next[output] = Object.assign({}, slot.previousFrame, { previous: "" })
         else
             delete next[output]
         root.shown = next
@@ -137,6 +148,11 @@ QtObject {
 
     onActiveChanged: root.schedule(false)
     Component.onCompleted: root.schedule(false)
+
+    property Connections screenChanges: Connections {
+        target: Quickshell
+        function onScreensChanged() { root.schedule(false) }
+    }
 
     property Connections managerChanges: Connections {
         target: root.manager

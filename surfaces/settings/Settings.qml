@@ -755,6 +755,7 @@ FocusScope {
                 tokens: root.tokens
                 showHeading: false
                 manager: root.wallpaperManager
+                settingsService: root.settingsService
                 accentMode: root.accentMode
                 onAccentModeChangedRequested: mode => root.accentModeChangedRequested(mode)
             }

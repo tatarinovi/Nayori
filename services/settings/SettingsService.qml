@@ -172,6 +172,10 @@ QtObject {
             "topReserved": 0,
             "bottomReserved": 0,
             "animationsEnabled": true,
+            "desktopBlurEnabled": true,
+            "desktopBlurIntensity": 45,
+            "desktopDimIntensity": 15,
+            "desktopBlurDuration": 300,
             "companionEnabled": false,
             "companionStyle": "current",
             "companionDesktopOnly": false,
@@ -234,6 +238,11 @@ QtObject {
 
     function normalize(key, value) {
         const fallback = defaults()[key];
+        if (key === "desktopBlurIntensity" || key === "desktopDimIntensity" || key === "desktopBlurDuration") {
+            const min = key === "desktopBlurDuration" ? 150 : 0;
+            const max = key === "desktopBlurDuration" ? 600 : 100;
+            return typeof value === "number" && isFinite(value) ? Math.max(min, Math.min(max, Math.round(value))) : fallback;
+        }
         if (key === "quickCaptureContext") return value === "Personal" ? value : "Work";
         if (key === "quickCaptureVault") return typeof value === "string" && !/[\x00-\x1f]/.test(value) ? value.trim() : fallback;
         if (key === "quickCaptureWorkPath" || key === "quickCapturePersonalPath")

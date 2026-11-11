@@ -95,8 +95,16 @@ def blur_file(source, cache_dir):
     except OSError:
         return {"ok": False, "pointer": "", "cached": False, "error": "missing"}
     destination = cache_path(cache_dir, key)
+    try:
+        with Image.open(resolved) as opened:
+            # EXIF rotation changes the native Center footprint.
+            size = list(opened.size)
+            if opened.getexif().get(274) in (5, 6, 7, 8):
+                size.reverse()
+    except Exception:
+        return {"ok": False, "pointer": "", "cached": False, "error": "unreadable"}
     if destination.is_file() and destination.stat().st_size > 0:
-        return {"ok": True, "pointer": str(destination), "cached": True, "error": ""}
+        return {"ok": True, "pointer": str(destination), "cached": True, "error": "", "originalSize": size}
     try:
         Image.MAX_IMAGE_PIXELS = MAX_PIXELS
         with Image.open(resolved) as opened:
@@ -107,7 +115,7 @@ def blur_file(source, cache_dir):
         return {"ok": False, "pointer": "", "cached": False, "error": "unreadable"}
     if not destination.is_file() or destination.stat().st_size <= 0:
         return {"ok": False, "pointer": "", "cached": False, "error": "unreadable"}
-    return {"ok": True, "pointer": str(destination), "cached": False, "error": ""}
+    return {"ok": True, "pointer": str(destination), "cached": False, "error": "", "originalSize": size}
 
 
 def take_pointer(payload, generation, output):
@@ -140,6 +148,7 @@ def run_request(request):
         if output == "":
             continue
         result = blur_file(job.get("source"), cache_dir)
+        result["source"] = str(job.get("source") or "")
         outputs[output] = result
     return {"ok": True, "generation": generation, "outputs": outputs}
 

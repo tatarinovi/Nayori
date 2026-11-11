@@ -394,6 +394,10 @@ ShellRoot {
             id: desktopOutput
             required property var modelData
             WallpaperWindow {
+                id: desktopWallpaper
+                outputName: desktopOutput.modelData.name
+                blur: overviewBlur
+                settings: settingsStore.values
                 screen: desktopOutput.modelData
                 manager: wallpaperStore
                 tokens: root.tokenSet
@@ -403,6 +407,7 @@ ShellRoot {
                 music: musicStore
             }
             DesktopWidgets {
+                desktopDimOpacity: desktopWallpaper.desktopDimOpacity
                 id: desktopInput
                 visible: settingsStore.ready && !Niri.overviewOpen
                 screen: desktopOutput.modelData

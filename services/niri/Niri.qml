@@ -18,6 +18,8 @@ QtObject {
     readonly property string keyboardLayout: _keyboardLayouts[_keyboardIndex] || ""
     property var _workspaces: []
     property var _windows: []
+    // Consumers retain their last state until the reconnect snapshot arrives.
+    property bool windowsReady: false
 
     property bool _overviewOpen: false
     readonly property bool overviewOpen: _overviewOpen
@@ -240,6 +242,7 @@ QtObject {
         _keyboardIndex = 0
         _workspaces = []
         _windows = []
+        windowsReady = false
         _actionQueue = []
         _configSeen = false
         try {
@@ -482,8 +485,10 @@ QtObject {
             if (mapped)
                 list.push(mapped)
         }
-        if (epoch === _streamEpoch)
+        if (epoch === _streamEpoch) {
             _windows = list
+            windowsReady = true
+        }
     }
 
     function applyWindowOpenedOrChanged(body, epoch) {

@@ -100,6 +100,9 @@ def main():
         status, payload, err = run(BLUR_PATH, ["--request", json.dumps(request)])
         if status != 0 or not payload or not payload.get("ok"):
             raise SystemExit("blur failed " + err + " " + json.dumps(payload))
+        assert payload["outputs"]["DP-1"]["source"] == source.as_uri()
+        assert payload["outputs"]["DP-1"]["originalSize"] == [80, 40]
+        assert payload["outputs"]["DP-2"]["originalSize"] == [600, 100]
         pointer = blur.take_pointer(payload, 1, "DP-1")
         wide_pointer = blur.take_pointer(payload, 1, "DP-2")
         if not pointer or blur.take_pointer(payload, 2, "DP-1") != "":

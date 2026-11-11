@@ -15,6 +15,7 @@ ScrollView {
     property bool compact: false
     required property var tokens
     required property var manager
+    property var settingsService: null
     property string output: Quickshell.screens.length ? Quickshell.screens[0].name : ""
     property url draftSource: ""
     property string draftMode: "fill"
@@ -298,6 +299,54 @@ ScrollView {
                 spacing: 4
                 Caption { width: parent.width; text: "Обои"; font.pixelSize: 24; font.family: root.tokens.type.display.family }
                 Caption { width: parent.width; text: "Выберите папку и изображение для рабочего стола"; color: root.tokens.color.textMuted }
+            }
+
+            ColumnLayout {
+                visible: !root.compact && !!root.settingsService
+                Layout.fillWidth: true
+                spacing: 4
+                Caption { text: "Размытие фона"; font.pixelSize: 18 }
+                SettingsSwitch {
+                    objectName: "desktop-blur-enabled"
+                    Layout.fillWidth: true
+                    tokens: root.tokens
+                    text: "Размывать обои за окнами"
+                    checked: root.settingsService ? root.settingsService.values.desktopBlurEnabled : false
+                    onClicked: root.settingsService.update({desktopBlurEnabled: checked})
+                }
+                Repeater {
+                    model: [
+                        {key: "desktopBlurIntensity", label: "Размытие", min: 0, max: 100, unit: "%"},
+                        {key: "desktopDimIntensity", label: "Затемнение", min: 0, max: 100, unit: "%"},
+                        {key: "desktopBlurDuration", label: "Длительность анимации", min: 150, max: 600, unit: " мс"}
+                    ]
+                    delegate: RowLayout {
+                        id: effectRow
+                        required property var modelData
+                        Layout.fillWidth: true
+                        enabled: root.settingsService ? root.settingsService.values.desktopBlurEnabled : false
+                        Caption { text: effectRow.modelData.label; Layout.preferredWidth: 190 }
+                        SettingsSlider {
+                            Layout.fillWidth: true
+                            tokens: root.tokens
+                            label: effectRow.modelData.label
+                            from: effectRow.modelData.min
+                            to: effectRow.modelData.max
+                            stepSize: 1
+                            source: root.settingsService ? root.settingsService.values[effectRow.modelData.key] : from
+                            onChanged: value => {
+                                const patch = {}
+                                patch[effectRow.modelData.key] = value
+                                root.settingsService.update(patch)
+                            }
+                        }
+                        Caption {
+                            Layout.preferredWidth: 60
+                            horizontalAlignment: Text.AlignRight
+                            text: (root.settingsService ? root.settingsService.values[effectRow.modelData.key] : 0) + effectRow.modelData.unit
+                        }
+                    }
+                }
             }
 
             SettingsSegmented {

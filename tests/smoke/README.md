@@ -41,3 +41,19 @@ qs -p tests/smoke/NaomiPixelSmoke.qml
 `python3 tests/keybinds.py --smoke` запускает `KeybindsSmoke.qml` с временной
 конфигурацией, mock Niri и offscreen Qt. Проверяет поиск, фильтры и подтверждение
 черновика, создание/отключение/удаление пользовательского бинда без живого IPC.
+
+### Desktop blur
+
+`DesktopBlurSmoke.qml` feeds fixture snapshots and events into the shared Niri
+singleton without a socket: empty/occupied workspaces, independent outputs,
+rapid retargeting, disconnect/reconnect, settings and disabled motion. It also
+checks source-matched current/previous blur frames, a failed cache, and Center/Fit
+geometry. Run it only with disposable XDG directories, offscreen Qt and no
+`NIRI_SOCKET`. A second invocation with `NAYORI_BLUR_RESTORE=1` and the same
+config directory checks persistence.
+These checks do not measure GPU frame time or physical layer-shell stacking.
+
+`python3 tests/widget-dim.py` checks the focused NowPlaying input copy, the dim
+layer toggle, and avoiding a second dim on the background copy. CI uses the
+software backend. For pixel checks, explicitly set `QT_QUICK_BACKEND=rhi` with
+an available graphics backend; offscreen software Qt cannot render MultiEffect.

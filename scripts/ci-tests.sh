@@ -40,15 +40,16 @@ case "${1:-}" in
             printf '\n>>> %s\n' "$suite"
             bash "scripts/check-$suite.sh"
         done
-        for test in cursor-preview bluetooth color-scheme settings panel-modes weather-service settings-window settings-usage desktop-widgets naomi-sprite wallpaper-library wallpaper-preview desktop-wallpaper lockscreen wireguard launcher-search launcher-usage launcher-interaction; do
+        for test in widget-dim cursor-preview bluetooth color-scheme settings panel-modes weather-service settings-window settings-usage desktop-widgets naomi-sprite wallpaper-library wallpaper-preview desktop-wallpaper lockscreen wireguard launcher-search launcher-usage launcher-interaction; do
             printf '\n>>> %s\n' "$test"
             python3 "tests/$test.py"
         done
-        for fixture in CalendarPane AppsScope Battery Clipboard NaomiPixel NayoriUpdate PolkitDialog DesktopWidgetContent StatusPopup WorkspaceMotion; do
+        for fixture in DesktopBlur CalendarPane AppsScope Battery Clipboard NaomiPixel NayoriUpdate PolkitDialog DesktopWidgetContent StatusPopup WorkspaceMotion; do
             log="$runtime/$fixture.log"
             timeout 20s qs -p "tests/smoke/${fixture}Smoke.qml" --no-color > "$log" 2>&1 || { cat "$log"; exit 1; }
             cat "$log"
             case "$fixture" in
+                DesktopBlur) marker=DESKTOP_BLUR_SMOKE_PASS ;;
                 CalendarPane) marker=CALENDAR_PANE_PASS ;;
                 AppsScope) marker=APPS_SCOPE_PASS ;;
                 Battery) marker=BATTERY_SMOKE_PASS ;;
@@ -61,6 +62,11 @@ case "${1:-}" in
                 WorkspaceMotion) marker=WORKSPACE_MOTION_PASS ;;
             esac
             rg -q "$marker" "$log"
+            if [[ "$fixture" == DesktopBlur ]]; then
+                NAYORI_BLUR_RESTORE=1 timeout 20s qs -p tests/smoke/DesktopBlurSmoke.qml --no-color > "$runtime/blur-restore.log" 2>&1
+                cat "$runtime/blur-restore.log"
+                rg -q 'DESKTOP_BLUR_SMOKE_PASS restore' "$runtime/blur-restore.log"
+            fi
             ! rg -q 'FAIL|Error:|Unable to assign|ReferenceError|TypeError|Failed to load configuration' "$log"
         done
         ;;

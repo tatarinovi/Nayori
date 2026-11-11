@@ -13,6 +13,9 @@ Item {
     required property int duration
     property bool managerReady: false
     property string outputName: ""
+    property var blur: null
+    property real blurOpacity: 0
+    property int effectDuration: 300
     signal renderFailed(bool failed)
 
     property int front: 0
@@ -211,6 +214,10 @@ Item {
         source: ""
         mode: "fill"
         backgroundColor: root.backgroundColor
+        blurFrame: root.blur ? root.blur.frame(root.outputName, String(source)) : null
+        blurOpacity: root.blurOpacity
+        reduceMotion: root.reduceMotion
+        effectDuration: root.effectDuration
         onLoadedChanged: root.observe(layer0)
         onFailedChanged: root.observe(layer0)
     }
@@ -222,6 +229,10 @@ Item {
         source: ""
         mode: "fill"
         backgroundColor: root.backgroundColor
+        blurFrame: root.blur ? root.blur.frame(root.outputName, String(source)) : null
+        blurOpacity: root.blurOpacity
+        reduceMotion: root.reduceMotion
+        effectDuration: root.effectDuration
         onLoadedChanged: root.observe(layer1)
         onFailedChanged: root.observe(layer1)
     }
