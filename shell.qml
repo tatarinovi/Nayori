@@ -393,11 +393,6 @@ ShellRoot {
                 wallpaperManager: wallpaperStore
                 preferredTerminal: settingsStore.preferredTerminal
                 preferredFileManager: settingsStore.preferredFileManager
-                onWallpaperRequested: {
-                    settingsController.widgetsEditing = false
-                    desktopStage.leave()
-                    root.openSettings("wallpapers")
-                }
                 onEditingRequested: enabled => {
                     if (enabled) desktopStage.enterWidgets(desktopOutput.modelData.name, "widgets")
                     settingsController.widgetsEditing = enabled
