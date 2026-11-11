@@ -62,7 +62,7 @@ AttachedSurface {
     readonly property bool popupOpen: !!dashboard.item && dashboard.item.popupOpen
     function closePopups() { if (dashboard.item) dashboard.item.closePopups() }
     property bool launcherOpen: false
-    readonly property real launcherWidth: Math.min(640, availableWidth)
+    readonly property real launcherWidth: Math.min(560, availableWidth)
     // One blend, retargeted. Rapid Alt+Space does not queue a second morph.
     // Height always returns to the row. Results live in a separate dropdown.
     property real launcherBlend: launcherOpen ? 1 : 0
