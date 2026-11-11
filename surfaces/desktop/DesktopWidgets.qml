@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import "../../services"
 import "../../services/system"
 import "../canvas"
+import "../visualizer"
 import "../settings"
 import "WidgetLayout.js" as WidgetLayout
 import "vendor/edit_mode.js" as EditMode
@@ -25,6 +26,8 @@ PanelWindow {
     property var weatherService: null
     property var music: null
     property var audioReaction: null
+    property var visualizerService: null
+    property color visualizerAccent: tokens.color.accent
     property var systemMonitorService: null
     property var wallpaperClockAccent: null
     readonly property string audioKey: "desktop-music-" + String(root)
@@ -390,6 +393,8 @@ PanelWindow {
     }
     Item {
         id: editorCanvas
+        focus: root.editing && root.catalogSection === "visualizer"
+        Keys.onEscapePressed: event => { root.escapeEditor(); event.accepted = true }
         width: root.screenWidth
         height: root.screenHeight
         x: root.cardGeometry.x
@@ -417,6 +422,17 @@ PanelWindow {
             managerReady: !!root.wallpaperManager && root.wallpaperManager.ready
             outputName: root.screen ? root.screen.name : ""
         }
+    }
+    VisualizerLayer {
+        parent: editorCanvas
+        anchors.fill: parent
+        visible: root.editorShowing && root.visualBackdrop
+        service: root.visualizerService
+        tokens: root.tokens
+        output: root.screen ? root.screen.name : ""
+        sourceAudio: root.audioReaction
+        paletteAccent: root.visualizerAccent
+        editing: root.editing && root.catalogSection === "visualizer"
     }
     // The editor's preview scales only shell content; compositor windows stay put.
     Item { id: desktopBounds; anchors.fill: parent }
@@ -480,6 +496,7 @@ PanelWindow {
                 model: [
                     { label: "Виджеты", action: "catalog", enabled: true },
                     { label: "Обои", action: "wallpapers", enabled: true },
+                    { label: "Визуализатор", action: "visualizer", enabled: true },
                     { label: root.screen ? root.screen.name : "Экран", action: "screen", enabled: Quickshell.screens.length > 1 },
                     { label: root.snapOn ? "Сетка: вкл." : "Сетка: выкл.", action: "snap", enabled: true },
                     { label: "↶", action: "undo", enabled: root.undoStack.length > 0 },
@@ -499,6 +516,7 @@ PanelWindow {
                             if (root.catalogOpen && root.catalogSection === "widgets") root.catalogOpen = false
                             else root.openCatalog("widgets")
                         }
+                        else if (modelData.action === "visualizer") root.openCatalog("visualizer")
                         else if (modelData.action === "wallpapers") root.openCatalog("wallpaper")
                         else if (modelData.action === "snap") root.applyLayout({snap: !root.snapOn, items: root.itemsNow()}, true)
                         else if (modelData.action === "undo") root.undoEdit()
@@ -523,7 +541,7 @@ PanelWindow {
         color: root.tokens.material.menu
         border.color: root.tokens.color.border
         Flickable {
-            visible: root.catalogSection !== "wallpaper"
+            visible: root.catalogSection === "widgets"
             anchors.fill: parent
             anchors.margins: 12
             contentWidth: width
@@ -552,6 +570,20 @@ PanelWindow {
                 }
             }
         }
+        }
+        Loader {
+            anchors.fill: parent
+            anchors.margins: 12
+            active: root.editing && root.catalogOpen && root.catalogSection === "visualizer" && !!root.visualizerService
+            sourceComponent: VisualizerPane {
+                onEscapeRequested: root.escapeEditor()
+                tokens: root.tokens
+                service: root.visualizerService
+                output: root.screen ? root.screen.name : ""
+                aspect: root.screenWidth / Math.max(1, root.screenHeight)
+                sourceAudio: root.audioReaction
+                paletteAccent: root.visualizerAccent
+            }
         }
         Loader {
             objectName: "desktop-wallpaper-loader"

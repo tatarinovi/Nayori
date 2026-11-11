@@ -58,3 +58,24 @@ Wallpaper preview transaction
   No Ryogami picker fonts, shaders, assets or C++ module are incorporated.
   Distributions must retain attribution, license and modification notices
   and provide corresponding source under GPLv3.
+
+Desktop Visualizer
+  Source: https://github.com/Ryoku-dev/ryoku
+  Snapshot: 2befae30e0e1e8d370a8fdb4489e84be529af1bd
+  Original paths: ryoku/ui/{SpectrumField.qml,AuraField.qml,lib/{spectrum,aura,place}.js,
+  shaders/{spectrum,aura}.frag{,.qsb}} and
+  ryoku/shell/quickshell/shell/modules/visualizer/{Motion.qml,AuraMotion.qml,
+  VisualizerView.qml,Singletons/VizItem.qml}; StageVisualizerPage parameter catalogue.
+  Copyright remains with Ryoku authors and contributors. GPLv3; see LICENSE
+  and LICENSES/visualizer/Ryoku-NOTICE. No Ryoku.Blobs plugin or external assets.
+  Aura shader and band maths are ported from iNiR's organic edge visualizer.
+  Based on iNiR by snowarch (https://github.com/snowarch/inir).
+  Copyright (C) 2025-2026 snowarch. GPLv3 with section 7 attribution,
+  origin and identity terms: LICENSES/visualizer/iNiR-NOTICE and iNiR-LICENSE.
+  This is a modified port, not iNiR or iRiS. No rights to their names, marks,
+  mascot or visual identity are granted. Required credits are in README and About.
+  Modified for Nayori on 2026-11-11: dependency injection replaces Ryoku
+  singletons, Nayori's existing palette supplies colours, shared audio feeds
+  original motion filters, normalization and editor controls use SettingsService.
+  Unmodified GPU fields, shaders and pure maths retain original source; checksums
+  and a file-by-file manifest are in LICENSES/visualizer/PROVENANCE.json.

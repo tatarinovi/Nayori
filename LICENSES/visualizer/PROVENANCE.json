@@ -1,0 +1,113 @@
+{
+  "project": "https://github.com/Ryoku-dev/ryoku",
+  "commit": "2befae30e0e1e8d370a8fdb4489e84be529af1bd",
+  "date_modified": "2026-11-11",
+  "license": "GPL-3.0; Aura material additionally retains iNiR section 7 terms in iNiR-NOTICE",
+  "files": [
+    {
+      "file": "services/visualizer/VisualizerConfig.js",
+      "upstream_path": "ryoku/shell/quickshell/shell/modules/visualizer/Singletons/VizItem.qml",
+      "upstream_sha256": "13b78816200300d36482ecb28f1aea7fc3b61ea02a9bd51b44cff10f7ebdd61b",
+      "sha256": "3b636ea0148866758360ef11ae3df83c640d1ddb0e9c4790f818b0e29616fc99",
+      "modified": true
+    },
+    {
+      "file": "services/visualizer/VisualizerParameters.js",
+      "upstream_path": "ryoku/shell/quickshell/shell/modules/stage/StageVisualizerPage.qml",
+      "upstream_sha256": "0dad296fe4a10ab0a3c90a3c13c45f9cc9b77fc6429b8112a8ee5d8802f189df",
+      "sha256": "8cc0745d7e43ec6a3b3e1440de342d7f956c6fdbd15b008fa8786a63d4493bb1",
+      "modified": true
+    },
+    {
+      "file": "surfaces/visualizer/VisualizerView.qml",
+      "upstream_path": "ryoku/shell/quickshell/shell/modules/visualizer/VisualizerView.qml",
+      "upstream_sha256": "fe7b80c09315c127c1edc7141f165b1b877d7a0647a7c32a45a9d3b64bc8008d",
+      "sha256": "2c563240c7efd0e67b1c1362dc74575bd63c5289c3221fe604e1cbac287e81bc",
+      "modified": true
+    },
+    {
+      "file": "surfaces/visualizer/vendor/AuraField.qml",
+      "upstream_path": "ryoku/ui/AuraField.qml",
+      "upstream_sha256": "c92c6a81428bb8f559a63f0b41df0cb6ef60eb0a896445467d36114b50bd1dde",
+      "sha256": "c92c6a81428bb8f559a63f0b41df0cb6ef60eb0a896445467d36114b50bd1dde",
+      "modified": false
+    },
+    {
+      "file": "surfaces/visualizer/vendor/AuraMotion.qml",
+      "upstream_path": "ryoku/shell/quickshell/shell/modules/visualizer/AuraMotion.qml",
+      "upstream_sha256": "2304d4f76dbf318541732184170eca5b2871ef7be309d87b65da2dbcf924fe4c",
+      "sha256": "1e8b102a3076f230b601f3a55ac22bb07b461269a2ce1b6f2e665314d45c6bc6",
+      "modified": true
+    },
+    {
+      "file": "surfaces/visualizer/vendor/Motion.qml",
+      "upstream_path": "ryoku/shell/quickshell/shell/modules/visualizer/Motion.qml",
+      "upstream_sha256": "6e3861a928f246afa7a94027ff8a2e758fe51cfccc1adb9b65428e70cfa8237f",
+      "sha256": "6b74c7859e6f88591a48a8e128defeb494ae63c679438041c9f72a616dec8ad9",
+      "modified": true
+    },
+    {
+      "file": "surfaces/visualizer/vendor/SpectrumField.qml",
+      "upstream_path": "ryoku/ui/SpectrumField.qml",
+      "upstream_sha256": "4893dfd09d3421f4f95ad59ee9b9a2098305dac504884ecbc362c18af828fd19",
+      "sha256": "4893dfd09d3421f4f95ad59ee9b9a2098305dac504884ecbc362c18af828fd19",
+      "modified": false
+    },
+    {
+      "file": "surfaces/visualizer/vendor/VizItem.qml",
+      "upstream_path": "ryoku/shell/quickshell/shell/modules/visualizer/Singletons/VizItem.qml",
+      "upstream_sha256": "13b78816200300d36482ecb28f1aea7fc3b61ea02a9bd51b44cff10f7ebdd61b",
+      "sha256": "596ec645cb4900146a2dcbc7d2a2ef90683b493addfb65a6c8573dc45973d085",
+      "modified": true
+    },
+    {
+      "file": "surfaces/visualizer/vendor/lib/aura.js",
+      "upstream_path": "ryoku/ui/lib/aura.js",
+      "upstream_sha256": "646cfd85daa41d94a428949cbd0896b14a4af59b01af85947de5bedf1c580a85",
+      "sha256": "646cfd85daa41d94a428949cbd0896b14a4af59b01af85947de5bedf1c580a85",
+      "modified": false
+    },
+    {
+      "file": "surfaces/visualizer/vendor/lib/place.js",
+      "upstream_path": "ryoku/ui/lib/place.js",
+      "upstream_sha256": "f5a418a1438d7c758f33f62d1931d9507fd742b5e281699b0c17477d16a27941",
+      "sha256": "f5a418a1438d7c758f33f62d1931d9507fd742b5e281699b0c17477d16a27941",
+      "modified": false
+    },
+    {
+      "file": "surfaces/visualizer/vendor/lib/spectrum.js",
+      "upstream_path": "ryoku/ui/lib/spectrum.js",
+      "upstream_sha256": "64aa643af5e0d22e5488d92c2c4f6cdd2242eb0ffd57e73796dd791fae4f2297",
+      "sha256": "64aa643af5e0d22e5488d92c2c4f6cdd2242eb0ffd57e73796dd791fae4f2297",
+      "modified": false
+    },
+    {
+      "file": "surfaces/visualizer/vendor/shaders/aura.frag",
+      "upstream_path": "ryoku/ui/shaders/aura.frag",
+      "upstream_sha256": "6fe6063403bf1c1f0a8d258a015121821c3d54d29b0d6785b02ffbc26b516355",
+      "sha256": "6fe6063403bf1c1f0a8d258a015121821c3d54d29b0d6785b02ffbc26b516355",
+      "modified": false
+    },
+    {
+      "file": "surfaces/visualizer/vendor/shaders/aura.frag.qsb",
+      "upstream_path": "ryoku/ui/shaders/aura.frag.qsb",
+      "upstream_sha256": "06408b53819d28706ef44a5cbb30766fa273be0941c4b74fcae0e546e6896789",
+      "sha256": "06408b53819d28706ef44a5cbb30766fa273be0941c4b74fcae0e546e6896789",
+      "modified": false
+    },
+    {
+      "file": "surfaces/visualizer/vendor/shaders/spectrum.frag",
+      "upstream_path": "ryoku/ui/shaders/spectrum.frag",
+      "upstream_sha256": "22386c622be5c28baa988a0875e2f36fda25cd050aa7dcacb1ba4b592880f0a6",
+      "sha256": "22386c622be5c28baa988a0875e2f36fda25cd050aa7dcacb1ba4b592880f0a6",
+      "modified": false
+    },
+    {
+      "file": "surfaces/visualizer/vendor/shaders/spectrum.frag.qsb",
+      "upstream_path": "ryoku/ui/shaders/spectrum.frag.qsb",
+      "upstream_sha256": "ba7644962030f6eb3451bdde3f7d5e449edc2f4af8cc578524c86765eef3bad4",
+      "sha256": "ba7644962030f6eb3451bdde3f7d5e449edc2f4af8cc578524c86765eef3bad4",
+      "modified": false
+    }
+  ]
+}

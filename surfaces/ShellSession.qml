@@ -18,6 +18,7 @@ import "../services/canvas"
 import "../services/palette"
 import "../services/ui"
 import "../services/desktop"
+import "../services/visualizer"
 import "../services/ui/StartRouting.js" as StartRouting
 import "../services/status/MixerSources.js" as MixerSources
 import "../services/ui/IslandRouting.js" as IslandRouting
@@ -81,7 +82,8 @@ Scope {
     MusicService { id: musicStore }
     readonly property var islandAudio: audioReaction
     readonly property var islandNotifications: notificationModel
-    AudioReaction { id: audioReaction }
+    AudioReaction { id: audioReaction; requestedFps: visualizers.config.fps }
+    VisualizerService { id: visualizers; settings: settingsStore; stageSession: desktopStage }
     NayoriUpdate { id: nayoriUpdate }
     SystemUpdate { id: systemUpdate }
     SystemMonitor { id: systemMonitor }
@@ -450,6 +452,8 @@ Scope {
             DesktopWidgets {
                 desktopDimOpacity: desktopWallpaper.desktopDimOpacity
                 systemMonitorService: systemMonitor
+                visualizerService: visualizers
+                visualizerAccent: accentExtractor.accent
                 id: desktopInput
                 visible: settingsStore.ready && !Niri.overviewOpen
                 screen: desktopOutput.modelData

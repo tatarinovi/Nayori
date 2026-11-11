@@ -269,3 +269,5 @@ Nayori развивается как самостоятельная оболоч
 Сведения об авторах и стороннем коде — в [NOTICE](NOTICE), отдельные лицензии
 сторонних материалов — в [LICENSES](LICENSES/README.md). Шрифт Nayori Zen Clock
 распространяется по SIL OFL 1.1.
+
+Desktop Visualizer is a modified port of Ryoku. Based on iNiR by snowarch (https://github.com/snowarch/inir). See [third-party notices](LICENSES/visualizer/iNiR-NOTICE) and [visualizer documentation](docs/VISUALIZERS.md).

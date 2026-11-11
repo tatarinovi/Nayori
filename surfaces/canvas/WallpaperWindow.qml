@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import "../desktop"
+import "../visualizer"
 import "../startup"
 import "../../services/canvas"
 
@@ -55,6 +56,15 @@ PanelWindow {
         onRenderFailed: function (failed) {
             if (root.outputName) root.manager.report(root.outputName, failed)
         }
+    }
+    VisualizerLayer {
+        anchors.fill: parent
+        service: root.widgetHost ? root.widgetHost.visualizerService : null
+        tokens: root.tokens
+        output: root.outputName
+        sourceAudio: root.widgetHost ? root.widgetHost.audioReaction : null
+        paletteAccent: root.widgetHost ? root.widgetHost.visualizerAccent : root.tokens.color.accent
+        visible: root.widgetsReady && !!service && !(root.widgetHost && root.widgetHost.editorShowing)
     }
     DesktopWidgetFaces {
         anchors.fill: parent

@@ -225,3 +225,13 @@ IPC `apps` запускает пять ролей приложений чере�
 палитры, Niri и первых кадров обоев, панелей и Dynamic Island; после затухания
 поверхности удаляются. Прежняя `SessionEntrance` при запуске не подключена.
 Условия готовности, ошибки и ограничения: [STARTUP_SPLASH.md](STARTUP_SPLASH.md).
+
+
+## Desktop Visualizer
+
+Одна `VisualizerService` в основной сессии использует SettingsService
+(`desktopVisualizers`) и выбор StageSession. `VisualizerLayer` находится внутри
+Canvas, фона Overview и уменьшенной сцены существующего редактора. Оригинальные
+SpectrumField/AuraField и шейдеры Ryoku отделены от настроек и ввода. Системная
+подписка `AudioReaction.systemConsumer` держит общий монитор выхода независимо
+от MPRIS. Состав, лицензии, протокол и ограничения: [VISUALIZERS.md](VISUALIZERS.md).

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stream energy, beats, RMS and 48 low-to-high cava frequency bands."""
+"""Shared output monitor: energy, beat, RMS, 48 bands, 128 bands, 128 PCM samples."""
 import array
 import math
 import os
@@ -19,6 +19,25 @@ def pcm_rms(data):
     return math.sqrt(sum(sample * sample for sample in samples) / len(samples)) / 32768 if samples else 0.0
 
 
+def pcm_waveform(data, count=128):
+    """Fold the stronger stereo channel into a real signed scope trace."""
+    samples = array.array('h')
+    samples.frombytes(data[:len(data) // 4 * 4])
+    if sys.byteorder != 'little':
+        samples.byteswap()
+    channels = [samples[::2], samples[1::2]]
+    channel = max(channels, key=lambda c: sum(v * v for v in c))
+    if not channel:
+        return [0.0] * count
+    return [sum(channel[i * len(channel) // count:max(i * len(channel) // count + 1, (i + 1) * len(channel) // count)])
+            / max(1, (i + 1) * len(channel) // count - i * len(channel) // count) / 32768 for i in range(count)]
+
+
+def fold_bands(values, count=48):
+    return [sum(values[i * len(values) // count:(i + 1) * len(values) // count])
+            / max(1, (i + 1) * len(values) // count - i * len(values) // count) for i in range(count)]
+
+
 def stop(signum, frame):
     raise SystemExit(0)
 
@@ -29,9 +48,10 @@ def main():
     sink = sys.argv[1]
     if not sink or '\n' in sink or '\r' in sink:
         return 2
+    fps = int(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2] in ('30', '45', '60') else 30
     config = f'''[general]
-framerate = 30
-bars = 48
+framerate = {fps}
+bars = 128
 [input]
 method = pulse
 source = {sink}.monitor
@@ -44,7 +64,7 @@ channels = mono
 [smoothing]
 noise_reduction = 30
 '''
-    level = [0.0, 0.0]
+    level = [0.0, 0.0, [0.0] * 128]
     monitor = None
     with tempfile.TemporaryDirectory(prefix='nayori-audio-') as directory:
         path = os.path.join(directory, 'config')
@@ -58,8 +78,8 @@ noise_reduction = 30
                                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
                 def read_level():
                     while data := monitor.stdout.read(3200):
-                        level[:] = [pcm_rms(data), time.monotonic()]
-                    level[:] = [0.0, 0.0]
+                        level[:] = [pcm_rms(data), time.monotonic(), pcm_waveform(data)]
+                    level[:] = [0.0, 0.0, [0.0] * 128]
                 threading.Thread(target=read_level, daemon=True).start()
             except OSError:
                 # No spectral-energy substitute for a missing waveform monitor.
@@ -69,12 +89,12 @@ noise_reduction = 30
             for line in child.stdout:
                 try:
                     values = [float(v) / 1000 for v in line.strip().split(';') if v]
-                    if len(values) != 48 or not all(math.isfinite(v) for v in values):
+                    if len(values) != 128 or not all(math.isfinite(v) for v in values):
                         continue
                     values = [max(0.0, min(1.0, v)) for v in values]
                     energy = min(1.0, sum(values) / len(values))
                     # Preserve the low 3/8 of the spectrum used by the old 8-band feed.
-                    bass = sum(values[:18]) / 18
+                    bass = sum(values[:48]) / 48
                     beat = min(1.0, max(0.0, bass - baseline * 1.3) * 3) if bass > 0.08 else 0
                     now = time.monotonic()
                     if beat < 0.12 or now - last_beat < 0.16:
@@ -82,10 +102,12 @@ noise_reduction = 30
                     else:
                         last_beat = now
                     baseline += (bass - baseline) * 0.12
-                    amplitude, sampled_at = level
+                    amplitude, sampled_at, waveform = level
                     volume = amplitude if now - sampled_at < 0.5 else 0.0
-                    spectrum = ' '.join(f'{value:.4f}' for value in values)
-                    print(f'{energy:.4f} {beat:.4f} {volume:.5f} {spectrum}', flush=True)
+                    spectrum = ' '.join(f'{value:.4f}' for value in fold_bands(values))
+                    detail = ' '.join(f'{value:.4f}' for value in values)
+                    wave = ' '.join(f'{value:.5f}' for value in (waveform if now - sampled_at < 0.5 else [0.0] * 128))
+                    print(f'{energy:.4f} {beat:.4f} {volume:.5f} {spectrum} {detail} {wave}', flush=True)
                 except ValueError:
                     continue
         finally:

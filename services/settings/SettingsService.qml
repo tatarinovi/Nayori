@@ -7,6 +7,8 @@ import "../ui/PanelModes.js" as PanelModes
 import "../../islands/workspaces/WorkspaceStyles.js" as WorkspaceStyles
 import "../../surfaces/desktop/WidgetLayout.js" as WidgetLayout
 
+import "../visualizer/VisualizerConfig.js" as VisualizerConfig
+
 // Owned by ShellRoot, never by a settings page or window.
 QtObject {
     id: root
@@ -16,6 +18,7 @@ QtObject {
         "version": 1
     })
     property var values: defaults()
+    readonly property var desktopVisualizers: values.desktopVisualizers
     readonly property var desktopWidgets: values.desktopWidgets
     readonly property var panelReservations: values.panelReservations
     readonly property string workspaceIndicatorStyle: values.workspaceIndicatorStyle
@@ -159,6 +162,7 @@ QtObject {
     function defaults() {
         return {
             "desktopWidgets": {},
+            "desktopVisualizers": VisualizerConfig.normalize({}),
             "workspaceIndicatorStyle": "dots",
             "panelModes": {},
             "panelReservations": {},
@@ -255,6 +259,7 @@ QtObject {
         if (key === "quickCaptureWorkPath" || key === "quickCapturePersonalPath")
             return typeof value === "string" && value.length < 4096 && !/[\x00-\x1f\\]/.test(value)
                 && value.split("/").every(part => part !== "" && part !== "." && part !== "..") ? value : fallback;
+        if (key === "desktopVisualizers") return VisualizerConfig.normalize(value);
         if (key === "desktopWidgets") return WidgetLayout.normalize(value);
         if (key === "workspaceIndicatorStyle") return WorkspaceStyles.normalize(value);
         if (key === "panelModes") return PanelModes.normalize(value);

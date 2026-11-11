@@ -35,6 +35,10 @@ Column {
         font.pixelSize: 13
          text: info.nayoriVersion !== "" ? info.nayoriVersion : "Номер версии Nayori в репозитории не задан" 
     }
+    Label {
+        width: parent.width
+        text: "Desktop Visualizer: Ryoku. Based on iNiR by snowarch (https://github.com/snowarch/inir)"
+    }
     Label { text: "Окружение"; font.family: root.tokens.type.display.family; font.pixelSize: 18 }
     Label {
         width: parent.width

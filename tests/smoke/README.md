@@ -106,3 +106,15 @@ The `SettingsSmoke.qml` write scenario explicitly selects `islandPlacement:
 Основная сессия bootstrap находится в `surfaces/ShellSession.qml`; ссылка
 `surfaces` уже открывает её стендам. Корневой `ShellSession.qml` оставлен
 переходником для совместимости со старыми updater.
+
+
+### Desktop Visualizer
+
+`tests/visualizers.py` входит в CI smoke: `VisualizerSmoke.qml` создаёт 13
+экземпляров, показывает вкладки, проверяет независимые мониторы, отключение
+анимаций, удаление и восстановление файла без дублей. `VisualizerAudioSmoke.qml`
+использует только `fake-visualizer-audio.py`: системная подписка без MPRIS,
+общий worker, FFT/PCM, смена выхода, авария и восстановление. Стенды не открывают
+реальные устройства. Software Qt не проверяет GLSL-изображение и физические
+жесты; см. [ограничения](../../docs/VISUALIZERS.md). Локально не запускать по
+текущей договорённости с пользователем; проверка новых изменений оставлена CI.

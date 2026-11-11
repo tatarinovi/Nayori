@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import "../desktop"
+import "../visualizer"
 
 // Background layer for one output. niri's nayori-overview rule places it in
 // that output's overview backdrop. It is not the sharp desktop wallpaper.
@@ -53,6 +54,15 @@ PanelWindow {
             if (status === Image.Error && root.imagePath !== "")
                 root.imageFailed(root.imagePath)
         }
+    }
+    VisualizerLayer {
+        anchors.fill: parent
+        service: root.widgetHost ? root.widgetHost.visualizerService : null
+        tokens: root.tokens
+        output: root.outputName
+        sourceAudio: root.widgetHost ? root.widgetHost.audioReaction : null
+        paletteAccent: root.widgetHost ? root.widgetHost.visualizerAccent : root.tokens.color.accent
+        visible: root.widgetsReady && !!service
     }
     DesktopWidgetFaces {
         anchors.fill: parent
