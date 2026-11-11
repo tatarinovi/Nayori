@@ -28,6 +28,16 @@ FocusScope {
             return a < end && (b > start || (a === b && a >= start))
         }) : []
     }
+    function isPast(event) {
+        const end = new Date(event.allDay ? event.end + "T00:00:00" : event.end).getTime()
+        return Number.isFinite(end) && end <= now.getTime()
+    }
+    function isCurrent(event) {
+        if (event.allDay) return false
+        const start = new Date(event.start).getTime()
+        const end = new Date(event.end).getTime()
+        return start <= now.getTime() && now.getTime() < end
+    }
     function openDay(date) {
         selectedDate = date
         details = true
@@ -82,6 +92,7 @@ FocusScope {
                     readonly property bool inMonth: number > 0 && number <= new Date(root.month.getFullYear(), root.month.getMonth() + 1, 0).getDate()
                     readonly property date date: new Date(root.month.getFullYear(), root.month.getMonth(), number)
                     readonly property bool today: inMonth && date.toDateString() === root.now.toDateString()
+                    readonly property bool past: date.getTime() < new Date(root.now.getFullYear(), root.now.getMonth(), root.now.getDate()).getTime()
                     readonly property int eventCount: inMonth ? root.eventsOn(date).length : 0
                     Layout.fillWidth: true; Layout.fillHeight: true
                     implicitHeight: 30
@@ -113,6 +124,7 @@ FocusScope {
                             height: childrenRect.height
                             spacing: 2
                             visible: day.eventCount > 0
+                            opacity: day.past ? 0.45 : 1
                             Repeater {
                                 model: day.eventCount
                                 Rectangle {
@@ -139,13 +151,28 @@ FocusScope {
         spacing: 6
         RowLayout {
             Layout.fillWidth: true
-            Action { id: backButton; objectName: "calendarBack"; text: "Назад"; Accessible.name: "Вернуться к месяцу"; onClicked: root.back() }
+            Action {
+                id: backButton
+                objectName: "calendarBack"
+                text: "←"
+                implicitWidth: 36
+                Accessible.name: "Вернуться к месяцу"
+                onClicked: root.back()
+                contentItem: IslandLabel {
+                    tokens: root.tokens
+                    text: backButton.text
+                    font.pixelSize: 20
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
             Heading { Layout.fillWidth: true; horizontalAlignment: Text.AlignRight; text: root.locale.toString(root.selectedDate, "d MMMM"); font.pixelSize: 20 }
         }
         Caption { text: root.locale.toString(root.selectedDate, "dddd") + " · событий: " + root.selectedEvents.length }
         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Qt.alpha(root.tokens.color.border, 0.4) }
         ListView {
             id: agenda
+            objectName: "calendarAgenda"
             Layout.fillWidth: true; Layout.fillHeight: true
             clip: true; spacing: 0
             model: root.selectedEvents
@@ -154,6 +181,9 @@ FocusScope {
                 id: entry
                 required property var modelData
                 required property int index
+                readonly property bool past: root.isPast(modelData)
+                readonly property bool current: root.isCurrent(modelData)
+                opacity: past ? 0.45 : 1
                 objectName: "calendarEventCard" + index
                 width: Math.max(0, agenda.width - 12)
                 height: eventCard.implicitHeight + 8
@@ -170,21 +200,22 @@ FocusScope {
                     id: eventCard
                     objectName: "calendarEventSurface"
                     readonly property string link: entry.modelData.link || ""
-                    readonly property bool actionable: /^https?:\/\//i.test(link)
+                    readonly property bool actionable: !entry.past && /^https?:\/\//i.test(link)
                     x: 18
                     width: Math.max(0, entry.width - x)
                     implicitHeight: eventContent.implicitHeight + 16
                     height: implicitHeight
                     padding: 8
+                    enabled: actionable
                     hoverEnabled: actionable
                     focusPolicy: actionable ? Qt.StrongFocus : Qt.NoFocus
                     Accessible.name: entry.modelData.title + (actionable ? ", открыть ссылку" : "")
                     onClicked: if (actionable) Qt.openUrlExternally(link)
                     background: IslandCard {
                         tokens: root.tokens
-                        color: Qt.alpha(root.tokens.color.surfaceAlt, eventCard.down && eventCard.actionable ? 0.65 : eventCard.hovered && eventCard.actionable ? 0.5 : 0.35)
+                        color: Qt.tint(Qt.alpha(root.tokens.color.surfaceAlt, eventCard.down && eventCard.actionable ? 0.65 : eventCard.hovered && eventCard.actionable ? 0.5 : 0.35), Qt.alpha(root.tokens.color.accent, entry.current ? 0.08 : 0))
                         border.width: 1
-                        border.color: Qt.alpha(root.tokens.color.border, eventCard.visualFocus ? 0.9 : eventCard.hovered && eventCard.actionable ? 0.6 : 0.3)
+                        border.color: eventCard.visualFocus ? root.tokens.color.accent : entry.current ? Qt.alpha(root.tokens.color.accent, 0.32) : Qt.alpha(root.tokens.color.border, eventCard.hovered && eventCard.actionable ? 0.4 : 0.16)
                         Behavior on color { ColorAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast } }
                         Behavior on border.color { ColorAnimation { duration: root.tokens.motion.off ? 0 : root.tokens.motion.fast } }
                     }
@@ -216,7 +247,7 @@ FocusScope {
         }
         RowLayout {
             Layout.fillWidth: true
-            Caption { Layout.fillWidth: true; text: root.service && root.service.error ? "Не удалось обновить" : "CalDAV"; elide: Text.ElideRight }
+            Caption { objectName: "calendarSyncStatus"; Layout.fillWidth: true; text: root.service && root.service.error ? "Не удалось обновить" : root.service && root.service.busy ? "Обновляем…" : ""; elide: Text.ElideRight }
             Action { text: "↻"; Accessible.name: "Обновить календарь"; enabled: !!root.service && !root.service.busy; onClicked: root.service.refresh() }
         }
     }
