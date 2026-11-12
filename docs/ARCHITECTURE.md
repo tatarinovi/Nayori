@@ -235,3 +235,11 @@ Canvas, фона Overview и уменьшенной сцены существу�
 SpectrumField/AuraField и шейдеры Ryoku отделены от настроек и ввода. Системная
 подписка `AudioReaction.systemConsumer` держит общий монитор выхода независимо
 от MPRIS. Состав, лицензии, протокол и ограничения: [VISUALIZERS.md](VISUALIZERS.md).
+
+
+Редактор виджетов разделён на `surfaces/desktop/DesktopWidgets.qml` (оконный
+слой, маска ввода и политика layer-shell) и `DesktopWidgetEditor.qml` (общий
+интерфейс, состояние выбора, жесты, сетка и каталог). Оконный слой передаёт
+параметры и сигналы без отдельной копии состояния. CI помещает тот же редактор
+в `FloatingWindow`, поскольку `PanelWindow` требует оконный backend Wayland/X11
+и не создаётся на offscreen-платформе.

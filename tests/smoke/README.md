@@ -123,7 +123,8 @@ The `SettingsSmoke.qml` write scenario explicitly selects `islandPlacement:
 ### Widget editor
 
 `tests/widget-editor.py` добавлен в CI smoke. Стенд `WidgetEditorSmoke.qml`
-создаёт настоящий `DesktopWidgets` и отдельный каталог в offscreen Qt с
+создаёт тот же `DesktopWidgetEditor`, что использует `DesktopWidgets`, внутри
+`FloatingWindow` и отдельный каталог в offscreen Qt с
 временными XDG-каталогами и без сокета Niri. Проверяет три цикла раскрытия
 наборов и типов, возврат соседних элементов и высоты содержимого, сброс
 прокрутки после сворачивания, две колонки карточек, поиск, выбор виджета
@@ -133,7 +134,9 @@ The `SettingsSmoke.qml` write scenario explicitly selects `islandPlacement:
 отпускания и отмены. `DesktopWidgetsSmoke.qml` отдельно проверяет свободный
 жест и привязку к краю экрана между линиями сетки; `widget-layout.cjs` —
 повторное применение координат без сдвига. Локально эти проверки не запускались
-по просьбе пользователя. Физический ввод Wayland и яркость линий на реальных
+по просьбе пользователя. `PanelWindow` и layer-shell в offscreen-среде недоступны; оконный слой остаётся
+в тонком `DesktopWidgets`, без копирования логики редактора в стенд.
+Физический ввод Wayland и яркость линий на реальных
 обоях остаются за пределами offscreen-проверок.
 
 `tests/imported-widgets.py` загружает текущий каталог перенесённых оригинальных

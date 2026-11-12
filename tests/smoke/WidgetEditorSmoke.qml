@@ -47,17 +47,23 @@ ShellRoot {
         implicitWidth: 360; implicitHeight: 720
         WidgetCatalog { id: catalog; width: 336; tokens: theme }
     }
-    DesktopWidgets {
-        id: editor
-        screen: Quickshell.screens[0]
-        tokens: theme
-        editing: true
-        stageSession: stage
-        layout: ({snap:true, items:[
-            {id:"first", type:"note", x:24, y:24, size:"compact", style:"card", text:"Первая"},
-            {id:"second", type:"note", x:24, y:240, size:"compact", style:"card", text:"Вторая"}
-        ]})
-        onLayoutEdited: test.layoutWrites++
+    FloatingWindow {
+        visible: true
+        implicitWidth: Quickshell.screens[0].width
+        implicitHeight: Quickshell.screens[0].height
+        DesktopWidgetEditor {
+            anchors.fill: parent
+            id: editor
+            screen: Quickshell.screens[0]
+            tokens: theme
+            editing: true
+            stageSession: stage
+            layout: ({snap:true, items:[
+                {id:"first", type:"note", x:24, y:24, size:"compact", style:"card", text:"Первая"},
+                {id:"second", type:"note", x:24, y:240, size:"compact", style:"card", text:"Вторая"}
+            ]})
+            onLayoutEdited: test.layoutWrites++
+        }
     }
     Timer {
         interval: 100; running: true; repeat: true
@@ -67,12 +73,12 @@ ShellRoot {
             const typeName = "widget-catalog-type-Nayori-clock"
             const weatherName = "widget-catalog-type-Nayori-weather"
             const nextSetName = "widget-catalog-set-ii widgets"
-            const grid = test.find(editor.contentItem, "desktop-widget-grid")
-            const guides = test.find(editor.contentItem, "desktop-widget-alignment-guides")
-            const tabs = test.find(editor.contentItem, "desktop-widget-tabs")
-            const pane = test.find(editor.contentItem, "desktop-widget-settings-pane")
-            const first = test.find(editor.contentItem, "desktop-widget-first")
-            const second = test.find(editor.contentItem, "desktop-widget-second")
+            const grid = test.find(editor, "desktop-widget-grid")
+            const guides = test.find(editor, "desktop-widget-alignment-guides")
+            const tabs = test.find(editor, "desktop-widget-tabs")
+            const pane = test.find(editor, "desktop-widget-settings-pane")
+            const first = test.find(editor, "desktop-widget-first")
+            const second = test.find(editor, "desktop-widget-second")
             if (test.phase === 0) {
                 test.check(catalog.sets.length === 4 && catalog.visibleEntries.length === 0, "all widget sets initially collapsed")
                 test.closedHeight = catalog.implicitHeight
@@ -113,17 +119,17 @@ ShellRoot {
                 // Clicking a disabled settings segment must not open an empty pane.
                 tabs.activated("settings")
                 test.check(editor.widgetDrawerTab === 0, "settings unavailable without selected widget")
-                const list = test.find(editor.contentItem, "desktop-widget-catalog-list")
+                const list = test.find(editor, "desktop-widget-catalog-list")
                 const next = ({"set:Nayori":true})
                 for (const type of list.sets[0].types) next["type:Nayori:" + type.key] = true
                 list.expandedSections = next
             } else if (test.phase === 8) {
-                const scroll = test.find(editor.contentItem, "desktop-widget-drawer-content")
+                const scroll = test.find(editor, "desktop-widget-drawer-content")
                 test.check(scroll.contentHeight > scroll.height, "expanded catalog scrolls")
                 scroll.contentY = scroll.contentHeight - scroll.height
-                test.find(editor.contentItem, "desktop-widget-catalog-list").toggleSection("set:Nayori")
+                test.find(editor, "desktop-widget-catalog-list").toggleSection("set:Nayori")
             } else if (test.phase === 9) {
-                const scroll = test.find(editor.contentItem, "desktop-widget-drawer-content")
+                const scroll = test.find(editor, "desktop-widget-drawer-content")
                 test.check(scroll.contentY === 0 && scroll.contentHeight <= scroll.height, "collapse removes empty scrolling space")
                 editor.catalogOpen = false
                 input.mousePress(first, 20, 20, Qt.LeftButton, Qt.NoModifier, -1)

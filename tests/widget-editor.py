@@ -1,4 +1,4 @@
-"""CI regression coverage for the real editor, without a desktop session."""
+"""CI coverage for production editor content in an offscreen window."""
 import os
 from pathlib import Path
 import subprocess
