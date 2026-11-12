@@ -60,14 +60,14 @@ Item {
                 RotationAnimation on rotation {
                     from: 0; to: 360; duration: 4000; loops: Animation.Infinite
                     running: root.animate
-                    paused: !root.playing
+                    paused: running && !root.playing
                 }
                 Repeater {
                     model: 4
                     Rectangle {
                         required property int index
                         anchors.centerIn: parent
-                        width: parent.width - 18 - index * 16; height: width; radius: width / 2
+                        width: vinyl.width - 18 - index * 16; height: width; radius: width / 2
                         color: "transparent"; border.width: 1; border.color: root.tokens.color.border
                     }
                 }

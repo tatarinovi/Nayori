@@ -179,8 +179,13 @@ FocusScope {
         return index < items.length ? items[index] : null
     }
 
-    function bumpMask() {
+    function flushMaskUpdate() {
         inputEpoch++
+    }
+    function bumpMask() {
+        // itemAt() can complete a delegate while maskItems is evaluating.
+        // Coalesce its geometry/input notifications after the current binding.
+        Qt.callLater(root.flushMaskUpdate)
     }
 
     function itemsNow() {
