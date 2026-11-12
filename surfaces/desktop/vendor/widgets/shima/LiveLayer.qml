@@ -4,6 +4,9 @@ Item {
     id: root
     property bool live: false
     property bool allowed: true
+    // Upstream pads its separate surface to contain shader overflow. This host
+    // stays inside the existing, unclipped canvas; no extra surface is needed.
+    property real pad: 0
     property Component content: null
     Loader {
         anchors.fill: parent

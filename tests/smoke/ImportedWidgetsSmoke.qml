@@ -17,6 +17,7 @@ ShellRoot {
     property int converterStage: 0
     function check(ok, message) { if (!ok) throw new Error(message) }
     function find(node, predicate) {
+        if (!node) return null
         if (predicate(node)) return node
         for (const child of node.children || []) { const match = find(child, predicate); if (match) return match }
         return null

@@ -9105,7 +9105,7 @@
     },
     {
       "path": "shima/LiveLayer.qml",
-      "adaptedSha256": "fa254ebcb895602f675e2c070c4bbc78aa5980a47b7f6fa901440064f039da99",
+      "adaptedSha256": "5f33ddd69d776478318011a4004be9724fa27411fc89fa4a869d5e78a2742ed6",
       "license": "GPL-3.0-only",
       "note": "Nayori host seam; the shell supplies instance data, actions and surface lifecycle."
     },
