@@ -19,7 +19,10 @@ ShellRoot {
         settings: store
         testMode: true
     }
-    Component.onCompleted: {
+    // Quickshell connects QQmlEngine::quit only after constructing the config.
+    // Run on the event loop so a successful assertion run can actually exit.
+    Timer { interval: 1; running: true; onTriggered: root.runChecks() }
+    function runChecks() {
         runtime.request("github", {user:"first"}, "one")
         const oldToken = runtime.requests.one.token
         runtime.request("github", {user:"second"}, "one")
