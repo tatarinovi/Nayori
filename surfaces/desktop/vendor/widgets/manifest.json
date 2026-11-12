@@ -8606,7 +8606,7 @@
       "path": "shima/ShapeCanvas.qml",
       "source": "inir/modules/common/widgets/shapes/ShapeCanvas.qml",
       "sha256": "8b846d6a074ee84f7ca4932c1a0aee708eb770bae8980c7cb43a19ebacec0811",
-      "adaptedSha256": "906cf8502f5c4e29ab507c44a0c7d017548f0feebac8a4ef0dd2dfd61c4c8798"
+      "adaptedSha256": "b3404b036c031ea66cc6f6158b630a740de4c5c3d6350db785b802796184065f"
     },
     {
       "path": "shima/morph.js",
@@ -8636,7 +8636,7 @@
       "path": "shima/CavaSpectrum.qml",
       "source": "inir/modules/common/widgets/CavaSpectrum.qml",
       "sha256": "24ae584e5d1e690feec2b3458b9174b31eded78d76f3bdd97c657360387921f2",
-      "adaptedSha256": "7fd8a879cc853f38c8a93922fbe81e55887d72e6fdedcca4fc06f56cac3d4393"
+      "adaptedSha256": "c44daaac3941cc46c9630cbd073c9fea36623d6e449621d3dc56bb41b2edb442"
     },
     {
       "path": "shima/OrganicAudioBlob.qml",
@@ -8714,7 +8714,7 @@
       "path": "shima/CustomImageWidget.qml",
       "source": "inir/modules/background/widgets/CustomImageWidget.qml",
       "sha256": "737d5fcf4816bc2010acdbc206a9eaac7fefdd49e6198d07131f78263e7f2652",
-      "adaptedSha256": "0516072c17deabe82aec8be9f300f76f871651bf89b53318a7d1c9c38afd0a0e"
+      "adaptedSha256": "9d3b27aa3776b334505add9510ca5049415630408805681f9730adf9ccc1a21c"
     },
     {
       "path": "shima/StyledDropShadow.qml",
@@ -8864,7 +8864,7 @@
       "path": "python/GithubFace.qml",
       "source": "shell/modules/bar/barstyles/python/widgets/faces/github/GithubFace.qml",
       "sha256": "20e39b01f3cad6da78ecbe31a15c74b4169a842b61c3d73f282ee6c2eb25d912",
-      "adaptedSha256": "c24a15bc628c24944205b552c69420470896090a1a5f710804a29061de3fa1a4"
+      "adaptedSha256": "ed541a6e7179b35a1a998cb95f60bff2fa77c7286fc7f4260029e1b93a8cb406"
     },
     {
       "path": "python/NumberSelector.qml",
@@ -9087,7 +9087,7 @@
     },
     {
       "path": "shima/AbstractBackgroundWidget.qml",
-      "adaptedSha256": "5667f38757f1c1c2e812e966e1bf6ee8a14055360b04fb0f7afd0d2b585b3626",
+      "adaptedSha256": "45ed95bd14534cad109c46f895483209c8946f98675c04faeac564f6f994a1e7",
       "license": "GPL-3.0-only",
       "note": "Nayori host seam; the shell supplies instance data, actions and surface lifecycle."
     },

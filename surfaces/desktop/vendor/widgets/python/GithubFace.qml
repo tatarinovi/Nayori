@@ -40,7 +40,6 @@ Item {
             return
         }
         if (hostUser !== "" && hostUser !== username) {
-            saveUsername(hostUser);
             loadUser(hostUser, true);
         }
     }

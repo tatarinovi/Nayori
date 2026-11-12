@@ -494,6 +494,7 @@ AbstractBackgroundWidget {
 
 
     MaterialShape {
+        hostBridge: nayoriCustomImageWidget
         id: shadowShape
         anchors.fill: parent
         shape: root.shapeEnum
@@ -517,6 +518,7 @@ AbstractBackgroundWidget {
                 width: maskedContent.width
                 height: maskedContent.height
                 MaterialShape {
+                    hostBridge: nayoriCustomImageWidget
                     anchors.fill: parent
                     shape: root.shapeEnum
                     visible: !root._ryokuSurface
@@ -576,6 +578,7 @@ AbstractBackgroundWidget {
         }
 
         MaterialShape {
+            hostBridge: nayoriCustomImageWidget
             anchors.fill: parent
             visible: root.dropHover && !root._ryokuSurface
             shape: root.shapeEnum

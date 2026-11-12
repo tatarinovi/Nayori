@@ -105,7 +105,7 @@ Item {
     }
     readonly property var translation: ({locale: Qt.locale(), tr: function(value) { return value }})
     readonly property var scaler: ({s: function(value) { return value }})
-    readonly property var i18n: ({tr: function(value) { return value }, currentLang: Qt.locale().name, t: function(key, fallback) { return PythonTranslations.t(Qt.locale().name.split("_")[0], key, fallback) }})
+    readonly property var i18n: ({rtl:Qt.locale().textDirection === Qt.RightToLeft,layoutDirection:Qt.locale().textDirection,textAlignment:Qt.locale().textDirection === Qt.RightToLeft ? Qt.AlignRight : Qt.AlignLeft,tr: function(value) { return value }, currentLang: Qt.locale().name, t: function(key, fallback) { return PythonTranslations.t(Qt.locale().name.split("_")[0], key, fallback) }})
     readonly property var directories: ({assetsPath: Qt.resolvedUrl("vendor/widgets/assets").toString().replace(/^file:\/\//, ""), generatedWallpaperCategoryPath: "", picturesPath:Quickshell.env("HOME") + "/Pictures", userAvatarSourcePrimary:root.systemInfo.avatarPath ? "file://" + root.systemInfo.avatarPath : "", userAvatarPaths:root.systemInfo.avatarPath ? [root.systemInfo.avatarPath] : [], avatarSourceAt:function(index) { return index === 0 && root.systemInfo.avatarPath ? "file://" + root.systemInfo.avatarPath : "" }, payloadPath: function(path) { return Qt.resolvedUrl("vendor/widgets/" + path) }})
 
     readonly property var weatherData: ImportedData.weather(weatherService ? weatherService.data : null, weatherService ? weatherService.city : "", options.weatherUnit || "metric", accent.toString(), systemClock.date)

@@ -11,6 +11,7 @@ Item {
     property real resizeMinHeight: 60
     property real resizeMaxWidth: 1800
     property real resizeMaxHeight: 1200
+    property bool liveColorTracking: false
     property bool needsColText: false
     property bool visibleWhenLocked: true
     property bool draggable: false

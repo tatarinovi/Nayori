@@ -6,7 +6,8 @@ import QtQuick
 import "morph.js" as Morph
 
 Canvas {
-    readonly property var nayoriShapeCanvas: BridgeContext.find(typeof parent !== "undefined" ? parent : null)
+    property var hostBridge: null
+    readonly property var nayoriShapeCanvas: hostBridge || BridgeContext.find(typeof parent !== "undefined" ? parent : null)
 
     id: root
     property color color: nayoriShapeCanvas.appearance.colors.colPrimary

@@ -27,3 +27,12 @@ qmltyperegistrar. The script produces `libnayori_widgets_plugin.so` and its tool
 description `plugins.qmltypes`; it neither loads QML nor runs tests. Rebuild after
 changing Qt ABI. Do not commit the host-specific shared object. CI builds before
 checks; the installer builds inside the unpublished release before hashing it.
+
+Quickshell's static directory imports use a virtual `qs:` URL; Qt cannot find
+shared libraries relative to that virtual directory. `CavaSpectrum.qml` resolves
+the physical plugin directory with `Qt.resolvedUrl` at runtime and instantiates
+the original painter via a `file:` directory import. All painter properties
+remain live bindings to the per-instance wrapper. This needs no global plugin
+installation, environment override, or absolute path generated into a release.
+Quickshell URL interception source:
+https://github.com/quickshell-mirror/quickshell/blob/master/src/core/qsintercept.cpp

@@ -240,6 +240,13 @@ ShellRoot {
                 if (row.type === "shima_newsTicker") root.check(bridge.news.articles[0].title === "Fixture news", "news receives RSS data")
                 if (row.type === "shima_screenTime") root.check(bridge.screenTime.getToday().totalSeconds === 60, "screen time uses shared usage")
                 if (row.type === "shima_userCard" || row.type === "python_UserFace") root.check(bridge.systemInfo.username === "fixture", "profile uses shared runtime")
+                if (row.type === "shima_visualizer") {
+                    const spectrum = root.find(face.loadedItem, node => node.nativePainter !== undefined)
+                    root.check(!!spectrum && !!spectrum.nativePainter, "original C++ painter loads from physical plugin directory")
+                    spectrum.points = [10,20,30]
+                    spectrum.smoothing = 3
+                    root.check(spectrum.nativePainter.points.length === 3 && spectrum.nativePainter.smoothing === 3, "painter receives live instance properties")
+                }
                 if (row.type === "shima_controls") root.check(!bridge.nightlight.available, "missing nightlight tool stays disabled")
                 if (row.type === "python_NotesFace") root.check(face.loadedItem.notesList[0].title === "Fixture note", "Python notes receive saved collection")
                 if (row.type === "python_GithubFace") {
