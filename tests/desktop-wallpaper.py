@@ -19,6 +19,11 @@ ShellRoot {
  property int phase: 0
  property string before: ""
  function check(ok, message) { if (!ok) throw new Error(message) }
+ function draftPreviewReady(picker) {
+  const shown = manager.displayWallpaper("DP-1")
+  return manager.previewing && shown.preview === true
+   && String(shown.source) === String(picker.draftSource) && shown.mode === picker.draftMode
+ }
  function find(item, name) {
   if (!item) return null
   if (item.objectName === name) return item
@@ -68,7 +73,9 @@ ShellRoot {
      test.phase = 3; return
     }
     if (test.phase === 3) {
-     if (!manager.previewing || !picker.canApply) return
+     // The previous paint stays visible while the new source loads and the
+     // debounce runs. Wait for this draft, not merely any existing preview.
+     if (!test.draftPreviewReady(picker) || !picker.canApply) return
      test.check(JSON.stringify(manager.state) === test.before, "preview did not save")
      test.check(manager.displayWallpaper("DP-1").source.endsWith("/second.png"), "editor previews draft")
      const cancel = test.find(window.contentItem, "desktop-wallpaper-cancel")
@@ -79,7 +86,7 @@ ShellRoot {
      test.phase = 4; return
     }
     if (test.phase === 4) {
-     if (!picker.canApply || !manager.previewing) return
+     if (!picker.canApply || !test.draftPreviewReady(picker)) return
      test.find(window.contentItem, "desktop-wallpaper-apply").clicked()
      test.phase = 5; return
     }
@@ -100,7 +107,7 @@ ShellRoot {
      test.phase = 6; return
     }
     if (test.phase === 6) {
-     if (!manager.previewing) return
+     if (!test.draftPreviewReady(picker)) return
      drawer.active = false
      test.phase = 7; return
     }
