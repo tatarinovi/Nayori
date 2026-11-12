@@ -33,6 +33,12 @@ Item {
     // A live Stage option takes precedence over an older cached account.
     property string hostUser: ""
     onHostUserChanged: {
+        if (hostUser.trim() === "") {
+            if (nayoriGithubFace.runtime) nayoriGithubFace.runtime.release("github-" + String(root) + ":")
+            username = ""
+            clearData()
+            return
+        }
         if (hostUser !== "" && hostUser !== username) {
             saveUsername(hostUser);
             loadUser(hostUser, true);
@@ -220,6 +226,8 @@ Item {
         root.loading = false;
     }
 
+    Component.onDestruction: if (nayoriGithubFace && nayoriGithubFace.runtime) nayoriGithubFace.runtime.release("github-" + String(root) + ":")
+
     function saveUsername(user) { nayoriGithubFace.editOption("hostUser", user) }
 
     function loadUser(user, forceFetch) {
@@ -231,7 +239,7 @@ Item {
         root.username = clean;
         root.selectedDay = null;
         if (forceFetch) {
-            fetchContributions(clean, root.selectedYear);
+            fetchContributions(clean, root.selectedYear, true);
             return;
         }
         readCacheForYear(clean, root.selectedYear);
@@ -241,10 +249,10 @@ Item {
 
     function saveCachedData(user,year,list,totalVal) {} // shared service owns the cache
 
-    function fetchContributions(user,year) {
+    function fetchContributions(user,year,force) {
         if (!user || !nayoriGithubFace.runtime || !nayoriGithubFace.active) { root.clearData(); return }
         root.loading = true; root.hasError = false
-        nayoriGithubFace.runtime.request("github", {user:user,year:year}, "github-" + String(root) + ":" + user + ":" + year)
+        nayoriGithubFace.runtime.request("github", {user:user,year:year,force:!!force}, "github-" + String(root) + ":" + user + ":" + year)
     }
 
     function fetchGithubHtml(user,year) { root.hasError = true; root.loading = false }
@@ -267,7 +275,13 @@ Item {
             root.processContributions(data.contributions || [],data.total)
         }
     }
-    Connections { target: nayoriGithubFace; function onActiveChanged() { if (nayoriGithubFace.active && root.hostUser) root.loadUser(root.hostUser,false) } }
+    Connections {
+        target: nayoriGithubFace
+        function onActiveChanged() {
+            if (nayoriGithubFace.active && root.hostUser) root.loadUser(root.hostUser,false)
+            else if (nayoriGithubFace.runtime) nayoriGithubFace.runtime.release("github-" + String(root) + ":")
+        }
+    }
     Component.onCompleted: if (root.hostUser) root.loadUser(root.hostUser,false)
     TextMetrics {
         id: usernameTextMetrics

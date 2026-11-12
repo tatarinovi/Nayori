@@ -24,6 +24,7 @@ QtObject {
         if (["shima_controls","shima_mediaControls"].includes(host.type)) request("capabilities",{},"capabilities")
         runtime.usageConsumer(key, host.type === "shima_screenTime" && options.enabled === true)
         runtime.profileConsumer(key,["shima_userCard","python_UserFace"].includes(host.type))
+        runtime.networkConsumer(key,["shima_controls","shima_mediaControls"].includes(host.type) || /MusicFaceLyrics/.test(host.type))
     }
     onOptionsChanged: {
         const signature = JSON.stringify([host.type,options.timezones,options.feedUrl,options.localLyricsPath,options.enabled])
@@ -33,12 +34,12 @@ QtObject {
         target: root.host
         function onActiveChanged() {
             if (root.host.active) root.refresh()
-            else if (root.runtime) { root.runtime.usageConsumer(root.key, false); root.runtime.profileConsumer(root.key,false) }
+            else if (root.runtime) { root.runtime.usageConsumer(root.key, false); root.runtime.profileConsumer(root.key,false); root.runtime.networkConsumer(root.key,false); root.runtime.release(root.key) }
         }
         function onRuntimeChanged() { root.refresh() }
     }
     Component.onCompleted: refresh()
-    Component.onDestruction: if (runtime) { runtime.usageConsumer(key, false); runtime.profileConsumer(key,false); runtime.release(key) }
+    Component.onDestruction: if (runtime) { runtime.usageConsumer(key, false); runtime.profileConsumer(key,false); runtime.networkConsumer(key,false); runtime.release(key) }
     property Timer refreshClock: Timer {
         interval: 60000; repeat: true; running: root.host.active && !!root.runtime && ["shima_worldClock","shima_newsTicker"].includes(root.host.type)
         onTriggered: root.refresh()
@@ -115,7 +116,7 @@ QtObject {
     readonly property QtObject news: QtObject {
         readonly property var articles: root.newsData.articles || []
         readonly property string lastError: root.newsData.error || ""
-        readonly property bool loading: root.runtime && root.runtime.requests[root.key + "news"] !== undefined
+        readonly property bool loading: !!root.runtime && root.runtime.requests[root.key + "news"] !== undefined
         function formatTime(value) { const date = new Date(value); return isNaN(date.getTime()) ? "" : Qt.formatDateTime(date,"HH:mm") }
         function openArticle(article) { const url = article.url || article.link || ""; if (/^https?:\/\//.test(url)) Qt.openUrlExternally(url) }
     }

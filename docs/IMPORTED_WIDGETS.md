@@ -1,8 +1,8 @@
 # Перенесённые виджеты Ryoku
 
-Подключено 83 оригинальных компонентов: ii — 46, Python — 28, Shima — 9. Ещё 80 записей не перенесены. Дополнительно в исходном реестре есть один алиас той же карточки даты; он не считается отдельным виджетом. Собственные шесть типов Nayori в эти числа не входят.
+В каталоге 103 адаптированных оригинальных компонента: ii — 46, Python — 32, Shima — 25. Все записи Shima и Python из закреплённого реестра адаптированы. Ещё 60 записей ii не перенесены. Дополнительно в исходном реестре есть один алиас той же карточки даты; он не считается отдельным виджетом. Собственные шесть типов Nayori в эти числа не входят.
 
-Это промежуточный результат переноса. Последние изменения не проверялись локальным запуском по просьбе пользователя; загрузка и функциональные проверки добавлены в CI, результат CI пока не получен. Живой Wayland-ввод, GPU-эффекты и соответствие оригиналу на реальном мониторе не подтверждены.
+Реализация последней группы закончена; проверка её загрузки и поведения ожидает CI. Последние изменения не проверялись локальным запуском по просьбе пользователя; загрузка и функциональные проверки добавлены в CI, результат CI пока не получен. Живой Wayland-ввод, GPU-эффекты и соответствие оригиналу на реальном мониторе не подтверждены.
 
 ## Источники и лицензии
 
@@ -19,13 +19,37 @@
 
 Процессор, память, GPU, температура, диски и uptime берутся из общего SystemReader / SystemMonitor. Батарея — из Quickshell UPower. Календарь — из CalendarService Nayori; названия и даты переводятся в схему ii, события через полночь учитываются по пересечению, дата окончания all-day остаётся исключающей. Погода — из общего ответа службы Nayori. Отсутствие показаний не заменяется демонстрационными числами.
 
-Python Lyrics Simple использует общий MusicService: подписка действует при видимом экземпляре, подсветка следует текущей строке, нажатие на строку перематывает текущий MPRIS-плеер. Доступен также обычный текст без временных меток. Локальный upstream-файловый редактор текста песни не запускается. Пословная разметка пока не передаётся этому лицу.
+Python Lyrics Simple и полное лицо Lyrics используют общий MusicService: подписка действует при видимом экземпляре, подсветка следует текущей строке, нажатие на строку перематывает текущий MPRIS-плеер. Доступен также обычный текст без временных меток. Локальный LRC/TXT выбирается параметром `localLyricsPath` в той же панели выбранного виджета; отдельное окно настроек Ryoku не запускается. Пословная разметка пока не передаётся этому лицу.
 
 Динамические цвета Nayori включены по умолчанию, явное отключение сохраняется для экземпляра. Для Shima доступны исходные параметры материала и темы. Дополнительное пространственное извлечение яркости обоев не подключено; текстовые шрифты, отсутствующие в системе и комплекте, используют fallback Qt. Это ограничение отображения, не подтверждение полного визуального совпадения.
 
 ## Последняя группа
 
-К трём календарным лицам ii добавлены PcBatteryBars, PcBatteryCable и ResourceFillCards; Shima — IrisDayFace; Python — MusicFaceLyricsSimple с исходным LyricsView. Добавлены проверки отсутствующих показаний, следующего события, многодневной даты, текста песни, перемотки и освобождения подписок. Общий smoke загружает весь текущий каталог.
+Добавлены 16 компонентов Shima: медиаплеер, переключатели, задачи, заметки, таймеры, экранное время, мировые часы, профиль, новости, изображение, editorial, конвертер, японская типографика, визуализатор, фигура и organic edge. В Python добавлены UserFace, NotesFace, MusicFaceLyrics и GithubFace.
+
+Задачи и заметки сохраняются отдельно для каждого экземпляра через SettingsService. Кнопки оригинальных лиц передают изменения в редактор Nayori. Таймеры используют сохранённые отметки времени: обратный отсчёт завершается, фокус переключается между работой, коротким и длинным перерывом; уведомления поступают в существующую модель Nayori. Учёт активного приложения включается явно в параметрах экранного времени, использует Niri и не считает бездействие после пяти минут.
+
+Один `ImportedWidgetRuntime` обслуживает JSON-запросы всех экземпляров: часовые пояса из zoneinfo, RSS/Atom по HTTPS, реальные GitHub contributions, локальные тексты песен и конвертацию. Ответы имеют токены поколений; удалённый или скрытый экземпляр освобождает запросы и подписки. GitHub и новости кэшируются на 15 минут, зоны — на 30 секунд. Ошибки не подменяются выдуманными данными. Конвертер использует ffmpeg или ImageMagick без shell, пишет во временный файл и публикует результат без перезаписи существующего файла.
+
+Системные действия используют SessionActions, MPRIS, PipeWire, NetworkManager и Bluetooth Nayori. Яркость требует brightnessctl, ночной свет — gammastep, эквалайзер — EasyEffects; отсутствующие инструменты отключают соответствующие действия. Game Mode здесь приостанавливает визуализаторы оболочки и не управляет сторонним игровым демоном. Изображения выбираются стандартным диалогом Qt.
+
+### Исходный отрисовщик спектра
+
+Shima сохраняет оригинальные C++ `CavaSpectrumPainter` и GLSL/QSB-эффекты. Спектр берётся из общего AudioReaction: отдельный Cava или аудиоколлектор не запускается. Органические эффекты и движение отключаются вместе с анимациями Nayori.
+
+Перед использованием визуализатора из checkout выполните из корня репозитория:
+
+```sh
+python3 scripts/build-widget-renderer.py
+```
+
+Нужны компилятор C++20, pkg-config и Qt 6 Quick с moc/qmltyperegistrar (Arch: gcc, pkgconf, qt6-declarative). Скрипт только собирает локальный модуль; оболочка и тесты не запускаются. После смены ABI Qt модуль нужно пересобрать. Установщик собирает модуль в ещё не опубликованной версии и включает его в контрольные суммы; ошибка сборки отменяет публикацию. CI также собирает модуль до проверок. Готовая `.so` зависит от машины и не хранится в Git. Исходники, лицензия и сведения об адаптере находятся в [native/README.md](../surfaces/desktop/vendor/widgets/native/README.md).
+
+### Проверки
+
+CI проверяет загрузку каталога, независимость экземпляров и восстановление настроек, CRUD задач, заметки, таймеры, ответы мировых часов, новостей и GitHub, перемотку текста песни, успешную и ошибочную конвертацию, освобождение подписок и запоздалые ответы. Python-проверки используют фикстуры и mock-команды; реальная сеть, конвертеры и устройства в них не вызываются. Регрессии сетки и раскрывающихся списков остаются в существующих наборах редактора.
+
+Локально выполнена только сборка нативного отрисовщика. Тесты, lint и запуск оболочки не выполнялись по просьбе пользователя. Результат CI ещё не получен; GPU-эффекты и физический ввод требуют отдельной проверки в разрешённой изолированной сессии.
 
 ## Оставшиеся записи
 
@@ -97,36 +121,6 @@ Python Lyrics Simple использует общий MusicService: подпис�
 | clock_california | Не перенесён | Original QML imports RoundedRectRay.js, absent from the pinned Ryoku tree. |
 | date | Алиас | Same DateWidget.qml implementation as date_default; one catalogue entry avoids duplication. |
 
-### python
+### Python и Shima
 
-| ID | Состояние | Причина |
-| --- | --- | --- |
-| UserFace | Не перенесён | Profile and sound action adapters not yet ported. |
-| NotesFace | Не перенесён | Original notes opens a separate quick-actions editor and shared file store; no instance-safe editor adapter yet. |
-| MusicFaceLyrics | Не перенесён | System/media/weather/audio data adapter not yet ported. |
-| GithubFace | Не перенесён | Original GitHub settings opens a separate Ryoku layer window; network/cache adapter not yet ported. |
-
-### shima
-
-| ID | Состояние | Причина |
-| --- | --- | --- |
-| mediaControls | Не перенесён | iRiS face requires upstream appearance/data provider; not yet adapted. |
-| controls | Не перенесён | iRiS face requires upstream appearance/data provider; not yet adapted. |
-| todo | Не перенесён | iRiS face requires upstream appearance/data provider; not yet adapted. |
-| notes | Не перенесён | iRiS face requires upstream appearance/data provider; not yet adapted. |
-| timers | Не перенесён | iRiS face requires upstream appearance/data provider; not yet adapted. |
-| screenTime | Не перенесён | iRiS face requires upstream appearance/data provider; not yet adapted. |
-| worldClock | Не перенесён | iRiS face requires upstream appearance/data provider; not yet adapted. |
-| userCard | Не перенесён | iRiS face requires upstream appearance/data provider; not yet adapted. |
-| newsTicker | Не перенесён | iRiS face requires upstream appearance/data provider; not yet adapted. |
-| customImage | Не перенесён | iRiS face requires upstream appearance/data provider; not yet adapted. |
-| editorial | Не перенесён | iRiS face requires upstream appearance/data provider; not yet adapted. |
-| imageConverter | Не перенесён | iRiS face requires upstream appearance/data provider; not yet adapted. |
-| japaneseTypography | Не перенесён | iRiS face requires upstream appearance/data provider; not yet adapted. |
-| visualizer | Не перенесён | iRiS face requires upstream appearance/data provider; not yet adapted. |
-| shape | Не перенесён | Standalone iNiR component outside Ryoku IrisRoster; its concrete renderer/settings adapter has not been ported. |
-| organicEdge | Не перенесён | Standalone iNiR component outside Ryoku IrisRoster; its concrete renderer/settings adapter has not been ported. |
-
-## Проверки CI
-
-`tests/imported-widgets.cjs` проверяет каталог, исходники, ограничения геометрии, параметры и изоляцию экземпляров. `tests/imported-widgets.py` запускает `ImportedWidgetsSmoke.qml` offscreen с временными XDG-каталогами, искусственными данными и повторным чтением настроек. Эти проверки входят в существующие unit/smoke-наборы CI. Локально они не запускались для этой группы.
+Неперенесённых записей этих двух наборов в закреплённом реестре нет. Реализация ожидает проверки CI; это не подтверждение полного визуального совпадения на живом рабочем столе.

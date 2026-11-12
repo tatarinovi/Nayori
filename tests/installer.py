@@ -197,6 +197,31 @@ class EngineTests(Fixture):
         self.assertEqual(launcher.read_text(), "custom\n")
         self.assertFalse(any("-R" in cmd for cmd in self.runner.commands))
 
+    def test_renderer_build_failure_does_not_publish_release(self):
+        build = self.source / "scripts/build-widget-renderer.py"
+        build.write_text("# fixture build hook\n")
+        self.runner.fail.add("python3")
+        with self.assertRaisesRegex(InstallError, "отрисовщик"):
+            self.engine._copy_release(["nayori"])
+        releases = self.paths.base / "releases"
+        self.assertEqual(list(releases.iterdir()), [])
+        self.assertFalse((self.paths.base / "current").exists())
+
+    def test_renderer_artifact_is_part_of_release_inventory(self):
+        build = self.source / "scripts/build-widget-renderer.py"
+        build.write_text("# fixture build hook\n")
+        original_run = self.runner.run
+        def build_fixture(argv):
+            if argv[0] == "python3" and argv[1].endswith("build-widget-renderer.py"):
+                artifact = Path(argv[1]).parent.parent / "surfaces/fixture.so"
+                artifact.write_bytes(b"fixture renderer")
+            return original_run(argv)
+        self.runner.run = build_fixture
+        release = self.engine._copy_release(["nayori"])
+        manifest = json.loads((release / "manifest.json").read_text())
+        self.assertIn("surfaces/fixture.so", manifest["files"])
+        self.assertEqual(manifest["files"]["surfaces/fixture.so"], inventory(release)["surfaces/fixture.so"])
+
     def test_copy_failure_preserves_active(self):
         self.engine.apply({"nayori"}, set())
         original = (self.paths.base / "current").readlink()

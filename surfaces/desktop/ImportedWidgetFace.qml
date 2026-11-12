@@ -21,6 +21,7 @@ Item {
     property alias loadStatus: face.status
     readonly property var widgetBridge: bridge
     readonly property var entry: ImportedWidgets.selected(spec ? spec.type : "", spec ? spec.options : null)
+    opacity: entry && entry.category === "Shima widgets" ? Math.max(0,Math.min(1,Number(bridge.options.widgetOpacity ?? 100)/100)) : 1
     FontLoader { source: Qt.resolvedUrl("vendor/widgets/assets/fonts/material-symbols/MaterialSymbolsRounded.ttf") }
     ImportedWidgetBridge {
         id: bridge

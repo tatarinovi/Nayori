@@ -114,6 +114,7 @@ IrisWidgetFace {
             Toggle {
                 glyph: "nightlight"
                 label: nayoriIrisControlsFace.translation.tr("Night light")
+                available: nayoriIrisControlsFace.nightlight.available
                 on: nayoriIrisControlsFace.nightlight.active
                 tint: nayoriIrisControlsFace.irisStyle.identity.orange
                 onToggled: nayoriIrisControlsFace.nightlight.toggle()

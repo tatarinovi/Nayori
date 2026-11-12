@@ -4,11 +4,12 @@ import "../BridgeContext.js" as BridgeContext
 
 
 import QtQuick
+import "../native" as Native
 
 
 
 
-CavaSpectrumPainter {
+Native.CavaSpectrumPainter {
     readonly property var nayoriCavaSpectrum: BridgeContext.find(typeof parent !== "undefined" ? parent : null)
 
     id: root

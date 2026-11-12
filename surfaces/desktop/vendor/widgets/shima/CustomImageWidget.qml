@@ -5,7 +5,7 @@ import "../BridgeContext.js" as BridgeContext
 
 import QtQuick
 import QtQuick.Layouts
-import Quickshell.Io
+import QtQuick.Dialogs
 import QtMultimedia
 import Qt.labs.folderlistmodel
 import Qt5Compat.GraphicalEffects as GE
@@ -665,24 +665,18 @@ AbstractBackgroundWidget {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: if (!imagePick.running) imagePick.running = true
+                onClicked: imagePick.open()
             }
         }
     }
 
-    // The desktop's own GTK chooser (the same one Nautilus and the rest of Ryoku
-    // use), rather than Qt's generic QML dialog.
-    Process {
+    // Use the host Qt chooser; persist the selected file on this instance.
+    FileDialog {
         id: imagePick
-        command: ["zenity", "--file-selection", "--title=" + nayoriCustomImageWidget.translation.tr("Choose image"),
-            "--filename=" + nayoriCustomImageWidget.directories.picturesPath + "/",
-            "--file-filter=" + nayoriCustomImageWidget.translation.tr("Media") + " | " + nayoriCustomImageWidget.images.validImageExtensions
-                .concat(nayoriCustomImageWidget.images.validVideoExtensions).map(ext => "*." + ext).join(" ")]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const path = text.trim()
-                if (path.length > 0) root.setMediaPath(path)
-            }
-        }
+        title: nayoriCustomImageWidget.translation.tr("Choose image")
+        currentFolder: "file://" + nayoriCustomImageWidget.directories.picturesPath
+        nameFilters: [nayoriCustomImageWidget.translation.tr("Media") + " (" + nayoriCustomImageWidget.images.validImageExtensions
+            .concat(nayoriCustomImageWidget.images.validVideoExtensions).map(ext => "*." + ext).join(" ") + ")"]
+        onAccepted: root.setMediaPath(nayoriCustomImageWidget.fileUtils.trimFileProtocol(selectedFile))
     }
 }

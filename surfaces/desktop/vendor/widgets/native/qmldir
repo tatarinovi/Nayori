@@ -1,0 +1,3 @@
+plugin nayori_widgets_plugin
+classname NayoriWidgetsPlugin
+typeinfo plugins.qmltypes

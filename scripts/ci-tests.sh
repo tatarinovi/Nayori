@@ -8,6 +8,7 @@ case "${1:-}" in
         python3 tests/wallpaper-scan.py
         python3 tests/cursor-theme.py
         python3 tests/calendar.py
+        python3 tests/imported-widget-worker.py
         python3 tests/system-monitor.py
         python3 tests/installer.py
         python3 tests/nayori-update.py
@@ -46,7 +47,7 @@ case "${1:-}" in
             printf '\n>>> %s\n' "$test"
             python3 "tests/$test.py"
         done
-        for fixture in DesktopContextMenu AttachedIsland WeatherGlyph PanelTooltip DesktopBlur SystemMonitor SystemPageLoad CalendarPane AppsScope Battery Clipboard NaomiPixel NayoriUpdate PolkitDialog DesktopWidgetContent StatusPopup WorkspaceMotion; do
+        for fixture in DesktopContextMenu AttachedIsland WeatherGlyph PanelTooltip DesktopBlur SystemMonitor SystemPageLoad CalendarPane AppsScope Battery Clipboard NaomiPixel NayoriUpdate PolkitDialog DesktopWidgetContent StatusPopup WorkspaceMotion WidgetRuntime; do
             log="$runtime/$fixture.log"
             timeout 20s qs -p "tests/smoke/${fixture}Smoke.qml" --no-color > "$log" 2>&1 || { cat "$log"; exit 1; }
             cat "$log"
@@ -68,6 +69,7 @@ case "${1:-}" in
                 DesktopWidgetContent) marker=DESKTOP_CONTENT_PASS ;;
                 StatusPopup) marker=STATUS_POPUP_SMOKE_PASS ;;
                 WorkspaceMotion) marker=WORKSPACE_MOTION_PASS ;;
+                WidgetRuntime) marker=WIDGET_RUNTIME_PASS ;;
             esac
             rg -q "$marker" "$log"
             if [[ "$fixture" == DesktopBlur ]]; then

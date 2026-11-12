@@ -160,7 +160,8 @@ Item {
 
                             WaveClock {
                                 id: waveClock
-                                duration: (nayoriUserFace.reducedMotion ? 0 : 800)
+                                duration: 800
+                                motionEnabled: !nayoriUserFace.reducedMotion
                                 running: actionCapsule.fillLevel > 0.0 && actionCapsule.fillLevel < 1.0
                             }
                         }

@@ -5319,7 +5319,9 @@ var entries = [
       "irisMaterial": "solid",
       "irisAppearance": {},
       "irisOpacity": 100,
-      "irisOutline": "auto"
+      "irisOutline": "auto",
+      "longBreakMinutes": 15,
+      "cyclesBeforeLongBreak": 4
     },
     "width": 300,
     "height": 210,
@@ -5340,7 +5342,9 @@ var entries = [
       "irisOpacity": "Непрозрачность материала, %",
       "irisMaterial": "Материал",
       "irisOutline": "Контур",
-      "irisAppearance": "Параметры темы Shima (JSON)"
+      "irisAppearance": "Параметры темы Shima (JSON)",
+      "longBreakMinutes": "Длинный перерыв, мин",
+      "cyclesBeforeLongBreak": "Циклов до длинного перерыва"
     },
     "choices": {
       "irisMaterial": [
@@ -5634,7 +5638,6 @@ var entries = [
       "widgetOpacity": 100,
       "x": 120,
       "y": 320,
-      "irisSize": "medium",
       "irisMaterial": "solid",
       "irisAppearance": {},
       "irisOpacity": 100,
@@ -5707,7 +5710,6 @@ var entries = [
       "useBlur": false,
       "x": 100,
       "y": 300,
-      "irisSize": "medium",
       "irisMaterial": "solid",
       "irisAppearance": {},
       "irisOpacity": 100,
@@ -5778,7 +5780,6 @@ var entries = [
       "cornerRadius": -1,
       "x": 120,
       "y": 360,
-      "irisSize": "medium",
       "irisMaterial": "solid",
       "irisAppearance": {},
       "irisOpacity": 100,
@@ -5893,7 +5894,6 @@ var entries = [
       "colorMode": "auto",
       "x": 56,
       "y": 120,
-      "irisSize": "medium",
       "irisMaterial": "solid",
       "irisAppearance": {},
       "irisOpacity": 100,
@@ -5988,7 +5988,6 @@ var entries = [
       "cornerRadius": -1,
       "x": 100,
       "y": 100,
-      "irisSize": "medium",
       "irisMaterial": "solid",
       "irisAppearance": {},
       "irisOpacity": 100,
@@ -6062,7 +6061,6 @@ var entries = [
       "useBlur": false,
       "x": 80,
       "y": 240,
-      "irisSize": "medium",
       "irisMaterial": "solid",
       "irisAppearance": {},
       "irisOpacity": 100,
@@ -6115,7 +6113,6 @@ var entries = [
     "discovery": "standalone source, absent from upstream host roster",
     "source": "shima/OrganicEdgeWidget.qml",
     "defaults": {
-      "irisSize": "medium",
       "irisMaterial": "solid",
       "irisAppearance": {},
       "enable": true,
@@ -6410,4 +6407,22 @@ function selected(type, saved) {
 function variants(type) {
     var base = entry(type)
     return base && base.family ? entries.filter(function(row) { return row.family === base.family && row.category === base.category }) : []
+}
+
+// The host owns the outer box; original Shima canvas dimensions remain options.
+function naturalBox(row, saved) {
+    var box = [row.width, row.height]
+    if (row.category !== "Shima widgets") return box
+    var opts = options(row.type, saved)
+    if (row.kind === "face") {
+        var sizes = {small:[170,170], medium:[300,210], large:[360,300]}
+        if (opts.irisSize !== row.defaults.irisSize && sizes[opts.irisSize]) box = sizes[opts.irisSize]
+    } else {
+        var width = Number(opts.contentWidth) || Number(opts.size)
+        var height = Number(opts.contentHeight) || Number(opts.size)
+        if (isFinite(width) && width > 0) box[0] = width
+        if (isFinite(height) && height > 0) box[1] = height
+    }
+    var scale = Math.max(0.1, Math.min(4, Number(opts.widgetScale || 100) / 100))
+    return [Math.round(box[0] * scale), Math.round(box[1] * scale)]
 }

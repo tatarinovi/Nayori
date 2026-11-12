@@ -144,7 +144,7 @@ PanelWindow {
     readonly property bool wantsNote: containsType("note")
     readonly property bool wantsImportedText: viewItems.some(item => ["shima_notes","shima_todo","python_GithubFace"].includes(item.type))
     readonly property bool wantsNowPlaying: containsType("nowplaying")
-    readonly property bool wantsMusic: containsType("music") || wantsNowPlaying || viewItems.some(item => item.type.startsWith("python_Music"))
+    readonly property bool wantsMusic: containsType("music") || wantsNowPlaying || viewItems.some(item => item.type.startsWith("python_Music") || item.type === "shima_mediaControls")
     readonly property var maskItems: {
         const epoch = inputEpoch
         const list = []

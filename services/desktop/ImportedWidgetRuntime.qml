@@ -41,7 +41,13 @@ QtObject {
     }
     property Audio audio: Audio {}
     property NetworkControl network: NetworkControl {}
-    property Network networkStatus: Network {}
+    property var networkConsumers: ({})
+    function networkConsumer(key, wanted) {
+        const next = Object.assign({},networkConsumers)
+        if (wanted) next[key] = true; else delete next[key]
+        networkConsumers = next
+    }
+    property Network networkStatus: Network { watching: Object.keys(root.networkConsumers).length > 0 }
     property SessionActions session: SessionActions {}
     property var inhibitWindow: null
     property IdleInhibitor inhibitor: IdleInhibitor { enabled: root.keepAwake; window: root.inhibitWindow }
@@ -50,11 +56,11 @@ QtObject {
     readonly property var source: Pw.Pipewire.defaultAudioSource
     property Pw.PwObjectTracker sourceTracker: Pw.PwObjectTracker { objects: root.source ? [root.source] : [] }
     function request(op, data, key) {
-        requestSent(op, data, key)
-        if (testMode) return
         if (requests[key] && requests[key].op === op && JSON.stringify(requests[key].data) === JSON.stringify(data)) return
         const token = ++serial
         const next = Object.assign({}, requests); next[key] = {op:op, data:data,token:token}; requests = next
+        requestSent(op, data, key)
+        if (testMode) return
         pending = pending.filter(row => row.key !== key).concat([{op:op, data:data, key:key,token:token}])
         worker.running = true
         flush()
@@ -66,7 +72,7 @@ QtObject {
     }
     function accept(key, data, token) {
         const job = requests[key]
-        if (!testMode && (!job || token !== undefined && token !== job.token)) return
+        if (!job || token !== undefined && token !== job.token) return
         if (job && job.op === "capabilities" && !data.error) capabilities = data
         if (job && job.op === "nightlight" && !data.error) nightlightActive = data.enabled
         if (data.error) workerError = data.error
@@ -97,11 +103,12 @@ QtObject {
         }
     }
     function toggleMicMute() { if (source && source.audio) source.audio.muted = !source.audio.muted }
-    function toggleDnd() { if (settings) settings.update({notificationsDndManual: !notifications.active, notificationsDndUntil:0}) }
+    function toggleDnd() { if (settings && notifications) settings.update({notificationsDndManual: !notifications.active, notificationsDndUntil:0}) }
     function toggleNightlight() { request("nightlight",{enabled:!nightlightActive},"nightlight") }
     function toggleGameMode() { if (settings) settings.update({importedWidgetGameMode:!gameMode}) }
     function toggleDarkMode() { if (settings) settings.update({colorScheme:settings.values.colorScheme === "light" ? "dark" : "light"}) }
     function playSound(path, volume, loop) {
+        if (testMode) return loop ? 2 : 1
         if (!/^reusables\/fillbutton\/(button|charge_loop)\.wav$/.test(path)) return -1
         const effect = loop ? loopSound : clickSound
         effect.stop(); effect.source = Qt.resolvedUrl("../../surfaces/desktop/vendor/widgets/assets/sounds/" + path)

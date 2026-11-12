@@ -1,11 +1,8 @@
 AbstractBackgroundWidget 1.0 AbstractBackgroundWidget.qml
 AdaptedMaterialScheme 1.0 AdaptedMaterialScheme.qml
-AngelPartialBorder 1.0 AngelPartialBorder.qml
 AudioVisualizerLayer 1.0 AudioVisualizerLayer.qml
 CavaProcess 1.0 CavaProcess.qml
 CavaSpectrum 1.0 CavaSpectrum.qml
-CookieFace 1.0 CookieFace.qml
-CookiePlate 1.0 CookiePlate.qml
 CustomImageWidget 1.0 CustomImageWidget.qml
 singleton DesktopWidgetShapes 1.0 DesktopWidgetShapes.qml
 EditorialWidget 1.0 EditorialWidget.qml
@@ -16,8 +13,6 @@ FaceDial 1.0 FaceDial.qml
 FaceFigure 1.0 FaceFigure.qml
 FaceHeader 1.0 FaceHeader.qml
 FaceText 1.0 FaceText.qml
-GlassBackground 1.0 GlassBackground.qml
-GroupButton 1.0 GroupButton.qml
 ImageConverterWidget 1.0 ImageConverterWidget.qml
 IrisAgendaFace 1.0 IrisAgendaFace.qml
 IrisArtwork 1.0 IrisArtwork.qml
@@ -62,13 +57,8 @@ OrganicEdgeWidget 1.0 OrganicEdgeWidget.qml
 singleton OrganicIdleClock 1.0 OrganicIdleClock.qml
 OrganicScreenEdge 1.0 OrganicScreenEdge.qml
 PlayerBase 1.0 PlayerBase.qml
-PopupToolTip 1.0 PopupToolTip.qml
 ProgressRing 1.0 ProgressRing.qml
-RegaliaControlFace 1.0 RegaliaControlFace.qml
-RegaliaPlate 1.0 RegaliaPlate.qml
 RippleButton 1.0 RippleButton.qml
-SelectionGroupButton 1.0 SelectionGroupButton.qml
-singleton SettingsMaterialPreset 1.0 SettingsMaterialPreset.qml
 ShapeCanvas 1.0 ShapeCanvas.qml
 ShapeWidget 1.0 ShapeWidget.qml
 SmartAppIcon 1.0 SmartAppIcon.qml
@@ -77,8 +67,8 @@ StyledDropShadow 1.0 StyledDropShadow.qml
 StyledImage 1.0 StyledImage.qml
 StyledText 1.0 StyledText.qml
 StyledToolTip 1.0 StyledToolTip.qml
-StyledToolTipContent 1.0 StyledToolTipContent.qml
 VerticalJapaneseText 1.0 VerticalJapaneseText.qml
 VisualizerWidget 1.0 VisualizerWidget.qml
 WidgetChoiceButton 1.0 WidgetChoiceButton.qml
+WidgetCommand 1.0 WidgetCommand.qml
 WidgetSurface 1.0 WidgetSurface.qml

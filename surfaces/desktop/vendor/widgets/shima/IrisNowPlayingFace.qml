@@ -94,6 +94,7 @@ IrisWidgetFace {
             implicitWidth: transport.disc
             glyph: "equalizer"
             name: nayoriIrisNowPlayingFace.translation.tr("Open equalizer")
+            enabled: !!nayoriIrisNowPlayingFace.runtime && nayoriIrisNowPlayingFace.runtime.capabilities.easyeffects === true
             onActivated: nayoriIrisNowPlayingFace.globalStates.openIrisEqualizer(root.QsWindow?.window?.screen?.name ?? "")
         }
     }

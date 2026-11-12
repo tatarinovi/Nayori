@@ -115,7 +115,7 @@ function sizeOf(item) {
     var imported = item ? importedEntry(item.type, item.options) : null
     var type = item && (BOX[item.type] || imported) ? item.type : "note"
     var size = normalizeSize(type, item && item.size)
-    var box = imported ? [imported.width, imported.height] : BOX[type][size]
+    var box = imported ? ImportedWidgets.naturalBox(imported, item.options) : BOX[type][size]
     if (imported && size === "large") box = [box[0] * 1.5, box[1] * 1.5]
     var limits = sizeLimits(type, item && item.options)
     var result = {
@@ -729,10 +729,10 @@ function memoryAmount(usedKb, totalKb) {
     if (typeof usedKb !== "number" || typeof totalKb !== "number" || !isFinite(usedKb) || !isFinite(totalKb)
             || usedKb < 0 || totalKb <= 0 || usedKb > totalKb)
         return ""
-    var totalBytes = totalKb * 1024
-    var unit = totalBytes >= 1000000000 ? 1000000000 : 1000000
-    var suffix = unit === 1000000000 ? "GB" : "MB"
-    return (usedKb * 1024 / unit).toFixed(1) + " / " + (totalBytes / unit).toFixed(1) + " " + suffix
+    // Both /proc/meminfo and SystemReader expose KiB, including GPU memory.
+    var unit = totalKb >= 1024 * 1024 ? 1024 * 1024 : 1024
+    var suffix = unit === 1024 * 1024 ? "GiB" : "MiB"
+    return (usedKb / unit).toFixed(1) + " / " + (totalKb / unit).toFixed(1) + " " + suffix
 }
 
 function percentLabel(fraction) {

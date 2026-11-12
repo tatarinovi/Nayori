@@ -78,7 +78,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "clock_digital",
@@ -156,7 +157,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "clock_nagasaki",
@@ -235,7 +237,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "clock_hori",
@@ -296,7 +299,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "clock_ios",
@@ -393,7 +397,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "nagasaki_text",
@@ -474,7 +479,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "clock_dial",
@@ -543,7 +549,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "clock_wearos",
@@ -664,7 +671,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "month_clock",
@@ -744,7 +752,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "scallop_dot_clock",
@@ -813,7 +822,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "scallop_number_clock",
@@ -882,7 +892,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "circle_pointer_clock",
@@ -947,7 +958,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "triple_ring_clock",
@@ -1010,7 +1022,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "grid_card_clock",
@@ -1067,7 +1080,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "clock_expressive_card",
@@ -1396,7 +1410,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "calendar_minimal",
@@ -1455,7 +1470,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "calendar_grid",
@@ -1513,7 +1529,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "calendar_agenda",
@@ -1554,7 +1571,8 @@
             "monday",
             "sunday"
           ]
-        }
+        },
+        "validation": "ci_pending"
       },
       {
         "id": "calendar_next_event",
@@ -1589,7 +1607,8 @@
           "showPercentage": "Процент заряда",
           "showStatus": "Состояние батареи"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "calendar_pill",
@@ -1647,7 +1666,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "calendar_upcoming_3days",
@@ -1683,7 +1703,8 @@
           "showPercentage": "Процент заряда",
           "showStatus": "Состояние батареи"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "photo",
@@ -1743,7 +1764,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "photo_1x1",
@@ -1803,7 +1825,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "photo_weather_2x1",
@@ -1917,7 +1940,8 @@
           "showPercentage": "Процент заряда",
           "showStatus": "Состояние батареи"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "pc_battery_cable",
@@ -1951,7 +1975,8 @@
           "showPercentage": "Процент заряда",
           "showStatus": "Состояние батареи"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "devices_battery_list",
@@ -2130,7 +2155,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "water_reminder",
@@ -2210,7 +2236,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "resource_ram_pill",
@@ -2270,7 +2297,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "resource_disk_pill",
@@ -2330,7 +2358,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "resource_fill_cards",
@@ -2371,7 +2400,8 @@
             "horizontal",
             "vertical"
           ]
-        }
+        },
+        "validation": "ci_pending"
       },
       {
         "id": "resource_nothing_disk",
@@ -2458,7 +2488,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "clock_type_weight",
@@ -2514,7 +2545,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "wearos_clock",
@@ -2580,7 +2612,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "clock_numeral",
@@ -2637,7 +2670,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "clock_ios_tile",
@@ -2706,7 +2740,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "clock_duo",
@@ -2763,7 +2798,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "clock_california",
@@ -2832,7 +2868,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "calendar_week_agenda",
@@ -2887,7 +2924,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "calendar_month_tall",
@@ -2942,7 +2980,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "date",
@@ -3020,7 +3059,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "calendar_date_stack",
@@ -3075,7 +3115,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "calendar_date_shapes",
@@ -3130,7 +3171,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "calendar_date_banner",
@@ -3185,7 +3227,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "photo_plain_2x1",
@@ -3238,7 +3281,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "photo_plain_1x2",
@@ -3291,7 +3335,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "photo_plain_1x1",
@@ -3344,7 +3389,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       }
     ],
     "python": [
@@ -3414,7 +3460,8 @@
             "imperial",
             "standard"
           ]
-        }
+        },
+        "validation": "ci_pending"
       },
       {
         "id": "WeatherFaceFull",
@@ -3482,7 +3529,8 @@
             "imperial",
             "standard"
           ]
-        }
+        },
+        "validation": "ci_pending"
       },
       {
         "id": "WeatherFaceCompact",
@@ -3550,7 +3598,8 @@
             "imperial",
             "standard"
           ]
-        }
+        },
+        "validation": "ci_pending"
       },
       {
         "id": "VisualizerFaceContinuous",
@@ -3614,7 +3663,8 @@
         "maxHeight": 99999.0,
         "minAspect": 0.0,
         "maxAspect": 99999.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "VisualizerFace",
@@ -3682,7 +3732,8 @@
         "maxHeight": 99999.0,
         "minAspect": 0.0,
         "maxAspect": 99999.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "UserFace",
@@ -3721,7 +3772,8 @@
           "breakMinutes": "Длительность перерыва, мин",
           "countdownSeconds": "Длительность таймера, сек"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "TempFaceCircle",
@@ -3782,7 +3834,8 @@
         "maxHeight": 600.0,
         "minAspect": 0.5,
         "maxAspect": 2.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "TempFace",
@@ -3843,7 +3896,8 @@
         "maxHeight": 400.0,
         "minAspect": 0.6,
         "maxAspect": 3.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "RamFaceCircle",
@@ -3904,7 +3958,8 @@
         "maxHeight": 600.0,
         "minAspect": 0.5,
         "maxAspect": 2.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "RamFace",
@@ -3965,7 +4020,8 @@
         "maxHeight": 400.0,
         "minAspect": 0.6,
         "maxAspect": 3.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "DiskFaceCircle",
@@ -4026,7 +4082,8 @@
         "maxHeight": 600.0,
         "minAspect": 0.5,
         "maxAspect": 2.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "DiskFace",
@@ -4087,7 +4144,8 @@
         "maxHeight": 400.0,
         "minAspect": 0.6,
         "maxAspect": 3.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "CpuFaceCircle",
@@ -4148,7 +4206,8 @@
         "maxHeight": 600.0,
         "minAspect": 0.5,
         "maxAspect": 2.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "CpuFace",
@@ -4209,7 +4268,8 @@
         "maxHeight": 400.0,
         "minAspect": 0.6,
         "maxAspect": 3.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "NotesFace",
@@ -4247,7 +4307,8 @@
           "breakMinutes": "Длительность перерыва, мин",
           "countdownSeconds": "Длительность таймера, сек"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "MusicFaceRound",
@@ -4308,7 +4369,8 @@
         "maxHeight": 1000.0,
         "minAspect": 1.0,
         "maxAspect": 1.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "MusicFaceLyricsSimple",
@@ -4354,7 +4416,8 @@
             "center",
             "right"
           ]
-        }
+        },
+        "validation": "ci_pending"
       },
       {
         "id": "MusicFaceLyrics",
@@ -4397,7 +4460,8 @@
           "breakMinutes": "Длительность перерыва, мин",
           "countdownSeconds": "Длительность таймера, сек"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "MusicFace",
@@ -4469,7 +4533,8 @@
         "maxHeight": 300.0,
         "minAspect": 2.4,
         "maxAspect": 3.2,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "ImageFaceRounded",
@@ -4533,7 +4598,8 @@
         "maxHeight": 4000.0,
         "minAspect": 0.02,
         "maxAspect": 50.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "ImageFaceRound",
@@ -4597,7 +4663,8 @@
         "maxHeight": 3000.0,
         "minAspect": 1.0,
         "maxAspect": 1.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "ImageFaceRect",
@@ -4661,7 +4728,8 @@
         "maxHeight": 4000.0,
         "minAspect": 0.02,
         "maxAspect": 50.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "GithubFace",
@@ -4703,7 +4771,8 @@
           "breakMinutes": "Длительность перерыва, мин",
           "countdownSeconds": "Длительность таймера, сек"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "ClockFaceStretched",
@@ -4764,7 +4833,8 @@
           "minBarWidth": "Минимальная ширина полосы",
           "gain": "Усиление"
         },
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "ClockFaceMinimal",
@@ -4825,7 +4895,8 @@
         "maxHeight": 600.0,
         "minAspect": 1.2,
         "maxAspect": 5.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "ClockFaceMaterialLumen",
@@ -4889,7 +4960,8 @@
         "maxHeight": 800.0,
         "minAspect": 1.0,
         "maxAspect": 1.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "ClockFaceMaterialAnalog",
@@ -4950,7 +5022,8 @@
         "maxHeight": 800.0,
         "minAspect": 1.0,
         "maxAspect": 1.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "ClockFaceMaterial",
@@ -5011,7 +5084,8 @@
         "maxHeight": 900.0,
         "minAspect": 0.7,
         "maxAspect": 1.3,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "ClockFaceDigital",
@@ -5072,7 +5146,8 @@
         "maxHeight": 700.0,
         "minAspect": 1.2,
         "maxAspect": 5.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "ClockFaceAnalog",
@@ -5133,7 +5208,8 @@
         "maxHeight": 800.0,
         "minAspect": 1.0,
         "maxAspect": 1.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "BatteryFaceCircle",
@@ -5194,7 +5270,8 @@
         "maxHeight": 600.0,
         "minAspect": 0.5,
         "maxAspect": 2.0,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       },
       {
         "id": "BatteryFace",
@@ -5255,7 +5332,8 @@
         "maxHeight": 200.0,
         "minAspect": 1.5,
         "maxAspect": 4.5,
-        "choices": {}
+        "choices": {},
+        "validation": "ci_pending"
       }
     ],
     "shima": [
@@ -5335,7 +5413,8 @@
             "always"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "weather",
@@ -5409,7 +5488,8 @@
             "always"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "mediaControls",
@@ -5468,7 +5548,8 @@
             "large"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "controls",
@@ -5525,7 +5606,8 @@
             "large"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "monthCalendar",
@@ -5602,7 +5684,8 @@
             "always"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "calendarUpcoming",
@@ -5679,7 +5762,8 @@
             "always"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "todo",
@@ -5738,7 +5822,8 @@
             "large"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "notes",
@@ -5817,7 +5902,8 @@
             "large"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "timers",
@@ -5836,7 +5922,9 @@
           "irisMaterial": "solid",
           "irisAppearance": {},
           "irisOpacity": 100,
-          "irisOutline": "auto"
+          "irisOutline": "auto",
+          "longBreakMinutes": 15,
+          "cyclesBeforeLongBreak": 4
         },
         "width": 300,
         "height": 210,
@@ -5857,7 +5945,9 @@
           "irisOpacity": "Непрозрачность материала, %",
           "irisMaterial": "Материал",
           "irisOutline": "Контур",
-          "irisAppearance": "Параметры темы Shima (JSON)"
+          "irisAppearance": "Параметры темы Shima (JSON)",
+          "longBreakMinutes": "Длинный перерыв, мин",
+          "cyclesBeforeLongBreak": "Циклов до длинного перерыва"
         },
         "choices": {
           "irisMaterial": [
@@ -5877,7 +5967,8 @@
             "large"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "screenTime",
@@ -5935,7 +6026,8 @@
             "large"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "systemMonitor",
@@ -6014,7 +6106,8 @@
             "always"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "battery",
@@ -6093,7 +6186,8 @@
             "always"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "worldClock",
@@ -6157,7 +6251,8 @@
             "large"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "dateBadge",
@@ -6235,7 +6330,8 @@
             "always"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "userCard",
@@ -6295,7 +6391,8 @@
             "large"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "uptime",
@@ -6372,7 +6469,8 @@
             "always"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "newsTicker",
@@ -6432,7 +6530,8 @@
             "large"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "customImage",
@@ -6464,7 +6563,6 @@
           "widgetOpacity": 100,
           "x": 120,
           "y": 320,
-          "irisSize": "medium",
           "irisMaterial": "solid",
           "irisAppearance": {},
           "irisOpacity": 100,
@@ -6504,7 +6602,8 @@
             "always"
           ]
         },
-        "kind": "canvas"
+        "kind": "canvas",
+        "validation": "ci_pending"
       },
       {
         "id": "editorial",
@@ -6537,7 +6636,6 @@
           "useBlur": false,
           "x": 100,
           "y": 300,
-          "irisSize": "medium",
           "irisMaterial": "solid",
           "irisAppearance": {},
           "irisOpacity": 100,
@@ -6577,7 +6675,8 @@
             "always"
           ]
         },
-        "kind": "canvas"
+        "kind": "canvas",
+        "validation": "ci_pending"
       },
       {
         "id": "imageConverter",
@@ -6608,7 +6707,6 @@
           "cornerRadius": -1,
           "x": 120,
           "y": 360,
-          "irisSize": "medium",
           "irisMaterial": "solid",
           "irisAppearance": {},
           "irisOpacity": 100,
@@ -6648,7 +6746,8 @@
             "always"
           ]
         },
-        "kind": "canvas"
+        "kind": "canvas",
+        "validation": "ci_pending"
       },
       {
         "id": "japaneseTypography",
@@ -6723,7 +6822,6 @@
           "colorMode": "auto",
           "x": 56,
           "y": 120,
-          "irisSize": "medium",
           "irisMaterial": "solid",
           "irisAppearance": {},
           "irisOpacity": 100,
@@ -6763,7 +6861,8 @@
             "always"
           ]
         },
-        "kind": "canvas"
+        "kind": "canvas",
+        "validation": "ci_pending"
       },
       {
         "id": "visualizer",
@@ -6818,7 +6917,6 @@
           "cornerRadius": -1,
           "x": 100,
           "y": 100,
-          "irisSize": "medium",
           "irisMaterial": "solid",
           "irisAppearance": {},
           "irisOpacity": 100,
@@ -6858,7 +6956,8 @@
             "always"
           ]
         },
-        "kind": "canvas"
+        "kind": "canvas",
+        "validation": "ci_pending"
       },
       {
         "id": "dayProgress",
@@ -6912,7 +7011,8 @@
             "large"
           ]
         },
-        "kind": "face"
+        "kind": "face",
+        "validation": "ci_pending"
       },
       {
         "id": "shape",
@@ -6946,7 +7046,6 @@
           "useBlur": false,
           "x": 80,
           "y": 240,
-          "irisSize": "medium",
           "irisMaterial": "solid",
           "irisAppearance": {},
           "irisOpacity": 100,
@@ -6986,7 +7085,8 @@
             "always"
           ]
         },
-        "kind": "canvas"
+        "kind": "canvas",
+        "validation": "ci_pending"
       },
       {
         "id": "organicEdge",
@@ -6999,7 +7099,6 @@
         "discovery": "standalone source, absent from upstream host roster",
         "source": "shima/OrganicEdgeWidget.qml",
         "defaults": {
-          "irisSize": "medium",
           "irisMaterial": "solid",
           "irisAppearance": {},
           "enable": true,
@@ -7094,7 +7193,8 @@
             "always"
           ]
         },
-        "kind": "canvas"
+        "kind": "canvas",
+        "validation": "ci_pending"
       }
     ]
   },
@@ -8229,7 +8329,8 @@
     {
       "path": "python/glassNesting.js",
       "source": "shell/modules/bar/barstyles/python/reusables/display/glassNesting.js",
-      "sha256": "386372d1ba6e7e3090191d53d869a5527a87c5a1a72fa9362a634b7f51ba348c"
+      "sha256": "386372d1ba6e7e3090191d53d869a5527a87c5a1a72fa9362a634b7f51ba348c",
+      "adaptedSha256": "386372d1ba6e7e3090191d53d869a5527a87c5a1a72fa9362a634b7f51ba348c"
     },
     {
       "path": "shima/FaceDial.qml",
@@ -8450,452 +8551,492 @@
     {
       "path": "shima/OrganicEdgeWidget.qml",
       "source": "inir/modules/background/widgets/OrganicEdgeWidget.qml",
-      "sha256": "fcc5a3b111e50ca13bbc07b864d5a955fefa8ff51946e61ffa627a7a13c7d45b"
+      "sha256": "fcc5a3b111e50ca13bbc07b864d5a955fefa8ff51946e61ffa627a7a13c7d45b",
+      "adaptedSha256": "0274f9176daefdc7fb06bd6812838474b08060202cb33a78054506bab2dd50af"
     },
     {
       "path": "shima/OrganicEdgeConfig.js",
       "source": "inir/modules/background/widgets/OrganicEdgeConfig.js",
-      "sha256": "e1b5f0db5887b18378991a46548e3273b7e1c0e1dca99527ce0a0bd6b72ad80f"
+      "sha256": "e1b5f0db5887b18378991a46548e3273b7e1c0e1dca99527ce0a0bd6b72ad80f",
+      "adaptedSha256": "e1b5f0db5887b18378991a46548e3273b7e1c0e1dca99527ce0a0bd6b72ad80f"
     },
     {
       "path": "shima/AdaptedMaterialScheme.qml",
       "source": "inir/modules/common/models/AdaptedMaterialScheme.qml",
-      "sha256": "3d2218ce04ada75f6965e497746bace05575a067c25cbb345fd474787c10868d"
+      "sha256": "3d2218ce04ada75f6965e497746bace05575a067c25cbb345fd474787c10868d",
+      "adaptedSha256": "0fb4b58c546a295e3a7d0a158e4c192f120204ce3cd1aebe0413723363b2cc48"
     },
     {
       "path": "shima/OrganicScreenEdge.qml",
       "source": "inir/modules/common/widgets/OrganicScreenEdge.qml",
-      "sha256": "f4f702e20c03f4ce89e1e309e79ee2ea2c5af6cbc700b972349def725ebf2fd0"
+      "sha256": "f4f702e20c03f4ce89e1e309e79ee2ea2c5af6cbc700b972349def725ebf2fd0",
+      "adaptedSha256": "57a100823a1cb9f1786ec4abe089b6f5035166e9eb8e1350f404d53b13f6d4dd"
     },
     {
       "path": "shima/OrganicAudioMotion.qml",
       "source": "inir/modules/common/widgets/OrganicAudioMotion.qml",
-      "sha256": "05398a837eed818c9c1e09c88f13075ca8a0ed6df1fa17372f3de6da59432330"
+      "sha256": "05398a837eed818c9c1e09c88f13075ca8a0ed6df1fa17372f3de6da59432330",
+      "adaptedSha256": "d592e745154e8a814616aa5eb0aad0aac2a8e65c02eb358886915b038d87a021"
     },
     {
       "path": "shima/OrganicIdleClock.qml",
       "source": "inir/modules/common/widgets/OrganicIdleClock.qml",
-      "sha256": "f9661afc0ca5dbbb34593d71300b613e01d10692eb0001a8e28308111bd77566"
+      "sha256": "f9661afc0ca5dbbb34593d71300b613e01d10692eb0001a8e28308111bd77566",
+      "adaptedSha256": "5b67394820d59640967059718338c72c20c796515771b1e144791d3e2c437163"
     },
     {
       "path": "shima/ShapeWidget.qml",
       "source": "inir/modules/background/widgets/shape/ShapeWidget.qml",
-      "sha256": "2e5ebd1b160065c77e042e0f597ab0dd8e22334ebd970105cac5f90e39331549"
+      "sha256": "2e5ebd1b160065c77e042e0f597ab0dd8e22334ebd970105cac5f90e39331549",
+      "adaptedSha256": "824cddec5a085d41f46b30b6d3484063f71c25db3c511d39d08cdb2988885629"
     },
     {
       "path": "shima/MaterialShape.qml",
       "source": "inir/modules/common/widgets/MaterialShape.qml",
-      "sha256": "997b49f1fafd99ca6406d830787d0d0c9a0e65b18404ea504dee4aca97bf696e"
+      "sha256": "997b49f1fafd99ca6406d830787d0d0c9a0e65b18404ea504dee4aca97bf696e",
+      "adaptedSha256": "9b4ae238a2614e9e6de7e7cc944e10fcf406dd72456fa14992c680566887f99d"
     },
     {
       "path": "shima/material-shapes.js",
       "source": "inir/modules/common/widgets/shapes/material-shapes.js",
-      "sha256": "93938fe29c05714a72e07c2317f3656957b3e35cbefc04737173e4a58aba575b"
+      "sha256": "93938fe29c05714a72e07c2317f3656957b3e35cbefc04737173e4a58aba575b",
+      "adaptedSha256": "3c67326d08d8b070774c342f0ee52e66cd221a2bd69ea18bedf285f5cf8997ed"
     },
     {
       "path": "shima/ShapeCanvas.qml",
       "source": "inir/modules/common/widgets/shapes/ShapeCanvas.qml",
-      "sha256": "8b846d6a074ee84f7ca4932c1a0aee708eb770bae8980c7cb43a19ebacec0811"
+      "sha256": "8b846d6a074ee84f7ca4932c1a0aee708eb770bae8980c7cb43a19ebacec0811",
+      "adaptedSha256": "906cf8502f5c4e29ab507c44a0c7d017548f0feebac8a4ef0dd2dfd61c4c8798"
     },
     {
       "path": "shima/morph.js",
       "source": "inir/modules/common/widgets/shapes/shapes/morph.js",
-      "sha256": "955593b7b220f3ee897ca138d10c64a6fc2842b59fe10d6f4205e7ce7778d6c9"
+      "sha256": "955593b7b220f3ee897ca138d10c64a6fc2842b59fe10d6f4205e7ce7778d6c9",
+      "adaptedSha256": "955593b7b220f3ee897ca138d10c64a6fc2842b59fe10d6f4205e7ce7778d6c9"
     },
     {
       "path": "shima/VisualizerWidget.qml",
       "source": "inir/modules/background/widgets/visualizer/VisualizerWidget.qml",
-      "sha256": "43fe5475b03bb746dedc73d8505727122d51f1be87830f7aad2c435484f9ce8c"
+      "sha256": "43fe5475b03bb746dedc73d8505727122d51f1be87830f7aad2c435484f9ce8c",
+      "adaptedSha256": "1f099eaaf66f880dc3727c4d2781077f748905e655df202a90c3c86c9b966283"
     },
     {
       "path": "shima/WidgetSurface.qml",
       "source": "inir/modules/background/widgets/WidgetSurface.qml",
-      "sha256": "4a15c2354068f6898bc514b4de745f4dc9c1c7ddc91f62c368eb00191dfdb031"
+      "sha256": "4a15c2354068f6898bc514b4de745f4dc9c1c7ddc91f62c368eb00191dfdb031",
+      "adaptedSha256": "f22d043f61efa0b54e5ccbcc2a5cc5591264160dae17d2d9d91970387b8f726c"
     },
     {
       "path": "shima/AudioVisualizerLayer.qml",
       "source": "inir/modules/common/widgets/AudioVisualizerLayer.qml",
-      "sha256": "d7b1025a20cbe7e21c2f4c8ed8d0c86dc879db01d8383196717b84e40950b2b2"
+      "sha256": "d7b1025a20cbe7e21c2f4c8ed8d0c86dc879db01d8383196717b84e40950b2b2",
+      "adaptedSha256": "248f6f8cc95a7929c0d60ebab0026626e2af253596318c534194ccb12ebb97e9"
     },
     {
       "path": "shima/CavaSpectrum.qml",
       "source": "inir/modules/common/widgets/CavaSpectrum.qml",
-      "sha256": "24ae584e5d1e690feec2b3458b9174b31eded78d76f3bdd97c657360387921f2"
+      "sha256": "24ae584e5d1e690feec2b3458b9174b31eded78d76f3bdd97c657360387921f2",
+      "adaptedSha256": "7fd8a879cc853f38c8a93922fbe81e55887d72e6fdedcca4fc06f56cac3d4393"
     },
     {
       "path": "shima/OrganicAudioBlob.qml",
       "source": "inir/modules/common/widgets/OrganicAudioBlob.qml",
-      "sha256": "9557fe1c7338e69fd759b87b9bd7d524cbf2989aca1bc584f2dc2f329d307d3e"
+      "sha256": "9557fe1c7338e69fd759b87b9bd7d524cbf2989aca1bc584f2dc2f329d307d3e",
+      "adaptedSha256": "511e5ddfed22b3db310d141223bc07560de8bb7a5573854df8c0153f8c283a2f"
     },
     {
       "path": "shima/JapaneseTypographyWidget.qml",
       "source": "inir/modules/background/widgets/japaneseTypography/JapaneseTypographyWidget.qml",
-      "sha256": "d39739630af3e87b83a03acebbe129f946f5dd6bd3d51a64298268f632b587f8"
+      "sha256": "d39739630af3e87b83a03acebbe129f946f5dd6bd3d51a64298268f632b587f8",
+      "adaptedSha256": "46f20f93216e1377368466cebb04a6f254ada04589d4123c36bf9bc13f9cd322"
     },
     {
       "path": "shima/JapaneseTypographyPresets.js",
       "source": "inir/modules/background/widgets/japaneseTypography/JapaneseTypographyPresets.js",
-      "sha256": "3f54dea70a54ad670373d7a807fd44ce92d264ae3fcec706fc2e543bca027fd0"
+      "sha256": "3f54dea70a54ad670373d7a807fd44ce92d264ae3fcec706fc2e543bca027fd0",
+      "adaptedSha256": "3f54dea70a54ad670373d7a807fd44ce92d264ae3fcec706fc2e543bca027fd0"
     },
     {
       "path": "shima/VerticalJapaneseText.qml",
       "source": "inir/modules/background/widgets/japaneseTypography/VerticalJapaneseText.qml",
-      "sha256": "2890fbbfeb1e7b8e965e4e3b2d3208e022a0a264f7c5781ab3c8ef2ff7d7d51a"
+      "sha256": "2890fbbfeb1e7b8e965e4e3b2d3208e022a0a264f7c5781ab3c8ef2ff7d7d51a",
+      "adaptedSha256": "6335cde6ab581f67f1b30c03710c6ab5f2a8ef571d362c8796e51dd0c9ac8523"
     },
     {
       "path": "shima/ImageConverterWidget.qml",
       "source": "inir/modules/background/widgets/imageConverter/ImageConverterWidget.qml",
-      "sha256": "59c8f9568ca9dcf68d7a1c649b176cd87f0b73c58eecb44aba396a66f15276f1"
+      "sha256": "59c8f9568ca9dcf68d7a1c649b176cd87f0b73c58eecb44aba396a66f15276f1",
+      "adaptedSha256": "e18bd08d291c8d1744876db1dd656c16375774fc807a724175705df246067861"
     },
     {
       "path": "shima/StyledToolTip.qml",
       "source": "inir/modules/common/widgets/StyledToolTip.qml",
-      "sha256": "177af1fe5049c06a2b88d83cb397a4616291f5b15fc8c8cbebd132cfeb5c1406"
-    },
-    {
-      "path": "shima/StyledToolTipContent.qml",
-      "source": "inir/modules/common/widgets/StyledToolTipContent.qml",
-      "sha256": "68231cb342c327f76f6d4d70fbd345809e1f1d56e0077027dc97847d7dac9be0"
-    },
-    {
-      "path": "shima/RegaliaPlate.qml",
-      "source": "inir/modules/common/widgets/RegaliaPlate.qml",
-      "sha256": "6a1ae9f7779f5ed93a6a7cffc3fcdf4df7a6a7a16c2aaa1672da3430ba8f7e6e"
-    },
-    {
-      "path": "shima/GlassBackground.qml",
-      "source": "inir/modules/common/widgets/GlassBackground.qml",
-      "sha256": "e010420d9b65034f206fc8dbbe316f260f359e7565d037f206001d2f054d4ec2"
-    },
-    {
-      "path": "shima/AngelPartialBorder.qml",
-      "source": "inir/modules/common/widgets/AngelPartialBorder.qml",
-      "sha256": "6d6a0ecee64b65c9b9ad4718a8e277c06fb75851f240a8aa74a4ba72c4295863"
-    },
-    {
-      "path": "shima/PopupToolTip.qml",
-      "source": "inir/modules/common/widgets/PopupToolTip.qml",
-      "sha256": "471762a8ff3958006d638c6b5c3d224b9f264c1fcf7815e6b4cf0c5ef90433ca"
+      "sha256": "177af1fe5049c06a2b88d83cb397a4616291f5b15fc8c8cbebd132cfeb5c1406",
+      "adaptedSha256": "d81bb633b7ac54ae25b041c2d08eed312b650db4e27bd3d4befee38c68195ef2"
     },
     {
       "path": "shima/MaterialLoadingIndicator.qml",
       "source": "inir/modules/common/widgets/MaterialLoadingIndicator.qml",
-      "sha256": "74abdaef2b32e839172183446b7d38a75ea4a11f733629fb4538d8c6a7dcab31"
+      "sha256": "74abdaef2b32e839172183446b7d38a75ea4a11f733629fb4538d8c6a7dcab31",
+      "adaptedSha256": "726e7672f48f22b3441c11b0b618aebb7cdfdde12f0bb2373fc51dd0dad54aa1"
     },
     {
       "path": "shima/WidgetChoiceButton.qml",
       "source": "inir/modules/background/widgets/WidgetChoiceButton.qml",
-      "sha256": "2f1ba5a8d85a462873816b17cf2b2a8922f9d3bb6f4fba511902802aff2a1c03"
-    },
-    {
-      "path": "shima/SelectionGroupButton.qml",
-      "source": "inir/modules/common/widgets/SelectionGroupButton.qml",
-      "sha256": "5c56caed98ecef3c425940d27fed60eb8d2c63138bdcd787aeac61928be768ce"
-    },
-    {
-      "path": "shima/GroupButton.qml",
-      "source": "inir/modules/common/widgets/GroupButton.qml",
-      "sha256": "65c2d858a1d6bbb6da8a422026e06aa1089aa5e4434ad53f63b581bd9080fd4a"
-    },
-    {
-      "path": "shima/CookieFace.qml",
-      "source": "inir/modules/common/widgets/CookieFace.qml",
-      "sha256": "cfa649c1d6c74889e959399da4e8cfaef18af9b7b5fb275df953be57156d1f63"
-    },
-    {
-      "path": "shima/CookiePlate.qml",
-      "source": "inir/modules/common/widgets/CookiePlate.qml",
-      "sha256": "a10d80f9d2ec8957af2eb1698cc02de2738f9b3185c03eb18f94e1a40aa74307"
+      "sha256": "2f1ba5a8d85a462873816b17cf2b2a8922f9d3bb6f4fba511902802aff2a1c03",
+      "adaptedSha256": "2b6aea858dba8fbbef17c7e44a907b9dc70e2ecf52cf58dc09849822f3ec404f"
     },
     {
       "path": "shima/rounded-polygon.js",
       "source": "inir/modules/common/widgets/shapes/shapes/rounded-polygon.js",
-      "sha256": "01235d16a014cc28842435a2a3a815dd4bcf44574ec017569393b51d8d4a9fe0"
+      "sha256": "01235d16a014cc28842435a2a3a815dd4bcf44574ec017569393b51d8d4a9fe0",
+      "adaptedSha256": "01235d16a014cc28842435a2a3a815dd4bcf44574ec017569393b51d8d4a9fe0"
     },
     {
       "path": "shima/point.js",
       "source": "inir/modules/common/widgets/shapes/shapes/point.js",
-      "sha256": "de6a7b0066347eab32045a2649f0826718b664a2131e109313ffd27ac8bc797a"
+      "sha256": "de6a7b0066347eab32045a2649f0826718b664a2131e109313ffd27ac8bc797a",
+      "adaptedSha256": "de6a7b0066347eab32045a2649f0826718b664a2131e109313ffd27ac8bc797a"
     },
     {
       "path": "shima/corner-rounding.js",
       "source": "inir/modules/common/widgets/shapes/shapes/corner-rounding.js",
-      "sha256": "a74f99183fb900e93bc761a6effc6721d104644aa2543714e84cf2d0f62520d7"
-    },
-    {
-      "path": "shima/RegaliaControlFace.qml",
-      "source": "inir/modules/common/widgets/RegaliaControlFace.qml",
-      "sha256": "3025c2ccf2ffbd08a39f729e4d325b3754e56a4efd622fac022ea1e2d43f12e0"
-    },
-    {
-      "path": "shima/SettingsMaterialPreset.qml",
-      "source": "inir/modules/common/widgets/SettingsMaterialPreset.qml",
-      "sha256": "0d1f8085f2d4ad491b9370cdfbf7ddda335a587991f44748b680f9ae445e5911"
+      "sha256": "a74f99183fb900e93bc761a6effc6721d104644aa2543714e84cf2d0f62520d7",
+      "adaptedSha256": "a74f99183fb900e93bc761a6effc6721d104644aa2543714e84cf2d0f62520d7"
     },
     {
       "path": "shima/EditorialWidget.qml",
       "source": "inir/modules/background/widgets/EditorialWidget.qml",
-      "sha256": "b92a3d43adb12225bd5105a64a7141cb515ef393265a3a56d9470ecb8a0b1a1a"
+      "sha256": "b92a3d43adb12225bd5105a64a7141cb515ef393265a3a56d9470ecb8a0b1a1a",
+      "adaptedSha256": "b9cd11ce93a531307cd9cace4e2c7e1895d1de1d8b907ec6b4589944a903bd3a"
     },
     {
       "path": "shima/CustomImageWidget.qml",
       "source": "inir/modules/background/widgets/CustomImageWidget.qml",
-      "sha256": "737d5fcf4816bc2010acdbc206a9eaac7fefdd49e6198d07131f78263e7f2652"
+      "sha256": "737d5fcf4816bc2010acdbc206a9eaac7fefdd49e6198d07131f78263e7f2652",
+      "adaptedSha256": "0516072c17deabe82aec8be9f300f76f871651bf89b53318a7d1c9c38afd0a0e"
     },
     {
       "path": "shima/StyledDropShadow.qml",
       "source": "inir/modules/common/widgets/StyledDropShadow.qml",
-      "sha256": "f2741fd52e58a6051270eddc919c2487f7e571a260aebecb10e5509ec5ee8c34"
+      "sha256": "f2741fd52e58a6051270eddc919c2487f7e571a260aebecb10e5509ec5ee8c34",
+      "adaptedSha256": "39fc1d2aa0a250be29f5ed5bae042a39c61e7c52a7b1c582e3534f9a676942f2"
     },
     {
       "path": "shima/StyledImage.qml",
       "source": "inir/modules/common/widgets/StyledImage.qml",
-      "sha256": "b18eea30fc4f646d75c06ef4b6aae2a3c384e4263c6db1de7f7e1bcb7ddd7171"
+      "sha256": "b18eea30fc4f646d75c06ef4b6aae2a3c384e4263c6db1de7f7e1bcb7ddd7171",
+      "adaptedSha256": "de4a78d8e6067939609a28b794dd91c85c451056c84d24e3e3b12ea1566d35dd"
     },
     {
       "path": "shima/IrisNewsFace.qml",
       "source": "inir/modules/iris/widgets/IrisNewsFace.qml",
-      "sha256": "29e0d6fbaf076976253cf3563f80a9ffa32a7f769a6edc81da8a189b16fc5813"
+      "sha256": "29e0d6fbaf076976253cf3563f80a9ffa32a7f769a6edc81da8a189b16fc5813",
+      "adaptedSha256": "e065a5c4c56663e10d0802a67c3feb31fd45ae1fafe7f46cff0945bc49e5715a"
     },
     {
       "path": "shima/IrisProfileFace.qml",
       "source": "inir/modules/iris/widgets/IrisProfileFace.qml",
-      "sha256": "0a65c6a5aad2f4b3685bb444eba0faee1b4a2acdef46d3c25a3dd0195e5f91ae"
+      "sha256": "0a65c6a5aad2f4b3685bb444eba0faee1b4a2acdef46d3c25a3dd0195e5f91ae",
+      "adaptedSha256": "9cc06d99a80a8d3445b135595dcf5d2d54ac4fe71ac9a76c2922117893657598"
     },
     {
       "path": "shima/FaceAction.qml",
       "source": "inir/modules/iris/widgets/FaceAction.qml",
-      "sha256": "b3c94d3b950633326911300419dfb8c096df51820e8616dbe980fd64ec83c98a"
+      "sha256": "b3c94d3b950633326911300419dfb8c096df51820e8616dbe980fd64ec83c98a",
+      "adaptedSha256": "59459884e48678f5e0c0317a31eca4a04a67cc1c66c3fafed93b81516ee54d87"
     },
     {
       "path": "shima/FaceAvatar.qml",
       "source": "inir/modules/iris/widgets/FaceAvatar.qml",
-      "sha256": "44bf40d264feeb367c051f2ab7f0d061ea561ea847533e83babce5700264897c"
+      "sha256": "44bf40d264feeb367c051f2ab7f0d061ea561ea847533e83babce5700264897c",
+      "adaptedSha256": "d0d7fd4b148737873a93c9f02a81c4c5b4d855e13f43d65e99d2d3dfad4fdad1"
     },
     {
       "path": "shima/IrisImage.qml",
       "source": "inir/modules/iris/components/IrisImage.qml",
-      "sha256": "1dc9ea7096fcefd1a6bb469e58b64b8eb7368f505afa2ea0d753708bc3ee2a28"
+      "sha256": "1dc9ea7096fcefd1a6bb469e58b64b8eb7368f505afa2ea0d753708bc3ee2a28",
+      "adaptedSha256": "7bdea3b7bf16c650ba0840b99e602dd8ba665a99f1ec7bd22633ad7942524420"
     },
     {
       "path": "shima/IrisWorldClockFace.qml",
       "source": "inir/modules/iris/widgets/IrisWorldClockFace.qml",
-      "sha256": "1f251198d3a1586e2b8467287bbe9bf3f9fd34092102862051a4b4b242b81c15"
+      "sha256": "1f251198d3a1586e2b8467287bbe9bf3f9fd34092102862051a4b4b242b81c15",
+      "adaptedSha256": "3b2e67489d2285f6141bacc128a34609d525f0c588681c98df93a39b1b23c23d"
     },
     {
       "path": "shima/IrisScreenTimeFace.qml",
       "source": "inir/modules/iris/widgets/IrisScreenTimeFace.qml",
-      "sha256": "046bb877ea9935d6969677cec6e64ec6e1bb5895ab1ca4abf058bc32de9ac2c0"
+      "sha256": "046bb877ea9935d6969677cec6e64ec6e1bb5895ab1ca4abf058bc32de9ac2c0",
+      "adaptedSha256": "fcd16a1d22123ce4609037f93955e879356edc098df2e3f0ec5aef922a8129fc"
     },
     {
       "path": "shima/IrisPieces.qml",
       "source": "inir/modules/iris/pieces/IrisPieces.qml",
-      "sha256": "b702e5f5a18d53173b92f97b5c2a6e33265b127accd5f1d40ac8827225326eed"
+      "sha256": "b702e5f5a18d53173b92f97b5c2a6e33265b127accd5f1d40ac8827225326eed",
+      "adaptedSha256": "4e37343914fabd8c9b2c078ce1a2109f49698f90ced7023f014e8896feaa1856"
     },
     {
       "path": "shima/SmartAppIcon.qml",
       "source": "inir/modules/common/widgets/SmartAppIcon.qml",
-      "sha256": "29457651dbfeb6d086a862130a4a3ec50477c005e3e575ad192d70e1f73fc959"
+      "sha256": "29457651dbfeb6d086a862130a4a3ec50477c005e3e575ad192d70e1f73fc959",
+      "adaptedSha256": "eefa8cfa219741d1c4646a05e822223f19e78f23fed4576b4a26b8c6ccebd25d"
     },
     {
       "path": "shima/FaceChoice.qml",
       "source": "inir/modules/iris/widgets/FaceChoice.qml",
-      "sha256": "d06b5847607aed8c37fa00da6e153a80e959ad555a2162cf1ec1ebabb6a6c2ae"
+      "sha256": "d06b5847607aed8c37fa00da6e153a80e959ad555a2162cf1ec1ebabb6a6c2ae",
+      "adaptedSha256": "9280c68acd478ddd5376b2ad74c31c3c0f07b94cd2874763713fe101638776b2"
     },
     {
       "path": "shima/IrisTimerFace.qml",
       "source": "inir/modules/iris/widgets/IrisTimerFace.qml",
-      "sha256": "0e675d840cb6de318cdeaacb87d3eb7dc037646bcb827d079f90f0df9669901e"
+      "sha256": "0e675d840cb6de318cdeaacb87d3eb7dc037646bcb827d079f90f0df9669901e",
+      "adaptedSha256": "f802e2ca3ef29b3268ec4dcf126cbcf66256a2ef807ef3036b247cd18258ef2d"
     },
     {
       "path": "shima/NotesWidget.qml",
       "source": "inir/modules/background/widgets/notes/NotesWidget.qml",
-      "sha256": "4c487012f046d2a6f67616a33f1e79a0635e54aea80d85e6f84333c8fde9790a"
+      "sha256": "4c487012f046d2a6f67616a33f1e79a0635e54aea80d85e6f84333c8fde9790a",
+      "adaptedSha256": "6e48cf8f173ee273497a798fb59ca1bcf5071fa10c54b66f487eb6d5dcd0975a"
     },
     {
       "path": "shima/RippleButton.qml",
       "source": "inir/modules/common/widgets/RippleButton.qml",
-      "sha256": "d16806d3e0b4b3769e88ccddc25e9ffb47d74446e5c4c70e7984a16017f487ab"
+      "sha256": "d16806d3e0b4b3769e88ccddc25e9ffb47d74446e5c4c70e7984a16017f487ab",
+      "adaptedSha256": "ea13ab1b0db1b24489f87df71d73c8fed549fa18af6518ec003156a071a66da1"
     },
     {
       "path": "shima/IrisNotesFace.qml",
       "source": "inir/modules/iris/widgets/IrisNotesFace.qml",
-      "sha256": "e55679db658a99271cd7883219608ec40813c3fb249c1d2e32e86175f041bb73"
+      "sha256": "e55679db658a99271cd7883219608ec40813c3fb249c1d2e32e86175f041bb73",
+      "adaptedSha256": "e02858b13190090ee30e8c3ae9c68c5e36416af797379409122fc1e1606157bf"
     },
     {
       "path": "shima/IrisTodoFace.qml",
       "source": "inir/modules/iris/widgets/IrisTodoFace.qml",
-      "sha256": "1cfdd27ab88955300142ae3cbd5c611c10d6d35651e51c7d051fe7156195e0be"
+      "sha256": "1cfdd27ab88955300142ae3cbd5c611c10d6d35651e51c7d051fe7156195e0be",
+      "adaptedSha256": "dc12cde2b248b863fb21b96a1e334c34ff65dfb2ffb88b63744a11b9308dec6e"
     },
     {
       "path": "shima/IrisControlsFace.qml",
       "source": "inir/modules/iris/widgets/IrisControlsFace.qml",
-      "sha256": "b1ea47f13bd872b369f271871d00b460a20c27047eb58bf1c6c1cf3928f9b4a3"
+      "sha256": "b1ea47f13bd872b369f271871d00b460a20c27047eb58bf1c6c1cf3928f9b4a3",
+      "adaptedSha256": "d39580f52ae33b28fbde1c7918dcd4cde2e44d4f46a1ba1fb501191897c3dff3"
     },
     {
       "path": "shima/IrisCapsuleSlider.qml",
       "source": "inir/modules/iris/components/IrisCapsuleSlider.qml",
-      "sha256": "059953aa952c88b51c193f37b160627678f9fb4057802568873b057cf603b38d"
+      "sha256": "059953aa952c88b51c193f37b160627678f9fb4057802568873b057cf603b38d",
+      "adaptedSha256": "38ed83879f2ea9cb0f0e4829b6b928a57827ae67fd58a9e547b68cb5355e61db"
     },
     {
       "path": "shima/IrisText.qml",
       "source": "inir/modules/iris/components/IrisText.qml",
-      "sha256": "750cedc649495ba091ac4a1379b36651b988266aaea50a8da6740a20e78d2454"
+      "sha256": "750cedc649495ba091ac4a1379b36651b988266aaea50a8da6740a20e78d2454",
+      "adaptedSha256": "169ab4847c1a5d6ab839b71f76f89a65d86b114a35c2033e175164d18f78ea5e"
     },
     {
       "path": "shima/IrisWheelIntent.qml",
       "source": "inir/modules/iris/components/IrisWheelIntent.qml",
-      "sha256": "4e4cbd6a2466fe1af49e02b976c086b80eb3c9fedc6ed4423d07fc479191e9d5"
+      "sha256": "4e4cbd6a2466fe1af49e02b976c086b80eb3c9fedc6ed4423d07fc479191e9d5",
+      "adaptedSha256": "ff21922270e12da5fe7682c5d7f67287ae81a4bdc89a2cd64ce82bad66465264"
     },
     {
       "path": "shima/IrisNowPlayingFace.qml",
       "source": "inir/modules/iris/widgets/IrisNowPlayingFace.qml",
-      "sha256": "2852acc3fbb9a1ea269cf194ce98a826c76cc829a821b4b92f898809c045bdf9"
+      "sha256": "2852acc3fbb9a1ea269cf194ce98a826c76cc829a821b4b92f898809c045bdf9",
+      "adaptedSha256": "e61b7e20258fc2f64b644d773b7da94ecbb19337c98efe59da909b635c1f090a"
     },
     {
       "path": "shima/IrisArtwork.qml",
       "source": "inir/modules/iris/components/IrisArtwork.qml",
-      "sha256": "0b373ddb1a503bbc9ad4549b448fda51d4c4221307a874fabe27ad0dd1966af2"
+      "sha256": "0b373ddb1a503bbc9ad4549b448fda51d4c4221307a874fabe27ad0dd1966af2",
+      "adaptedSha256": "5418445291db27ab69a48b69ffc5221e8b63dbd882aaf8aa0375acaf8b5039d7"
     },
     {
       "path": "shima/StringUtils.qml",
       "source": "inir/modules/common/functions/StringUtils.qml",
-      "sha256": "2618d2de2a7a5c0849db2049b267d5aa934e0debca971d57327c4ff991f8c2ff"
+      "sha256": "2618d2de2a7a5c0849db2049b267d5aa934e0debca971d57327c4ff991f8c2ff",
+      "adaptedSha256": "9ccc5c03bde646f5b5840ead849eb9b10f0c10569c925cc46342ba24dd1cea37"
     },
     {
       "path": "python/GithubFace.qml",
       "source": "shell/modules/bar/barstyles/python/widgets/faces/github/GithubFace.qml",
-      "sha256": "20e39b01f3cad6da78ecbe31a15c74b4169a842b61c3d73f282ee6c2eb25d912"
+      "sha256": "20e39b01f3cad6da78ecbe31a15c74b4169a842b61c3d73f282ee6c2eb25d912",
+      "adaptedSha256": "c24a15bc628c24944205b552c69420470896090a1a5f710804a29061de3fa1a4"
     },
     {
       "path": "python/NumberSelector.qml",
       "source": "shell/modules/bar/barstyles/python/reusables/inputs/NumberSelector.qml",
-      "sha256": "cfe2a69f0f7fdcb55150a217678197aee848c36877d5b16ecf3313e0e7d8d746"
+      "sha256": "cfe2a69f0f7fdcb55150a217678197aee848c36877d5b16ecf3313e0e7d8d746",
+      "adaptedSha256": "56d18c19269fd2b7918c6f52fcc93ec2e819786d471ddda8f6e5c7918a88f16d"
     },
     {
       "path": "python/Input.qml",
       "source": "shell/modules/bar/barstyles/python/reusables/inputs/Input.qml",
-      "sha256": "845a8bb90be2ec39dfda0927eaafdc69dcb20c7e41e23f7892b386e2f1adedc0"
+      "sha256": "845a8bb90be2ec39dfda0927eaafdc69dcb20c7e41e23f7892b386e2f1adedc0",
+      "adaptedSha256": "315c5c0dc507305fdebfc749c5d7307cc08ede17f4795e15ce2929c0687ecec9"
     },
     {
       "path": "python/ClickButton.qml",
       "source": "shell/modules/bar/barstyles/python/reusables/buttons/ClickButton.qml",
-      "sha256": "a7cf4c33eebcb433d26c8cbfd769dcbcf2a65e02f5c261ea87ad04e49cc2b301"
+      "sha256": "a7cf4c33eebcb433d26c8cbfd769dcbcf2a65e02f5c261ea87ad04e49cc2b301",
+      "adaptedSha256": "ca1caa6ea9620dda645bf8dc27cc78c61643957962a08a05ccfedfbdfdee3217"
     },
     {
       "path": "python/MusicFaceLyrics.qml",
       "source": "shell/modules/bar/barstyles/python/widgets/faces/music/MusicFaceLyrics.qml",
-      "sha256": "e5e54427c4f537b1c0086e943b13777a412b48da01d9e9426e8d3fcdcfd76ebd"
+      "sha256": "e5e54427c4f537b1c0086e943b13777a412b48da01d9e9426e8d3fcdcfd76ebd",
+      "adaptedSha256": "30c4ce8847b3de4eafed67883d6a52a80d1589d0c129ff5b1372423b9207b4b2"
     },
     {
       "path": "python/NotesFace.qml",
       "source": "shell/modules/bar/barstyles/python/widgets/faces/notes/NotesFace.qml",
-      "sha256": "8e1e3c4b90c033f345f5c1edbf22aafac0f137a7d87140a327dbb2b4a124d5e0"
+      "sha256": "8e1e3c4b90c033f345f5c1edbf22aafac0f137a7d87140a327dbb2b4a124d5e0",
+      "adaptedSha256": "c20e4aa26e054b35339e78cf1b67a013a20f35463d8e3f589aeb57412316c787"
     },
     {
       "path": "python/NotesFormat.js",
       "source": "shell/modules/bar/barstyles/python/quickactions/actions/NotesFormat.js",
-      "sha256": "9a25ed9f71defe83d4cd040bd772ddf63eb566b0aa8a60e21e9bda0ef8a5bceb"
+      "sha256": "9a25ed9f71defe83d4cd040bd772ddf63eb566b0aa8a60e21e9bda0ef8a5bceb",
+      "adaptedSha256": "9a25ed9f71defe83d4cd040bd772ddf63eb566b0aa8a60e21e9bda0ef8a5bceb"
     },
     {
       "path": "python/CloseButton.qml",
       "source": "shell/modules/bar/barstyles/python/reusables/buttons/CloseButton.qml",
-      "sha256": "be1586446f5e230690c95190f98496a28ed26540a87ce4b520d8b6961ec0b3b6"
+      "sha256": "be1586446f5e230690c95190f98496a28ed26540a87ce4b520d8b6961ec0b3b6",
+      "adaptedSha256": "39ddc7c422029a4253f2fe5b4b32e776dca7cb21b236176ada1409a83b8f8e4d"
     },
     {
       "path": "python/FlipIcon.qml",
       "source": "shell/modules/bar/barstyles/python/reusables/display/FlipIcon.qml",
-      "sha256": "50c213fd3ce5707dbe396fd739cd576731b3ff49148834bda7954ce570b54538"
+      "sha256": "50c213fd3ce5707dbe396fd739cd576731b3ff49148834bda7954ce570b54538",
+      "adaptedSha256": "a3a3ce4603cfd9daeb987293f1fbbc74d278baf722a0c4639d094734d91766cf"
     },
     {
       "path": "python/UserFace.qml",
       "source": "shell/modules/bar/barstyles/python/widgets/faces/user/UserFace.qml",
-      "sha256": "5ab56a282cebea37e9f082099b20375faf8952196c62dfd211a1ff459c4f3412"
+      "sha256": "5ab56a282cebea37e9f082099b20375faf8952196c62dfd211a1ff459c4f3412",
+      "adaptedSha256": "9abc7ace81ebcafbed8e9e3970bab9b8e38c28fcdd810ebbe020b03ac498f5d1"
     },
     {
       "path": "python/ImageBox.qml",
       "source": "shell/modules/bar/barstyles/python/reusables/display/ImageBox.qml",
-      "sha256": "c6c84c7efc49c6684b973d0b2eed6406639d61b9e78b89db8974a3dbb660a8c9"
+      "sha256": "c6c84c7efc49c6684b973d0b2eed6406639d61b9e78b89db8974a3dbb660a8c9",
+      "adaptedSha256": "1b7998096715630924d2026e40b14cb9d0059867f588c23e9b27e55d9db52417"
     },
     {
       "path": "shima/utils.js",
       "source": "inir/modules/common/widgets/shapes/shapes/utils.js",
-      "sha256": "dd470245904ec33f029f2dac0594f78f9109a4e2b8528ed663f6fd8587fcf064"
+      "sha256": "dd470245904ec33f029f2dac0594f78f9109a4e2b8528ed663f6fd8587fcf064",
+      "adaptedSha256": "dd470245904ec33f029f2dac0594f78f9109a4e2b8528ed663f6fd8587fcf064"
     },
     {
       "path": "shima/cubic.js",
       "source": "inir/modules/common/widgets/shapes/shapes/cubic.js",
-      "sha256": "ae04b6424c342568b1cb8ec95154e4e815b74524ed6c9799f9b681584b3025c7"
+      "sha256": "ae04b6424c342568b1cb8ec95154e4e815b74524ed6c9799f9b681584b3025c7",
+      "adaptedSha256": "ae04b6424c342568b1cb8ec95154e4e815b74524ed6c9799f9b681584b3025c7"
     },
     {
       "path": "shima/feature.js",
       "source": "inir/modules/common/widgets/shapes/shapes/feature.js",
-      "sha256": "b0f07edff41813d6037a4529e8d6653bec7f37e4a0b6d0c54285b854ed0bdc4c"
+      "sha256": "b0f07edff41813d6037a4529e8d6653bec7f37e4a0b6d0c54285b854ed0bdc4c",
+      "adaptedSha256": "b0f07edff41813d6037a4529e8d6653bec7f37e4a0b6d0c54285b854ed0bdc4c"
     },
     {
       "path": "shima/rounded-corner.js",
       "source": "inir/modules/common/widgets/shapes/shapes/rounded-corner.js",
-      "sha256": "de719645cf404ecd775a250f3d0708f00f168106deaaa19c9546d754e362eb88"
+      "sha256": "de719645cf404ecd775a250f3d0708f00f168106deaaa19c9546d754e362eb88",
+      "adaptedSha256": "de719645cf404ecd775a250f3d0708f00f168106deaaa19c9546d754e362eb88"
     },
     {
       "path": "shima/offset.js",
       "source": "inir/modules/common/widgets/shapes/geometry/offset.js",
-      "sha256": "5ddc6d47e7b39537da43d38eabf5809f84c28bb390b430f16e6e4eea404f99ad"
+      "sha256": "5ddc6d47e7b39537da43d38eabf5809f84c28bb390b430f16e6e4eea404f99ad",
+      "adaptedSha256": "5ddc6d47e7b39537da43d38eabf5809f84c28bb390b430f16e6e4eea404f99ad"
     },
     {
       "path": "shima/matrix.js",
       "source": "inir/modules/common/widgets/shapes/graphics/matrix.js",
-      "sha256": "d624b09f32cf4a4896de0b526a45b8dcf0cc5a8d5bf75e027ae92c567b0b2e36"
+      "sha256": "d624b09f32cf4a4896de0b526a45b8dcf0cc5a8d5bf75e027ae92c567b0b2e36",
+      "adaptedSha256": "7668784d0f9863fbfa8065626fdbb0f8be12663d516fa4cea7c9c03f99024b8f"
     },
     {
       "path": "shima/float-mapping.js",
       "source": "inir/modules/common/widgets/shapes/shapes/float-mapping.js",
-      "sha256": "90d5573a9495c146333555ff2a6c834d1f6ce6a4fdc920e0cebdfcb9ea51ac36"
+      "sha256": "90d5573a9495c146333555ff2a6c834d1f6ce6a4fdc920e0cebdfcb9ea51ac36",
+      "adaptedSha256": "90d5573a9495c146333555ff2a6c834d1f6ce6a4fdc920e0cebdfcb9ea51ac36"
     },
     {
       "path": "shima/feature-mapping.js",
       "source": "inir/modules/common/widgets/shapes/shapes/feature-mapping.js",
-      "sha256": "f9790494643c5018f608d08000907bb3b0c102463287932263988c91902f9d73"
+      "sha256": "f9790494643c5018f608d08000907bb3b0c102463287932263988c91902f9d73",
+      "adaptedSha256": "f9790494643c5018f608d08000907bb3b0c102463287932263988c91902f9d73"
     },
     {
       "path": "shima/polygon-measure.js",
       "source": "inir/modules/common/widgets/shapes/shapes/polygon-measure.js",
-      "sha256": "b3584cee5ac2440c630123b07dc38d1f3cd5e7e559301bf7bc11d8bbf28501ba"
+      "sha256": "b3584cee5ac2440c630123b07dc38d1f3cd5e7e559301bf7bc11d8bbf28501ba",
+      "adaptedSha256": "b3584cee5ac2440c630123b07dc38d1f3cd5e7e559301bf7bc11d8bbf28501ba"
     },
     {
       "path": "shima/OrganicScreenEdge.frag.qsb",
       "source": "inir/modules/common/widgets/OrganicScreenEdge.frag.qsb",
-      "sha256": "06408b53819d28706ef44a5cbb30766fa273be0941c4b74fcae0e546e6896789"
+      "sha256": "06408b53819d28706ef44a5cbb30766fa273be0941c4b74fcae0e546e6896789",
+      "adaptedSha256": "06408b53819d28706ef44a5cbb30766fa273be0941c4b74fcae0e546e6896789"
     },
     {
       "path": "shima/OrganicAudioBlob.frag.qsb",
       "source": "inir/modules/common/widgets/OrganicAudioBlob.frag.qsb",
-      "sha256": "e44118951ad8dcf818a4a67a0b3db59edf17e07b5c7542b323b665acca5d9480"
+      "sha256": "e44118951ad8dcf818a4a67a0b3db59edf17e07b5c7542b323b665acca5d9480",
+      "adaptedSha256": "e44118951ad8dcf818a4a67a0b3db59edf17e07b5c7542b323b665acca5d9480"
     },
     {
       "path": "assets/sounds/reusables/fillbutton/button.wav",
       "source": "shell/modules/bar/barstyles/python/assets/sounds/reusables/fillbutton/button.wav",
-      "sha256": "7be1ed6f4aa95c52de731a5e934ec395dcb0c1cc4613abdf13fb8e1e0d3a0ad5"
+      "sha256": "7be1ed6f4aa95c52de731a5e934ec395dcb0c1cc4613abdf13fb8e1e0d3a0ad5",
+      "adaptedSha256": "7be1ed6f4aa95c52de731a5e934ec395dcb0c1cc4613abdf13fb8e1e0d3a0ad5"
     },
     {
       "path": "assets/sounds/reusables/fillbutton/charge_loop.wav",
       "source": "shell/modules/bar/barstyles/python/assets/sounds/reusables/fillbutton/charge_loop.wav",
-      "sha256": "8904a0c4b80c2d2fd8c9a0fa72edd6c64b61c377e42c72e1d925d4e5f5560d5f"
+      "sha256": "8904a0c4b80c2d2fd8c9a0fa72edd6c64b61c377e42c72e1d925d4e5f5560d5f",
+      "adaptedSha256": "8904a0c4b80c2d2fd8c9a0fa72edd6c64b61c377e42c72e1d925d4e5f5560d5f"
     },
     {
       "path": "shima/IrisLeakPlate.frag",
       "source": "inir/modules/iris/field/IrisLeakPlate.frag",
-      "sha256": "6e0e6cce6389a12059061c9df94eb675927c95b08bb11f91858a5ea0c28d764f"
+      "sha256": "6e0e6cce6389a12059061c9df94eb675927c95b08bb11f91858a5ea0c28d764f",
+      "adaptedSha256": "6e0e6cce6389a12059061c9df94eb675927c95b08bb11f91858a5ea0c28d764f"
     },
     {
       "path": "shima/OrganicScreenEdge.frag",
       "source": "inir/modules/common/widgets/OrganicScreenEdge.frag",
-      "sha256": "699e17f9a91ca45064174d0da02bda7af279989cc133355f5ec43acde8e6f3e3"
+      "sha256": "699e17f9a91ca45064174d0da02bda7af279989cc133355f5ec43acde8e6f3e3",
+      "adaptedSha256": "699e17f9a91ca45064174d0da02bda7af279989cc133355f5ec43acde8e6f3e3"
     },
     {
       "path": "shima/OrganicAudioBlob.frag",
       "source": "inir/modules/common/widgets/OrganicAudioBlob.frag",
-      "sha256": "7046dddddffcd586bd78782aea64486e59606a5e79e32846c6c19228421d8486"
+      "sha256": "7046dddddffcd586bd78782aea64486e59606a5e79e32846c6c19228421d8486",
+      "adaptedSha256": "7046dddddffcd586bd78782aea64486e59606a5e79e32846c6c19228421d8486"
+    },
+    {
+      "path": "native/cavaspectrum.cpp",
+      "source": "ryoku/shell/plugin/cavaspectrum.cpp",
+      "sha256": "229f2296653088932d217b1bbf7fe3e51817f4c77b4eb299b35203ab3f26c042",
+      "adaptedSha256": "229f2296653088932d217b1bbf7fe3e51817f4c77b4eb299b35203ab3f26c042",
+      "license": "GPL-3.0-only",
+      "adaptation": "Unchanged original C++ spectrum painter; registered by the Nayori directory plugin."
+    },
+    {
+      "path": "native/cavaspectrum.hpp",
+      "source": "ryoku/shell/plugin/cavaspectrum.hpp",
+      "sha256": "4e557455a3320b2a8f904d70ba885d9ce946e7379d4f8fad86baf2948e2bc199",
+      "adaptedSha256": "4e557455a3320b2a8f904d70ba885d9ce946e7379d4f8fad86baf2948e2bc199",
+      "license": "GPL-3.0-only",
+      "adaptation": "Unchanged original C++ spectrum painter; registered by the Nayori directory plugin."
     }
   ],
   "additionalSources": [
@@ -8911,6 +9052,81 @@
       "path": "PythonTranslations.js",
       "source": "Python assets/languages/en.json and ru.json",
       "license": "AGPL-3.0-or-later"
+    },
+    {
+      "path": "native/plugin.cpp",
+      "license": "GPL-3.0-only",
+      "adaptedSha256": "52e2cc5e8a34e9dcbaad986c723389cf746028df4f44cf0e51d08e7ecc88235e",
+      "source": "Nayori host adapter; qmltypes generated from the original header by Qt qmltyperegistrar."
+    },
+    {
+      "path": "native/qmldir",
+      "license": "GPL-3.0-only",
+      "adaptedSha256": "1cace6c84880cd398309d7f12875236760e0986181266156868875f6097f5dbe",
+      "source": "Nayori host adapter; qmltypes generated from the original header by Qt qmltyperegistrar."
+    },
+    {
+      "path": "native/plugins.qmltypes",
+      "license": "GPL-3.0-only",
+      "adaptedSha256": "3fdcfd4e7e8d6a2a496092a3adf7c2fd5007ad3e730d07a2a3fab0ec058f752d",
+      "source": "Nayori host adapter; qmltypes generated from the original header by Qt qmltyperegistrar."
     }
-  ]
+  ],
+  "hostAdapters": [
+    {
+      "path": "ii/AbstractBackgroundWidget.qml",
+      "adaptedSha256": "1310c45b14091b28c94d6bcfc4488ea3dc0768e55682eb734d44461a4ab64700",
+      "license": "GPL-3.0-only",
+      "note": "Nayori host seam; the shell supplies instance data, actions and surface lifecycle."
+    },
+    {
+      "path": "python/LyricsPicker.qml",
+      "adaptedSha256": "3635a362549a42c7e05a0dbd11c595992e89ece1a3948b270a14c287aba8ab27",
+      "license": "GPL-3.0-only",
+      "note": "Nayori host seam; the shell supplies instance data, actions and surface lifecycle."
+    },
+    {
+      "path": "shima/AbstractBackgroundWidget.qml",
+      "adaptedSha256": "5667f38757f1c1c2e812e966e1bf6ee8a14055360b04fb0f7afd0d2b585b3626",
+      "license": "GPL-3.0-only",
+      "note": "Nayori host seam; the shell supplies instance data, actions and surface lifecycle."
+    },
+    {
+      "path": "shima/CavaProcess.qml",
+      "adaptedSha256": "869848e9f309a1755606a530a75bf2fa56a0d90a9c64c08bdc0351e302b89af7",
+      "license": "GPL-3.0-only",
+      "note": "Nayori host seam; the shell supplies instance data, actions and surface lifecycle."
+    },
+    {
+      "path": "shima/DesktopWidgetShapes.qml",
+      "adaptedSha256": "7fa12f075d648c5172f7116dc6840b80f312b3c196941f460d901ca171c90cdd",
+      "license": "GPL-3.0-only",
+      "note": "Nayori host seam; the shell supplies instance data, actions and surface lifecycle."
+    },
+    {
+      "path": "shima/LiveLayer.qml",
+      "adaptedSha256": "fa254ebcb895602f675e2c070c4bbc78aa5980a47b7f6fa901440064f039da99",
+      "license": "GPL-3.0-only",
+      "note": "Nayori host seam; the shell supplies instance data, actions and surface lifecycle."
+    },
+    {
+      "path": "shima/MediaArtworkResolver.qml",
+      "adaptedSha256": "5bea2152d9fb1c92f5ad09528912e57ffd9f487883203e7c9bb82092003dfddb",
+      "license": "GPL-3.0-only",
+      "note": "Nayori host seam; the shell supplies instance data, actions and surface lifecycle."
+    },
+    {
+      "path": "shima/PlayerBase.qml",
+      "adaptedSha256": "0da164c3f55e16514b900d0547451b22e9625955970a58da67dc219e43e2eede",
+      "license": "GPL-3.0-only",
+      "note": "Nayori host seam; the shell supplies instance data, actions and surface lifecycle."
+    },
+    {
+      "path": "shima/WidgetCommand.qml",
+      "adaptedSha256": "f57c5664cb0a339071442eca9e82e8a39e4b0f985c1a3b2957c276c2f145d27d",
+      "license": "GPL-3.0-only",
+      "note": "Nayori host seam; the shell supplies instance data, actions and surface lifecycle."
+    }
+  ],
+  "validation": "CI pending; native painter compiled locally. No local tests, lint or shell launch by user instruction."
 }

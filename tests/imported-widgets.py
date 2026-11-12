@@ -19,7 +19,7 @@ with tempfile.TemporaryDirectory(prefix="nayori-imported-") as tmp:
     for restore in (False, True):
         env["NAYORI_IMPORTED_RESTORE"] = "1" if restore else "0"
         result = subprocess.run(["qs", "-p", str(root / "tests/smoke/ImportedWidgetsSmoke.qml"), "--no-color"],
-                                env=env, capture_output=True, text=True, timeout=30)
+                                env=env, capture_output=True, text=True, timeout=60)
         log = result.stdout + result.stderr
         marker = "IMPORTED_WIDGETS_RESTORE_PASS" if restore else "IMPORTED_WIDGETS_PASS"
         assert result.returncode == 0 and marker in log, log

@@ -69,3 +69,28 @@ assert.equal(selected.type, 'python_ClockFaceAnalog')
 assert.equal(imported.selected('python_ClockFaceDigital', {variant: 'ii_quote'}).type, 'python_ClockFaceDigital')
 const analogBox = layout.sizeOf({type: 'python_ClockFaceDigital', options: {variant: 'python_ClockFaceAnalog'}, width: 300, height: 100})
 assert.equal(analogBox.width, analogBox.height)
+// Entire Shima/Python inventory is implemented; execution is verified by CI.
+assert.equal(imported.entries.filter(row => row.category === 'Shima widgets').length, 25)
+assert.equal(imported.entries.filter(row => row.category === 'Python widgets').length, 32)
+for (const group of ['shima', 'python']) assert.ok(manifest.inventory[group].every(row => row.status === 'ported'))
+for (const type of ['shima_todo','shima_timers','shima_notes','shima_worldClock','shima_newsTicker',
+    'shima_imageConverter','shima_visualizer','shima_organicEdge',
+    'python_UserFace','python_NotesFace','python_MusicFaceLyrics','python_GithubFace']) assert.ok(ids.includes(type), type)
+const customBox = layout.sizeOf({type:'shima_visualizer', options:{contentWidth:240,contentHeight:120,widgetScale:150}})
+assert.equal(customBox.width, 360)
+assert.equal(customBox.height, 180)
+const taskOptions = {tasks:[{id:'one',content:'A',done:false}],timerState:{focus:{running:true,startedAt:123456}},future:{key:7}}
+const stored = layout.normalize(JSON.parse(JSON.stringify({'DP-1':{snap:true,items:[{id:'one',type:'shima_todo',x:24,y:48,options:taskOptions}]}})))
+assert.deepEqual(plain(stored['DP-1'].items[0].options), taskOptions)
+// Every vendored source and modification must match its provenance record.
+const crypto = require('node:crypto')
+for (const record of [...manifest.files, ...manifest.hostAdapters]) {
+    const content = fs.readFileSync('surfaces/desktop/vendor/widgets/' + record.path)
+    assert.equal(crypto.createHash('sha256').update(content).digest('hex'), record.adaptedSha256, record.path)
+}
+for (const name of ['cpp','hpp']) {
+    const record = manifest.files.find(row => row.path === 'native/cavaspectrum.' + name)
+    assert.ok(record && record.source.endsWith('cavaspectrum.' + name))
+    assert.equal(record.adaptedSha256, record.sha256, 'original C++ painter remains unchanged')
+}
+console.log('IMPORTED_WIDGETS_ADAPTERS_UNIT_PASS')

@@ -12,6 +12,8 @@
         "qt6-imageformats",
         "qt6-multimedia",
         "qt6-5compat",
+        "gcc",
+        "pkgconf",
         "python",
         "python-gobject",
         "curl",

@@ -112,3 +112,12 @@ Imported desktop widgets (modified port, 2026-11-11 / 2026-11-12)
   is beside vendor/widgets/assets/fonts/material-symbols/MaterialSymbolsRounded.ttf.
   Restricted Google Weather SVGs, SF Pro and missing Ndot/Nagasaki fonts are
   not included. Their dependent faces are not represented as completed ports.
+
+Original Shima spectrum painter
+  Files: surfaces/desktop/vendor/widgets/native/cavaspectrum.{cpp,hpp}
+  Source: Ryoku, ryoku/shell/plugin/cavaspectrum.{cpp,hpp}
+  Snapshot: 2befae30e0e1e8d370a8fdb4489e84be529af1bd
+  License: GPL v3, retained from Ryoku (see LICENSE and widgets/Ryoku-NOTICE).
+  The painter sources are unchanged. Nayori adds plugin.cpp, a local directory
+  QML registration adapter, and a build script; audio is supplied by Nayori's
+  existing AudioReaction. Source hashes are in widgets/manifest.json.

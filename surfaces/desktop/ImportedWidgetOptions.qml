@@ -13,7 +13,7 @@ Column {
     property bool showHeader: true
     readonly property var entry: spec ? ImportedWidgets.selected(spec.type, spec.options) : null
     readonly property var values: entry ? ImportedWidgets.options(entry.type, spec.options) : ({})
-    readonly property var fields: Object.keys(values).filter(key => ["enable", "x", "y", "variant", "dynamicColors", "placementStrategy", "disableAnimationOnLock", "timerState", "notes", "tasks"].indexOf(key) < 0)
+    readonly property var fields: Object.keys(values).filter(key => ["enable", "x", "y", "variant", "dynamicColors", "placementStrategy", "disableAnimationOnLock", "timerState", "notes", "tasks"].indexOf(key) < 0 && !(root.spec && root.spec.type === "shima_notes" && key === "text"))
     signal edited(var options)
     visible: entry !== null
     spacing: 8
@@ -80,6 +80,23 @@ Column {
                 tasks: !!root.spec && root.spec.type === "shima_todo"
                 items: tasks ? root.values.tasks || [] : root.values.notes || []
                 onEdited: items => root.update(tasks ? "tasks" : "notes",items)
+            }
+            TextArea {
+                objectName: "imported-shima-note-text"
+                visible: !!root.spec && root.spec.type === "shima_notes"
+                width: parent.width
+                implicitHeight: 180
+                text: root.values.text || ""
+                wrapMode: TextEdit.Wrap
+                selectByMouse: true
+                color: root.tokens.color.text
+                selectionColor: root.tokens.color.accent
+                selectedTextColor: root.tokens.color.accentText
+                font.family: root.tokens.type.body.family
+                font.pixelSize: root.tokens.settings.body
+                Accessible.name: "Текст заметки"
+                background: Rectangle { radius: root.tokens.radius.small; color: root.tokens.color.surfaceAlt }
+                onTextChanged: if (activeFocus && text !== root.values.text) root.update("text",text)
             }
             Repeater {
                 model: root.fields

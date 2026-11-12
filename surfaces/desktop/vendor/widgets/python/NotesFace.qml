@@ -58,7 +58,7 @@ Item {
     property real currentTimeTicker: 0
     Timer {
         interval: 10000
-        running: true
+        running: nayoriNotesFace.active
         repeat: true
         onTriggered: root.currentTimeTicker = Date.now()
     }

@@ -23,7 +23,7 @@ Item {
     property string irisDefaultSize: "medium"
     property var irisOptions: []
     readonly property string _configPath: "background.widgets." + configEntryName
-    readonly property real scaleFactor: 1
+    readonly property real scaleFactor: Math.max(0.1,Math.min(4,Number(_readConfigKey("widgetScale") ?? 100)/100))
     readonly property bool ryokuHosted: true
     readonly property bool ryokuStyle: false
     readonly property bool powerActive: !!hostBridge && hostBridge.active
@@ -35,8 +35,8 @@ Item {
     readonly property real scaledScreenHeight: hostBridge ? hostBridge.height : 0
     readonly property bool widgetIris: true
     readonly property bool irisFaced: irisFace !== null
-    readonly property real irisFaceWidth: 300
-    readonly property real irisFaceHeight: 210
+    readonly property real irisFaceWidth: (hostBridge.options.irisSize === "small" ? 170 : hostBridge.options.irisSize === "large" ? 360 : 300) * scaleFactor
+    readonly property real irisFaceHeight: (hostBridge.options.irisSize === "small" ? 170 : hostBridge.options.irisSize === "large" ? 300 : 210) * scaleFactor
     readonly property real irisGutter: 16
     readonly property real cornerRadiusOverride: Number(_readConfigKey("cornerRadius") ?? -1)
     readonly property real widgetCardRadius: 22
@@ -65,7 +65,7 @@ Item {
     readonly property color accentBackdrop: widgetPlateColor
     readonly property real regionBrightness: 0.2
     readonly property string colorMode: String(_readConfigKey("colorMode") || "auto")
-    readonly property real backgroundOpacity: Number(_readConfigKey("backgroundOpacity") ?? 0.16)
+    readonly property real backgroundOpacity: _readConfigKey("showBackground") === false ? 0 : Number(_readConfigKey("backgroundOpacity") ?? 0.16)
     readonly property real borderOpacity: Number(_readConfigKey("borderOpacity") ?? 0.2)
     readonly property real borderWidth: _readConfigKey("showBorder") === false ? 0 : Number(_readConfigKey("borderWidth") ?? 1)
     readonly property bool effectiveBlur: _readConfigKey("useBlur") === true

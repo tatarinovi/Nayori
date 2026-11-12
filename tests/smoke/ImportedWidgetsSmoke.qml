@@ -14,11 +14,20 @@ ShellRoot {
     property bool initialized: false
     property bool finishing: false
     property int plays: 0
+    property int converterStage: 0
     function check(ok, message) { if (!ok) { console.error("IMPORTED_WIDGETS_FAIL", message); Qt.exit(1) } }
     function find(node, predicate) {
         if (predicate(node)) return node
         for (const child of node.children || []) { const match = find(child, predicate); if (match) return match }
         return null
+    }
+    function fixtureOptions(type) {
+        if (type === "python_GithubFace") return {hostUser:"fixture"}
+        if (type === "shima_newsTicker") return {feedUrl:"https://example.org/rss"}
+        if (type === "shima_worldClock") return {timezones:["UTC"]}
+        if (type === "shima_screenTime") return {enabled:true}
+        if (type === "python_NotesFace") return {notes:[{id:"fixture",title:"Fixture note",content:"Body",updatedAt:Date.now()}]}
+        return {}
     }
     Tokens { id: theme }
     SettingsService { id: store }
@@ -94,6 +103,63 @@ ShellRoot {
         function consumer(key, wanted) { if (wanted) consumers[key] = true; else delete consumers[key] }
         function systemConsumer(key, wanted) { if (wanted) systemConsumers[key] = true; else delete systemConsumers[key] }
     }
+    QtObject {
+        id: runtime
+        property var requests: ({})
+        property var results: ({})
+        property var capabilities: ({brightness:false,nightlight:false,easyeffects:false,ffmpeg:true,magick:true})
+        property var profile: ({username:"fixture",hostname:"test-host",avatar:"",uptime:"1h"})
+        property var audio: ({sink:null,level:0,setVolume:function(value){},toggleMuted:function(){}})
+        property var source: null
+        property var bluetooth: null
+        property var notifications: ({active:false})
+        property var networkStatus: ({wifiConnected:false,ethernetConnected:false,watching:false,linked:true,wifiLabel:""})
+        property var network: ({wifiEnabled:false,setWifiEnabled:function(value){}})
+        property bool nightlightActive: false
+        property bool keepAwake: false
+        property bool gameMode: false
+        property var inhibitWindow: null
+        property int usageRevision: 0
+        property string currentAppName: "fixture"
+        property var profiles: ({})
+        property var usage: ({})
+        property var networks: ({})
+        property bool conversionFailure: false
+        signal response(string key, var data)
+        function request(op, payload, key) {
+            let data = {}
+            if (op === "zones") data = {entries:[{zone:"UTC",name:"UTC",offset:0,year:2026,month:11,day:12,hour:12,minute:0,second:0,isDay:true}]}
+            if (op === "news") data = {articles:[{title:"Fixture news",url:"https://example.org/article",source:"example.org",timestamp:"2026-11-12T12:00:00Z"}]}
+            if (op === "github") data = {contributions:[{date:"2026-01-01",count:13,level:3}],total:13}
+            if (op === "lyrics") data = {status:"synced",lines:[{t:0,text:"Local fixture"}],plainText:""}
+            if (op === "capabilities") data = capabilities
+            if (op === "command") data = {exitCode:conversionFailure ? 1 : 0,exitStatus:0}
+            requests = Object.assign({},requests,{[key]:data})
+            Qt.callLater(() => {
+                if (requests[key] === undefined) return
+                const next = Object.assign({},requests); delete next[key]; requests = next
+                results = Object.assign({},results,{[key]:data}); response(key,data)
+            })
+        }
+        function release(prefix) {
+            const jobs = Object.assign({},requests), cache = Object.assign({},results)
+            for (const key of Object.keys(jobs)) if (key.startsWith(prefix)) delete jobs[key]
+            for (const key of Object.keys(cache)) if (key.startsWith(prefix)) delete cache[key]
+            requests = jobs; results = cache
+        }
+        function profileConsumer(key,wanted) { const next = Object.assign({},profiles); if (wanted) next[key] = true; else delete next[key]; profiles = next }
+        function usageConsumer(key,wanted) { const next = Object.assign({},usage); if (wanted) next[key] = true; else delete next[key]; usage = next }
+        function networkConsumer(key,wanted) { const next = Object.assign({},networks); if (wanted) next[key] = true; else delete next[key]; networks = next }
+        function todayUsage() { return {totalSeconds:60,hourly:Array(24).fill(0),apps:{fixture:60}} }
+        function action(name) {}
+        function toggleMicMute() {}
+        function toggleDnd() {}
+        function toggleNightlight() {}
+        function toggleGameMode() {}
+        function toggleDarkMode() {}
+        function playSound(path,volume,loop) { return loop ? 2 : 1 }
+        function stopSound(handle) {}
+    }
     FloatingWindow {
         visible: true; implicitWidth: 900; implicitHeight: 700
         ImportedWidgetFace {
@@ -106,7 +172,8 @@ ShellRoot {
             weatherService: weather
             calendarStore: calendar
             audioReaction: audio
-            spec: root.current >= 0 && root.current < ImportedWidgets.entries.length ? ({type: ImportedWidgets.entries[root.current].type}) : null
+            widgetRuntime: runtime
+            spec: root.current >= 0 && root.current < ImportedWidgets.entries.length ? ({type: ImportedWidgets.entries[root.current].type, options: root.fixtureOptions(ImportedWidgets.entries[root.current].type)}) : null
         }
     }
     Timer {
@@ -135,6 +202,9 @@ ShellRoot {
                 root.check(Object.keys(audio.consumers).length === 0 && Object.keys(audio.systemConsumers).length === 0, "audio subscriptions released")
                 root.check(PythonVendor.WaveTick.clients.length === 0, "wave clients released")
                 root.check(Object.keys(fixtureMusic.consumers).length === 0, "lyrics consumers released")
+                root.check(Object.keys(runtime.profiles).length === 0 && Object.keys(runtime.usage).length === 0, "profile and usage subscriptions released")
+                root.check(Object.keys(runtime.networks).length === 0, "network watchers released")
+                root.check(Object.keys(runtime.results).length === 0, "instance I/O cache released")
                 root.check(root.failures === 0, "every catalog component loads")
                 console.log("IMPORTED_WIDGETS_PASS", ImportedWidgets.entries.length)
                 Qt.quit()
@@ -144,6 +214,62 @@ ShellRoot {
                 const row = ImportedWidgets.entries[root.current]
                 console.log("IMPORTED_WIDGET_RESULT", row.type, face.loadStatus, !!face.loadedItem, face.loadedItem ? face.loadedItem.implicitWidth : 0, face.loadedItem ? face.loadedItem.implicitHeight : 0)
                 if (!face.loadedItem) root.failures++
+                const bridge = face.widgetBridge
+                if (row.type === "shima_todo") {
+                    bridge.todo.addTask("Fixture task")
+                    root.check(bridge.options.tasks[0].content === "Fixture task", "task is stored per instance")
+                    bridge.todo.markDone(0)
+                    root.check(bridge.options.tasks[0].done, "task completion persists")
+                    bridge.todo.deleteItem(0)
+                    root.check(bridge.options.tasks.length === 0, "task deletion persists")
+                }
+                if (row.type === "shima_notes") {
+                    bridge.config.setNestedValue("background.widgets.notes.text", "Updated note")
+                    root.check(bridge.options.text === "Updated note", "original note editor updates instance")
+                }
+                if (row.type === "shima_timers") {
+                    bridge.timers.toggleStopwatch()
+                    root.check(bridge.options.timerState.stopwatch.running, "stopwatch starts per instance")
+                    bridge.timers.toggleStopwatch()
+                    root.check(!bridge.options.timerState.stopwatch.running, "stopwatch pauses")
+                    bridge.timers.stopwatchReset()
+                    root.check(bridge.options.timerState.stopwatch.elapsed === 0, "stopwatch resets")
+                }
+                if (row.type === "shima_worldClock") root.check(bridge.worldClock.entries[0].offset === 0, "world clock receives zone data")
+                if (row.type === "shima_newsTicker") root.check(bridge.news.articles[0].title === "Fixture news", "news receives RSS data")
+                if (row.type === "shima_screenTime") root.check(bridge.screenTime.getToday().totalSeconds === 60, "screen time uses shared usage")
+                if (row.type === "shima_userCard" || row.type === "python_UserFace") root.check(bridge.systemInfo.username === "fixture", "profile uses shared runtime")
+                if (row.type === "shima_controls") root.check(!bridge.nightlight.available, "missing nightlight tool stays disabled")
+                if (row.type === "python_NotesFace") root.check(face.loadedItem.notesList[0].title === "Fixture note", "Python notes receive saved collection")
+                if (row.type === "python_GithubFace") {
+                    root.check(face.loadedItem.totalContributions === 13, "GitHub uses actual contribution count")
+                    face.loadedItem.hostUser = ""
+                    root.check(face.loadedItem.totalContributions === 0 && face.loadedItem.username === "", "clearing GitHub account clears old contribution data")
+                }
+                if (row.type === "python_MusicFaceLyrics") {
+                    root.check(bridge.lyrics.lyrics[0].text === "Fixture lyric", "full lyrics use shared MusicService")
+                    let requested = false
+                    bridge.settingsRequested.connect(() => { requested = true })
+                    bridge.requestSettings()
+                    root.check(requested, "local lyrics picker opens same widget settings")
+                }
+                if (row.type === "shima_imageConverter") {
+                    root.check(typeof face.loadedItem.enqueueFiles === "function", "original converter drop action available")
+                    if (root.converterStage === 0) {
+                        face.loadedItem.enqueueFiles(["file:///tmp/fixture.png"])
+                        root.converterStage = 1
+                        return
+                    }
+                    if (root.converterStage === 1) {
+                        root.check(face.loadedItem.conversionState === "done", "converter receives successful completion")
+                        runtime.conversionFailure = true
+                        face.loadedItem.enqueueFiles(["file:///tmp/failure.png"])
+                        root.converterStage = 2
+                        return
+                    }
+                    root.check(face.loadedItem.conversionState === "error", "converter displays failed conversion")
+                    runtime.conversionFailure = false
+                }
                 if (row.type === "python_CpuFace") root.check(face.loadedItem.rawCpu === 0.42, "CPU reads existing monitor")
                 if (row.type === "python_WeatherFaceFull") root.check(face.loadedItem.weatherData.current_temp === "8", "weather reads existing response")
                 if (row.type === "shima_calendarUpcoming") root.check(face.loadedItem.events[0].title === "Calendar fixture", "agenda reads existing calendar")

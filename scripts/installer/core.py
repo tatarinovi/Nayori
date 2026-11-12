@@ -653,6 +653,13 @@ class Engine:
                 }
                 if actual != source_inventory:
                     raise InstallError(f"Копия не совпадает с источником: {name}")
+            # Build against the target Qt ABI inside the unpublished release.
+            # No QML is loaded and the running shell remains untouched.
+            renderer_build = stage / "scripts/build-widget-renderer.py"
+            if renderer_build.is_file():
+                if self.runner.run(["python3", str(renderer_build)]):
+                    raise InstallError("Не удалось собрать отрисовщик виджета спектра")
+                expected = inventory(stage)
             code, commit = self.runner.capture(
                 ["git", "-C", str(self.source), "rev-parse", "HEAD"]
             )

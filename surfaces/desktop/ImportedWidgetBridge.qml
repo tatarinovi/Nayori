@@ -88,7 +88,7 @@ Item {
             panelFamily: "iris",
             background: {widgets: ImportedWidgets.widgetDefaults(root.type, root.options)},
             appearance: {transparency: {enable: false, popups: false}},
-            iris: {appearance: Object.assign({frontend: "inir"}, root.options.irisAppearance || {}),widgets:{material:root.options.irisMaterial || "solid",outline:root.options.irisOutline || "auto",opacity:root.options.irisOpacity || 100}},
+            iris: {appearance: Object.assign({frontend: "inir"}, root.options.irisAppearance || {}),widgets:{material:root.options.irisMaterial || "solid",outline:root.options.irisOutline || "auto",opacity:root.options.irisOpacity ?? 100}},
             bar: {weather: {city: root.weatherService ? root.weatherService.city : ""}},
             lock: {centerWidget: "", showLockedText: false},
             time: {secondPrecision: true, firstDayOfWeek: 0, format: "HH:mm"}
@@ -187,13 +187,13 @@ Item {
     readonly property var brightness: instance.brightness
     readonly property var floating: ({showNotes:function(screen) { root.requestSettings() }})
     readonly property var sounds: ({playSfx:function(path,volume) { return root.runtime ? root.runtime.playSound(path,volume || 0.5,false) : -1 },playUntilStopped:function(path,volume,unused) { return root.runtime ? root.runtime.playSound(path,volume || 0.5,true) : -1 },stopSfx:function(handle) { if (root.runtime) root.runtime.stopSound(handle) }})
-    readonly property var fileUtils: ({trimFileProtocol:function(path) { return decodeURIComponent(String(path || "").replace(/^file:\/\//,"")) },fileNameForPath:function(path) { return String(path || "").split("/").pop() }})
+    readonly property var fileUtils: ({trimFileProtocol:function(path) { return String(path || "").startsWith("file://") ? decodeURIComponent(String(path).replace(/^file:\/\//,"")) : String(path || "") },fileNameForPath:function(path) { return String(path || "").split("/").pop() }})
     readonly property var images: ({validImageExtensions:["png","jpg","jpeg","webp","avif","bmp","gif","svg"],validVideoExtensions:["mp4","mkv","webm","mov"],isValidImageByName:function(path) { return /\.(png|jpe?g|webp|avif|bmp|gif|svg)$/i.test(path) },isValidVideoByName:function(path) { return /\.(mp4|mkv|webm|mov)$/i.test(path) },isValidMediaByName:function(path) { return this.isValidImageByName(path) || this.isValidVideoByName(path) }})
     readonly property var wallpaperListener: ({wallpaperUrlForScreen:function(screen) { return root.wallpaperSource }})
     readonly property var wallpapers: ({videoMotionAllowedOn:function(screen) { return root.active && !root.reducedMotion }})
     readonly property var widgetPower: ({widgetsActive:root.active,widgetsActiveForOutput:function(output) { return root.active }})
     readonly property var shellLayout: ({desktopInsets:function(screen) { return {left:0,right:0,top:0,bottom:0} }})
-    readonly property var cavaTheme: ({visualizerColors:[root.accent,root.tokens.color.secondary,root.ink]})
+    readonly property var cavaTheme: ({primaryColor:root.accent,visualizerColors:[root.accent,root.tokens.color.secondary,root.ink]})
     readonly property var uiPreferences: ({shippedText:function(value) { return value }})
     readonly property var audio: ({sink:root.runtime ? root.runtime.audio.sink : null,source:root.runtime ? root.runtime.source : null,micMuted:root.runtime && root.runtime.source && root.runtime.source.audio ? root.runtime.source.audio.muted : true,value:root.runtime ? root.runtime.audio.level : 0,setSinkVolume:function(value) { if (root.runtime) root.runtime.audio.setVolume(value) },toggleMute:function() { if (root.runtime) root.runtime.audio.toggleMuted() },toggleMicMute:function() { if (root.runtime) root.runtime.toggleMicMute() }})
     readonly property var bluetooth: ({enabled:root.runtime && root.runtime.bluetooth ? root.runtime.bluetooth.powered : false,available:root.runtime && root.runtime.bluetooth ? root.runtime.bluetooth.adapter !== null : false,activeDeviceSummary:function() { return root.runtime && root.runtime.bluetooth ? String(root.runtime.bluetooth.connectedCount) : "" },toggle:function() { if (root.runtime && root.runtime.bluetooth) root.runtime.bluetooth.setPowered(!root.runtime.bluetooth.powered) }})
@@ -303,7 +303,7 @@ Item {
         active: root.shimaRequested
         sourceComponent: IrisStyle { hostBridge: root }
     }
-    readonly property var themeTokens: ({ui: "Inter", display: "Inter", mono: "monospace", light: false, paper: root.background, paperLift: root.surface, ink: root.ink, inkDim: root.muted, inkMuted: root.muted, sun: root.accent, inkOnBone: root.background, bone: root.ink})
+    readonly property var themeTokens: ({ui: "Inter", display: "Inter", mono: "monospace", light: root.tokens.light, paper: root.background, paperLift: root.surface, ink: root.ink, inkDim: root.muted, inkMuted: root.muted, sun: root.accent, inkOnBone: root.background, bone: root.ink})
     readonly property var irisMood: ({sampled: false, factor: function() { return 1 }})
     readonly property var compositorBlur: ({usable: false})
     property LumeMath lume: LumeMath { colorUtils: colorUtilities; function screenNamed(name) { return null } }
@@ -322,7 +322,7 @@ Item {
         temperatureText: root.weatherData.temp, showLocation: root.options.showLocation !== false,
         irisSize: root.options.irisSize || "small", scaleFactor: 1, cornerRadiusOverride: -1, widgetCardRadius: 22,
         powerActive: root.active, visible: root.active, ryokuHosted: true, motionActive: root.active && !root.reducedMotion,
-        irisMaterial: root.options.irisMaterial || "solid", irisSurfaceOpacity: Math.max(0.2, Math.min(1, Number(root.options.irisOpacity || 100) / 100)), irisOutline: root.options.irisOutline || "auto", irisRim: false,
+        irisMaterial: root.options.irisMaterial || "solid", irisSurfaceOpacity: Math.max(0, Math.min(1, Number(root.options.irisOpacity ?? 100) / 100)), irisOutline: root.options.irisOutline || "auto", irisRim: false,
         inkOnLight: false, forceDarkInk: false, legibleAlways: false, regionBrightness: 0.2, regionBrightnessSpread: 0,
         irisAccent: root.dynamicColors || !root.irisStyle ? root.accent : root.irisStyle.accent, irisAccent2: root.dynamicColors || !root.irisStyle ? root.accent : root.irisStyle.secondaryAccent, irisAccent3: root.dynamicColors || !root.irisStyle ? root.accent : root.irisStyle.secondaryAccent,
         irisPlate: root.dynamicColors || !root.irisStyle ? root.surface : root.irisStyle.surface, ryokuInkOverride: Qt.color("transparent"), widgetTitleWeight: 500,
@@ -378,7 +378,7 @@ Item {
         colSecondaryActive: root.surface, colSecondaryHover: root.surface,
         colLayer1Active: root.surface, colLayer1Hover: root.surface, colOutlineVariant: root.muted, colShadow: "#66000000",
         colors: {colOnSecondaryContainer: root.ink, colTertiary: root.accent, colSecondary: root.accent, colPrimary: root.accent, colPrimaryContainer:root.surface, colTertiaryContainer:root.surface, colOnTertiaryContainer:root.ink, colSecondaryContainer: root.surface, colShadow: "#66000000"},
-        m3colors: {darkmode: true, m3shadow: "#000000", m3background: root.background, m3onSurface: root.ink, m3surface: root.surface,m3surfaceContainer:root.surface,m3secondaryContainer:root.surface,m3tertiaryContainer:root.surface, m3secondary: root.muted, m3tertiary: root.accent, m3onPrimary: root.background, m3onBackground: root.ink, m3primary: root.accent},
+        m3colors: {darkmode: !root.tokens.light, m3shadow: "#000000", m3background: root.background, m3onSurface: root.ink, m3surface: root.surface,m3surfaceContainer:root.surface,m3secondaryContainer:root.surface,m3tertiaryContainer:root.surface, m3secondary: root.muted, m3tertiary: root.accent, m3onPrimary: root.background, m3onBackground: root.ink, m3primary: root.accent},
         tintBackground: function(value) { return value }
     })
     readonly property QtObject pythonTheme: QtObject {

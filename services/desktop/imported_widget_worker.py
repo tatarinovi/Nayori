@@ -129,11 +129,11 @@ def dispatch(request):
     op = request.get('op')
     data = request.get('data', {})
     try:
-        cache_key = json.dumps([op, data], sort_keys=True)
+        cache_key = json.dumps([op, {key: value for key, value in data.items() if key != 'force'}], sort_keys=True)
         now = dt.datetime.now().timestamp()
         ttl = {'github': 900, 'news': 900, 'zones': 30}.get(op, 0)
         cached = _cache.get(cache_key)
-        result = cached[1] if cached and now - cached[0] < ttl else handle(op, data)
+        result = cached[1] if cached and not data.get('force') and now - cached[0] < ttl else handle(op, data)
         if ttl:
             if len(_cache) > 200:
                 _cache.clear()
