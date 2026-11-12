@@ -70,9 +70,10 @@ AbstractBackgroundWidget {
     }
 
     readonly property var allDayEvents: root.upcomingEvents.filter(evt => {
-        const start = new Date(evt.startDate);
-        return start.getDate() === root.focusDate.getDate() && start.getMonth() === root.focusDate.getMonth()
-            && start.getFullYear() === root.focusDate.getFullYear();
+        const dayStart = new Date(root.focusDate.getFullYear(), root.focusDate.getMonth(), root.focusDate.getDate());
+        const dayEnd = new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate() + 1);
+        return new Date(evt.startDate).getTime() < dayEnd.getTime()
+            && root.effectiveEnd(evt) > dayStart.getTime();
     })
     readonly property var dayEvents: {
         const limit = nayoriCalendarNextEventWidget.config.options.background.widgets.calendar_next_event.maxEvents ?? 0;

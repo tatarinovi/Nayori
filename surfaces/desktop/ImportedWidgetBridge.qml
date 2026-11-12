@@ -356,8 +356,8 @@ Item {
         sizes: {elevationMargin: 10}, transparency: {enable: false, popups: false},
         colors: root.colors, m3colors: root.colors.m3colors,
         cookie:{onColor:root.ink}, inir:{colBorder:root.muted}, aurora:{colTooltipBorder:root.muted,popupTransparentize:0},editorial:{glassActive:false,paperStack:false,glassBlur:0,glassOpacity:1,edge:root.muted},angel:{blurIntensity:0,blurSaturation:1,colInsetGlow:root.accent,insetGlowHeight:0,colorStrength:0,overlayOpacity:0},
-        animationCurves: {standard:[0.2,0,0,1,1,1],expressiveFastSpatial:[0.2,0,0,1,1,1],emphasized: [0.2, 0, 0, 1, 1, 1]},
-        animation: {elementMoveEnter:{duration:root.motionDuration,type:Easing.OutCubic},elementMove: {duration: root.motionDuration, type: Easing.OutCubic}, elementMoveFast: {duration: root.motionDuration, type: Easing.OutCubic, bezierCurve: [0.2, 0, 0, 1, 1, 1]}, elementMoveSnap: {duration: root.motionDuration, type: Easing.OutCubic}}
+        animationCurves: {standardDecel:[0.05,0.7,0.1,1,1,1],standard:[0.2,0,0,1,1,1],expressiveFastSpatial:[0.2,0,0,1,1,1],emphasized: [0.2, 0, 0, 1, 1, 1]},
+        animation: {scroll:{duration:root.motionDuration,type:Easing.OutCubic,bezierCurve:[0.2,0,0,1,1,1]},elementMoveEnter:{duration:root.motionDuration,type:Easing.OutCubic,bezierCurve:[0.2,0,0,1,1,1]},elementMove: {duration: root.motionDuration, type: Easing.OutCubic,bezierCurve:[0.2,0,0,1,1,1]}, elementMoveFast: {duration: root.motionDuration, type: Easing.OutCubic, bezierCurve: [0.2, 0, 0, 1, 1, 1]}, elementMoveSnap: {duration: root.motionDuration, type: Easing.OutCubic,bezierCurve:[0.2,0,0,1,1,1]}}
     })
     readonly property color ink: dynamicColors ? tokens.color.text : "#cdc4ba"
     readonly property color muted: dynamicColors ? tokens.color.textMuted : "#b0a9a0"
@@ -377,7 +377,7 @@ Item {
         colPrimaryContainer: root.surface, colOnSurface: root.ink,
         colSecondaryActive: root.surface, colSecondaryHover: root.surface,
         colLayer1Active: root.surface, colLayer1Hover: root.surface, colOutlineVariant: root.muted, colShadow: "#66000000",
-        colors: {colOnSecondaryContainer: root.ink, colTertiary: root.accent, colSecondary: root.accent, colPrimary: root.accent, colPrimaryContainer:root.surface, colTertiaryContainer:root.surface, colOnTertiaryContainer:root.ink, colSecondaryContainer: root.surface, colShadow: "#66000000"},
+        colors: {colTertiaryContainerHover:root.tokens.color.surfaceAlt,colTertiaryContainerActive:root.tokens.color.surfaceAlt,colLayer1Hover:root.tokens.color.surfaceAlt,colLayer1Active:root.tokens.color.surfaceAlt,colOnPrimary:root.background,colOnSecondary:root.background,colOnSurface:root.ink,colOnSurfaceVariant:root.muted,colSurfaceContainerHighest:root.tokens.color.surfaceAlt,colSurfaceContainerLow:root.surface,colOnSecondaryContainer: root.ink, colTertiary: root.accent, colSecondary: root.accent, colPrimary: root.accent, colPrimaryContainer:root.surface, colTertiaryContainer:root.surface, colOnTertiaryContainer:root.ink, colSecondaryContainer: root.surface, colShadow: "#66000000"},
         m3colors: {darkmode: !root.tokens.light, m3shadow: "#000000", m3background: root.background, m3onSurface: root.ink, m3surface: root.surface,m3surfaceContainer:root.surface,m3secondaryContainer:root.surface,m3tertiaryContainer:root.surface, m3secondary: root.muted, m3tertiary: root.accent, m3onPrimary: root.background, m3onBackground: root.ink, m3primary: root.accent},
         tintBackground: function(value) { return value }
     })

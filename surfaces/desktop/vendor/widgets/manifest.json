@@ -8522,7 +8522,7 @@
       "path": "ii/CalendarNextEventWidget.qml",
       "source": "stage/modules/ii/background/widgets/DateWidget/CalendarNextEventWidget.qml",
       "sha256": "e84ba0e51ac51927c9382ac90379f502947d8e7b902b8cefe97b8df113e51e87",
-      "adaptedSha256": "1a3ea9d40e3bdf71da19b652856b837d449cf83c7d6b69d0b2a6a4b3f6f4e08f"
+      "adaptedSha256": "aefd0f4791efe95412e853ac8ea67176ae93fc9b1ad843dec5763a191153e7fb"
     },
     {
       "path": "ii/CalendarAgendaWidget.qml",
