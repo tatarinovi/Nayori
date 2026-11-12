@@ -15,7 +15,7 @@ ShellRoot {
     property bool finishing: false
     property int plays: 0
     property int converterStage: 0
-    function check(ok, message) { if (!ok) { console.error("IMPORTED_WIDGETS_FAIL", message); Qt.exit(1) } }
+    function check(ok, message) { if (!ok) throw new Error(message) }
     function find(node, predicate) {
         if (predicate(node)) return node
         for (const child of node.children || []) { const match = find(child, predicate); if (match) return match }
@@ -179,6 +179,7 @@ ShellRoot {
     Timer {
         interval: 150; running: true; repeat: true
         onTriggered: {
+            try {
             if (!store.ready) return
             if (Quickshell.env("NAYORI_IMPORTED_RESTORE") === "1") {
                 const outputs = store.desktopWidgets
@@ -320,6 +321,10 @@ ShellRoot {
             if (root.current >= ImportedWidgets.entries.length) {
                 face.active = false
                 root.finishing = true
+            }
+            } catch (error) {
+                console.error("IMPORTED_WIDGETS_FAIL", root.current, error, error.stack)
+                Qt.exit(1)
             }
         }
     }

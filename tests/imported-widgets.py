@@ -18,8 +18,16 @@ with tempfile.TemporaryDirectory(prefix="nayori-imported-") as tmp:
         env.pop(name, None)
     for restore in (False, True):
         env["NAYORI_IMPORTED_RESTORE"] = "1" if restore else "0"
-        result = subprocess.run(["qs", "-p", str(root / "tests/smoke/ImportedWidgetsSmoke.qml"), "--no-color"],
-                                env=env, capture_output=True, text=True, timeout=60)
+        try:
+            result = subprocess.run(["qs", "-p", str(root / "tests/smoke/ImportedWidgetsSmoke.qml"), "--no-color"],
+                                    env=env, capture_output=True, text=True, timeout=60)
+        except subprocess.TimeoutExpired as error:
+            # subprocess keeps partial output on timeout; expose the QML failure
+            # instead of hiding it behind a Python TimeoutExpired traceback.
+            for output in (error.stdout, error.stderr):
+                if output:
+                    print(output.decode(errors="replace") if isinstance(output, bytes) else output, flush=True)
+            raise
         log = result.stdout + result.stderr
         marker = "IMPORTED_WIDGETS_RESTORE_PASS" if restore else "IMPORTED_WIDGETS_PASS"
         assert result.returncode == 0 and marker in log, log
