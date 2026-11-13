@@ -8,6 +8,8 @@ import Quickshell
 import "tokens"
 import "services/startup"
 import "surfaces/startup"
+// Register the dynamically loaded session and its imports with Quickshell's scanner.
+import "surfaces"
 
 // Render the lightweight cover before even importing the shell's services.
 // One process is enough: there is no extra daemon or IPC handoff to race.
